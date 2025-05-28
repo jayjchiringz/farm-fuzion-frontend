@@ -2,10 +2,12 @@ import { Link, useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const email = sessionStorage.getItem("user");
+  const email = localStorage.getItem("user");
 
+/*************  ✨ Windsurf Command ⭐  *************/
+/*******  fffec9f5-da34-40e5-8138-9df0ac18b0e2  *******/
   const logout = () => {
-    sessionStorage.clear();
+    localStorage.clear();
     navigate("/login");
   };
 

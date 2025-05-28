@@ -24,6 +24,6 @@ export default function App() {
 }
 
 function RedirectBasedOnAuth() {
-  const isLoggedIn = !!sessionStorage.getItem("user");
+  const isLoggedIn = !!localStorage.getItem("user");
   return <Navigate to={isLoggedIn ? "/dashboard" : "/login"} replace />;
 }

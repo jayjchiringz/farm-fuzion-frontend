@@ -5,7 +5,7 @@ interface Props {
 }
 
 export default function PrivateRoute({ children }: Props) {
-  const user = sessionStorage.getItem("user");
+  const user = localStorage.getItem("user");
 
   if (!user) {
     return <Navigate to="/login" replace />;

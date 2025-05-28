@@ -3,5 +3,6 @@
     "jsx": "react-jsx",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
+    "jsxImportSource": "react"
   }
 }

@@ -1,16 +1,29 @@
-// farm-fuzion-frontend/src/pages/Dashboard.tsx
-
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const email = localStorage.getItem("user");
-  const location = useLocation();
 
   const logout = () => {
     localStorage.clear();
     navigate("/login");
   };
+
+  const chartData = [
+    { name: "Tomatoes", quantity: 400 },
+    { name: "Maize", quantity: 300 },
+    { name: "Beans", quantity: 500 },
+    { name: "Wheat", quantity: 250 },
+  ];
 
   return (
     <div className="flex h-screen bg-brand-dark text-white font-ubuntu">
@@ -24,18 +37,18 @@ export default function Dashboard() {
             "
             src="/Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png"
             alt="Farm Fuzion Logo"
-            className="mx-auto w-72 md:w-80 lg:w-[300px] h-auto mb-4"
+            className="mx-auto w-72 md:w-80 lg:w-[300px] h-auto mb-6"
           />
         </div>
-        <nav className="flex-1 px-4 py-6 space-y-2">
-          <SidebarLink to="/dashboard" label="Dashboard" icon="🏠" active={location.pathname === "/dashboard"} />
-          <SidebarLink to="/products" label="Farm Products" icon="🚜" active={location.pathname === "/products"} />
-          <SidebarLink to="/logistics" label="Logistics" icon="🚚" active={location.pathname === "/logistics"} />
+        <nav className="flex-1 px-4 py-6 space-y-3">
+          <SidebarLink to="/dashboard" label="Dashboard" icon="🏠" />
+          <SidebarLink to="/products" label="Farm Products" icon="🚜" />
+          <SidebarLink to="/logistics" label="Logistics" icon="🚚" />
         </nav>
         <div className="p-4 border-t border-brand-dark">
           <button
             onClick={logout}
-            className="w-full bg-red-600 hover:bg-red-700 py-2 px-4 rounded text-white font-semibold transition-colors duration-300"
+            className="w-full bg-red-600 hover:bg-red-700 py-2 px-4 rounded text-white font-semibold"
           >
             🔓 Logout
           </button>
@@ -44,9 +57,7 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto bg-slate-50 text-brand-dark">
-        <h1 className="text-3xl font-bold text-brand-green mb-4">
-          Welcome, {email}
-        </h1>
+        <h1 className="text-2xl font-bold mb-4">Welcome, {email}</h1>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <Card
@@ -72,30 +83,34 @@ export default function Dashboard() {
             <StatCard label="Institutions Onboarded" value="18" />
           </div>
         </div>
+
+        <div className="mt-10">
+          <h2 className="text-xl font-bold mb-3">Top Products by Quantity</h2>
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart
+                data={chartData}
+                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="quantity" fill="#0d5b10" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </main>
     </div>
   );
 }
 
-function SidebarLink({
-  to,
-  label,
-  icon,
-  active,
-}: {
-  to: string;
-  label: string;
-  icon: string;
-  active: boolean;
-}) {
+function SidebarLink({ to, label, icon }: { to: string; label: string; icon: string }) {
   return (
     <Link
       to={to}
-      className={`block px-3 py-2 rounded transition-colors font-medium ${
-        active
-          ? "bg-brand-dark text-white"
-          : "bg-brand-green hover:bg-brand-dark"
-      }`}
+      className="block bg-brand-green hover:bg-brand-dark px-3 py-2 rounded transition-colors"
     >
       {icon} {label}
     </Link>

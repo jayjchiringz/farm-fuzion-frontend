@@ -78,3 +78,5 @@ export default function VerifyOtp() {
     </div>
   );
 }
+// This code is a React component for verifying an OTP (One-Time Password) during user authentication.
+// It includes a form where users can enter their OTP, which is then verified against the backend service.

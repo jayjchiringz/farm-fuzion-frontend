@@ -1,30 +1,41 @@
-import { Link, useNavigate } from "react-router-dom";
+// farm-fuzion-frontend/src/pages/Dashboard.tsx
+
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const email = localStorage.getItem("user");
+  const location = useLocation();
 
-/*************  ✨ Windsurf Command ⭐  *************/
-/*******  fffec9f5-da34-40e5-8138-9df0ac18b0e2  *******/
   const logout = () => {
     localStorage.clear();
     navigate("/login");
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-brand-dark text-white font-ubuntu">
       {/* Sidebar */}
-      <aside className="w-64 bg-green-800 text-white flex flex-col">
-        <div className="p-6 text-2xl font-bold border-b border-green-700">🌾 Farm Fuzion</div>
-        <nav className="flex-1 p-4 space-y-2">
-          <Link to="/dashboard" className="block hover:bg-green-700 px-3 py-2 rounded">🏠 Dashboard</Link>
-          <Link to="/products" className="block hover:bg-green-700 px-3 py-2 rounded">🚜 Farm Products</Link>
-          <Link to="/logistics" className="block hover:bg-green-700 px-3 py-2 rounded">🚚 Logistics</Link>
+      <aside className="w-64 bg-brand-green flex flex-col shadow-lg">
+        <div className="p-6 border-b border-brand-dark">
+          <img
+            srcSet="
+              /Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png 1x,
+              /Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png 2x
+            "
+            src="/Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png"
+            alt="Farm Fuzion Logo"
+            className="mx-auto w-72 md:w-80 lg:w-[300px] h-auto mb-4"
+          />
+        </div>
+        <nav className="flex-1 px-4 py-6 space-y-2">
+          <SidebarLink to="/dashboard" label="Dashboard" icon="🏠" active={location.pathname === "/dashboard"} />
+          <SidebarLink to="/products" label="Farm Products" icon="🚜" active={location.pathname === "/products"} />
+          <SidebarLink to="/logistics" label="Logistics" icon="🚚" active={location.pathname === "/logistics"} />
         </nav>
-        <div className="p-4 border-t border-green-700">
+        <div className="p-4 border-t border-brand-dark">
           <button
             onClick={logout}
-            className="w-full bg-red-500 hover:bg-red-600 py-2 px-4 rounded text-white"
+            className="w-full bg-red-600 hover:bg-red-700 py-2 px-4 rounded text-white font-semibold transition-colors duration-300"
           >
             🔓 Logout
           </button>
@@ -32,8 +43,11 @@ export default function Dashboard() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-10">
-        <div className="text-2xl font-semibold mb-6">Welcome, {email}</div>
+      <main className="flex-1 p-8 overflow-y-auto bg-slate-50 text-brand-dark">
+        <h1 className="text-3xl font-bold text-brand-green mb-4">
+          Welcome, {email}
+        </h1>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <Card
             title="Farm Products"
@@ -48,19 +62,76 @@ export default function Dashboard() {
             linkText="Go to Logistics →"
           />
         </div>
+
+        <div className="mt-10">
+          <h2 className="text-xl font-bold mb-3">Platform Snapshot</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard label="Registered Farmers" value="1,280+" />
+            <StatCard label="Farm Products" value="6,742" />
+            <StatCard label="Deliveries" value="1,205" />
+            <StatCard label="Institutions Onboarded" value="18" />
+          </div>
+        </div>
       </main>
     </div>
   );
 }
 
-function Card({ title, desc, link, linkText }: { title: string; desc: string; link: string; linkText: string }) {
+function SidebarLink({
+  to,
+  label,
+  icon,
+  active,
+}: {
+  to: string;
+  label: string;
+  icon: string;
+  active: boolean;
+}) {
   return (
-    <div className="bg-white p-6 rounded shadow">
-      <h2 className="text-lg font-semibold mb-2">{title}</h2>
-      <p>{desc}</p>
-      <Link to={link} className="text-green-700 hover:underline mt-2 inline-block">
+    <Link
+      to={to}
+      className={`block px-3 py-2 rounded transition-colors font-medium ${
+        active
+          ? "bg-brand-dark text-white"
+          : "bg-brand-green hover:bg-brand-dark"
+      }`}
+    >
+      {icon} {label}
+    </Link>
+  );
+}
+
+function Card({
+  title,
+  desc,
+  link,
+  linkText,
+}: {
+  title: string;
+  desc: string;
+  link: string;
+  linkText: string;
+}) {
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+      <h2 className="text-lg font-semibold mb-2 text-brand-dark">{title}</h2>
+      <p className="text-sm text-slate-600">{desc}</p>
+      <Link
+        to={link}
+        className="text-brand-green font-medium hover:underline mt-3 inline-block"
+      >
         {linkText}
       </Link>
+    </div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-white text-center p-4 rounded-lg shadow border">
+      <div className="text-2xl font-bold text-brand-green">{value}</div>
+      <div className="text-sm text-slate-500 mt-1">{label}</div>
     </div>
   );
 }

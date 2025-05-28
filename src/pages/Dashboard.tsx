@@ -28,8 +28,8 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen bg-brand-dark text-white font-ubuntu">
       {/* Sidebar */}
-      <aside className="w-64 bg-brand-green flex flex-col shadow-lg">
-        <div className="p-6 border-b border-brand-dark">
+      <aside className="w-64 bg-white text-brand-dark flex flex-col shadow-lg">
+        <div className="p-6 border-b border-slate-200">
           <img
             srcSet="
               /Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png 1x,
@@ -45,7 +45,7 @@ export default function Dashboard() {
           <SidebarLink to="/products" label="Farm Products" icon="🚜" />
           <SidebarLink to="/logistics" label="Logistics" icon="🚚" />
         </nav>
-        <div className="p-4 border-t border-brand-dark">
+        <div className="p-4 border-t border-slate-200">
           <button
             onClick={logout}
             className="w-full bg-red-600 hover:bg-red-700 py-2 px-4 rounded text-white font-semibold"
@@ -110,7 +110,7 @@ function SidebarLink({ to, label, icon }: { to: string; label: string; icon: str
   return (
     <Link
       to={to}
-      className="block bg-brand-green hover:bg-brand-dark px-3 py-2 rounded transition-colors"
+      className="block hover:bg-brand-dark px-3 py-2 rounded transition-colors"
     >
       {icon} {label}
     </Link>

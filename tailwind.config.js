@@ -5,10 +5,19 @@ module.exports = {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        ubuntu: ['Ubuntu', 'sans-serif'],
+        baloo: ['Baloo 2', 'cursive'],
+      },
+      colors: {
+        brand: {
+          dark: "#00231d",    // Dark Forest
+          green: "#0d5b10",   // Pakistan Green
+          apple: "#8dc71d",   // Apple Green
+        },
+      },
+    },
   },
   plugins: [],
 };
-// This configuration file is for Tailwind CSS, a utility-first CSS framework.
-// It specifies the paths to the files that Tailwind should scan for class names,
-// as well as any plugins or configurations that should be applied to the project.

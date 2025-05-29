@@ -48,7 +48,7 @@ export default function Dashboard() {
         <div className="p-4 border-t border-slate-200">
           <button
             onClick={logout}
-            className="w-full px-3 py-2 rounded font-semibold transition-colors hover:bg-brand-apple hover:text-white"
+            className="w-full px-3 py-2 rounded font-semibold transition-colors text-brand-dark hover:bg-brand-dark hover:text-brand-apple"
           >
             🔓 Logout
           </button>
@@ -57,8 +57,12 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto bg-slate-50 text-brand-dark">
-        <h1 className="text-2xl font-bold mb-4">Welcome, {email}</h1>
-
+        <h1 className="text-[46px] leading-[64px] font-bold mb-4 font-ubuntu text-brand-dark">
+          Welcome, {email}
+        </h1>
+        <p className="text-lg text-brand-green font-baloo mb-8">
+          Sustained Agri-Business
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <Card
             title="Farm Products"
@@ -75,7 +79,9 @@ export default function Dashboard() {
         </div>
 
         <div className="mt-10">
-          <h2 className="text-xl font-bold mb-3">Platform Snapshot</h2>
+          <h2 className="text-[46px] leading-[64px] font-bold mb-3 font-ubuntu text-brand-dark">
+            Platform Snapshot
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard label="Registered Farmers" value="1,280+" />
             <StatCard label="Farm Products" value="6,742" />
@@ -118,7 +124,7 @@ function SidebarLink({
   return (
     <Link
       to={to}
-      className="block px-3 py-2 rounded transition-colors hover:bg-brand-apple hover:text-white"
+      className="block px-3 py-2 rounded transition-colors text-brand-dark hover:bg-brand-dark hover:text-brand-apple"
     >
       {icon} {label}
     </Link>
@@ -139,7 +145,7 @@ function Card({
   return (
     <div className="bg-white p-6 rounded-lg shadow-md border border-slate-200">
       <h2 className="text-lg font-semibold mb-2 text-brand-dark">{title}</h2>
-      <p className="text-sm text-slate-600">{desc}</p>
+      <p className="text-sm text-brand-dark/70">{desc}</p>
       <Link
         to={link}
         className="text-brand-green font-medium hover:underline mt-3 inline-block"

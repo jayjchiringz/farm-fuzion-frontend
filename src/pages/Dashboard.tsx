@@ -13,17 +13,17 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const email = localStorage.getItem("user");
 
-  const logout = () => {
-    localStorage.clear();
-    navigate("/login");
-  };
-
   const chartData = [
     { name: "Tomatoes", quantity: 400 },
     { name: "Maize", quantity: 300 },
     { name: "Beans", quantity: 500 },
     { name: "Wheat", quantity: 250 },
   ];
+
+  const logout = () => {
+    localStorage.clear();
+    navigate("/login");
+  };
 
   return (
     <div className="flex h-screen bg-brand-dark text-white font-ubuntu">
@@ -48,7 +48,7 @@ export default function Dashboard() {
         <div className="p-4 border-t border-slate-200">
           <button
             onClick={logout}
-            className="w-full bg-red-600 hover:bg-red-700 py-2 px-4 rounded text-white font-semibold"
+            className="w-full px-3 py-2 rounded font-semibold transition-colors hover:bg-brand-apple hover:text-white"
           >
             🔓 Logout
           </button>
@@ -106,7 +106,15 @@ export default function Dashboard() {
   );
 }
 
-function SidebarLink({ to, label, icon }: { to: string; label: string; icon: string }) {
+function SidebarLink({
+  to,
+  label,
+  icon,
+}: {
+  to: string;
+  label: string;
+  icon: string;
+}) {
   return (
     <Link
       to={to}

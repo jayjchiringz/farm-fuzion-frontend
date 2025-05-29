@@ -8,7 +8,6 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import { useEffect, useState } from "react";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -26,31 +25,23 @@ export default function Dashboard() {
     navigate("/login");
   };
 
-  // Theme toggle
-  const [isDark, setIsDark] = useState(() =>
-    document.documentElement.classList.contains("dark")
-  );
-
   const toggleTheme = () => {
-    document.documentElement.classList.toggle("dark");
-    setIsDark(!isDark);
-    localStorage.setItem("theme", !isDark ? "dark" : "light");
+    const html = document.documentElement;
+    html.classList.toggle("dark");
+    const isDark = html.classList.contains("dark");
+    localStorage.setItem("theme", isDark ? "dark" : "light");
   };
 
-  useEffect(() => {
-    const stored = localStorage.getItem("theme");
-    if (stored === "dark") {
-      document.documentElement.classList.add("dark");
-      setIsDark(true);
-    }
-  }, []);
-
   return (
-    <div className="flex h-screen bg-slate-50 text-brand-dark dark:bg-brand-dark dark:text-white font-ubuntu">
+    <div className="flex h-screen bg-white text-brand-dark dark:bg-brand-dark dark:text-white font-ubuntu transition-colors duration-300">
       {/* Sidebar */}
-      <aside className="w-64 bg-white dark:bg-brand-dark text-brand-dark dark:text-white flex flex-col shadow-lg">
-        <div className="p-6 border-b border-slate-200 dark:border-brand-green">
+      <aside className="w-64 bg-white dark:bg-brand-dark text-brand-dark dark:text-white flex flex-col shadow-lg transition-colors duration-300">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
           <img
+            srcSet="
+              /Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png 1x,
+              /Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png 2x
+            "
             src="/Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png"
             alt="Farm Fuzion Logo"
             className="mx-auto w-72 md:w-80 lg:w-[300px] h-auto mb-6"
@@ -61,34 +52,30 @@ export default function Dashboard() {
           <SidebarLink to="/products" label="Farm Products" icon="🚜" />
           <SidebarLink to="/logistics" label="Logistics" icon="🚚" />
         </nav>
-        <div className="p-4 border-t border-slate-200 dark:border-brand-green">
+        <div className="p-4 border-t border-slate-200 dark:border-slate-700">
           <button
             onClick={logout}
             className="w-full px-3 py-2 rounded font-semibold transition-colors text-brand-dark dark:text-white hover:bg-brand-dark hover:text-brand-apple"
           >
             🔓 Logout
           </button>
+          <button
+            onClick={toggleTheme}
+            className="mt-4 w-full px-3 py-2 rounded font-semibold bg-brand-apple text-white hover:bg-[#6fa714] transition"
+          >
+            🌓 Toggle Theme
+          </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-8 overflow-y-auto bg-slate-50 dark:bg-brand-dark text-brand-dark dark:text-white">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h1 className="text-[46px] leading-[64px] font-bold font-ubuntu">
-              Welcome, {email}
-            </h1>
-            <p className="text-lg text-brand-green font-baloo">
-              Sustained Agri-Business
-            </p>
-          </div>
-          <button
-            onClick={toggleTheme}
-            className="px-3 py-1 rounded text-sm font-medium border border-brand-green hover:bg-brand-apple hover:text-white transition-colors"
-          >
-            {isDark ? "☀️ Light Mode" : "🌙 Dark Mode"}
-          </button>
-        </div>
+      <main className="flex-1 p-8 overflow-y-auto bg-slate-50 dark:bg-brand-dark text-brand-dark dark:text-white transition-colors duration-300">
+        <h1 className="text-[46px] leading-[64px] font-bold mb-4 font-ubuntu">
+          Welcome, {email}
+        </h1>
+        <p className="text-lg text-brand-green font-baloo mb-8">
+          Sustained Agri-Business
+        </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <Card
@@ -119,23 +106,17 @@ export default function Dashboard() {
 
         <div className="mt-10">
           <h2 className="text-xl font-bold mb-3">Top Products by Quantity</h2>
-          <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow border dark:border-brand-green">
+          <div className="bg-white dark:bg-[#022d26] p-6 rounded-lg shadow border border-slate-200 dark:border-slate-700">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
                 data={chartData}
                 margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
-                <XAxis dataKey="name" stroke={isDark ? "#fff" : "#000"} />
-                <YAxis stroke={isDark ? "#fff" : "#000"} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: isDark ? "#00231d" : "#fff",
-                    color: isDark ? "#8dc71d" : "#0d5b10",
-                    borderColor: "#8dc71d",
-                  }}
-                />
-                <Bar dataKey="quantity" fill="#0d5b10" radius={[6, 6, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" stroke="#8dc71d" />
+                <YAxis stroke="#8dc71d" />
+                <Tooltip />
+                <Bar dataKey="quantity" fill="#8dc71d" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -145,8 +126,15 @@ export default function Dashboard() {
   );
 }
 
-// Sidebar Link Component
-function SidebarLink({ to, label, icon }: { to: string; label: string; icon: string }) {
+function SidebarLink({
+  to,
+  label,
+  icon,
+}: {
+  to: string;
+  label: string;
+  icon: string;
+}) {
   return (
     <Link
       to={to}
@@ -157,7 +145,6 @@ function SidebarLink({ to, label, icon }: { to: string; label: string; icon: str
   );
 }
 
-// Card Component
 function Card({
   title,
   desc,
@@ -170,12 +157,14 @@ function Card({
   linkText: string;
 }) {
   return (
-    <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow-md border border-slate-200 dark:border-brand-green">
-      <h2 className="text-lg font-semibold mb-2 text-brand-dark dark:text-white">{title}</h2>
-      <p className="text-sm text-brand-dark/70 dark:text-white/70">{desc}</p>
+    <div className="bg-white dark:bg-[#0a3d32] p-6 rounded-lg shadow-md border border-slate-200 dark:border-slate-700 transition-colors duration-300">
+      <h2 className="text-lg font-semibold mb-2 text-brand-dark dark:text-white">
+        {title}
+      </h2>
+      <p className="text-sm text-brand-dark/70 dark:text-gray-300">{desc}</p>
       <Link
         to={link}
-        className="text-brand-green font-medium hover:underline mt-3 inline-block"
+        className="text-brand-green dark:text-brand-apple font-medium hover:underline mt-3 inline-block"
       >
         {linkText}
       </Link>
@@ -183,12 +172,15 @@ function Card({
   );
 }
 
-// Stat Card Component
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white dark:bg-brand-dark text-center p-4 rounded-lg shadow border dark:border-brand-green">
-      <div className="text-2xl font-bold text-brand-green">{value}</div>
-      <div className="text-sm text-slate-500 dark:text-white/70 mt-1">{label}</div>
+    <div className="bg-white dark:bg-[#0f4439] text-center p-4 rounded-lg shadow border border-slate-200 dark:border-slate-700 transition-colors duration-300">
+      <div className="text-2xl font-bold text-brand-green dark:text-brand-apple">
+        {value}
+      </div>
+      <div className="text-sm text-slate-500 dark:text-slate-300 mt-1">
+        {label}
+      </div>
     </div>
   );
 }

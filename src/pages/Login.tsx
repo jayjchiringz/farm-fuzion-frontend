@@ -64,7 +64,7 @@ export default function Login() {
             placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-3 border border-brand-apple rounded focus:outline-none focus:ring-2 focus:ring-brand-green bg-white dark:bg-[#144034] text-brand-dark dark:text-brand-apple"
+            className="w-full p-3 border border-brand-apple rounded focus:outline-none focus:ring-2 focus:ring-brand-green tracking-widest text-center text-lg bg-white dark:bg-[#144034] text-brand-dark dark:text-brand-apple"
           />
         </div>
 

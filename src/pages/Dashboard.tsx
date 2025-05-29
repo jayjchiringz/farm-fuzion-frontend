@@ -41,14 +41,17 @@ export default function Dashboard() {
       {/* Sidebar */}
       <aside className="w-64 bg-white dark:bg-brand-dark text-brand-dark dark:text-white flex flex-col shadow-lg transition-colors duration-300">
         <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+          {/* Light Mode Logo */}
           <img
-            srcSet="
-              /Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png 1x,
-              /Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png 2x
-            "
             src="/Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png"
-            alt="Farm Fuzion Logo"
-            className="mx-auto w-72 md:w-80 lg:w-[300px] h-auto mb-6"
+            alt="Farm Fuzion Logo Light"
+            className="block dark:hidden mx-auto w-72 md:w-80 lg:w-[300px] h-auto mb-6"
+          />
+          {/* Dark Mode Logo */}
+          <img
+            src="/Logos/Green_Logo_and_name_transparent_background_apple_green_font.png"
+            alt="Farm Fuzion Logo Dark"
+            className="hidden dark:block mx-auto w-72 md:w-80 lg:w-[300px] h-auto mb-6"
           />
         </div>
         <nav className="flex-1 px-4 py-6 space-y-3">

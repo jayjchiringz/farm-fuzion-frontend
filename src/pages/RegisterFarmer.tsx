@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerFarmer } from "../services/farmers";
 import ThemeToggle from "../components/ThemeToggle";
+import React from "react";
 
 export default function RegisterFarmer() {
   const [form, setForm] = useState({

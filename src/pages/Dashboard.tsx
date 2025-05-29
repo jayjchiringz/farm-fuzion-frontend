@@ -9,6 +9,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import ThemeToggle from "../components/ThemeToggle"; // ✅ Import the global toggle
+import React from "react";
 
 export default function Dashboard() {
   const navigate = useNavigate();

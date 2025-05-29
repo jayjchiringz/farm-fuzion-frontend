@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { verifyOtp } from "../services/auth";
 import { useNavigate } from "react-router-dom";
+import React from "react";
 
 export default function VerifyOtp() {
   const navigate = useNavigate();

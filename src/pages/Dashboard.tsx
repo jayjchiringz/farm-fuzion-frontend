@@ -110,7 +110,7 @@ function SidebarLink({ to, label, icon }: { to: string; label: string; icon: str
   return (
     <Link
       to={to}
-      className="block hover:bg-brand-dark px-3 py-2 rounded transition-colors"
+      className="block px-3 py-2 rounded transition-colors hover:bg-brand-apple hover:text-white"
     >
       {icon} {label}
     </Link>

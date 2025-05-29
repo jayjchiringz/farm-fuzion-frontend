@@ -5,6 +5,7 @@ import VerifyOtp from "./pages/VerifyOtp";
 import Dashboard from "./pages/Dashboard";
 import PrivateRoute from "./components/Auth/PrivateRoute";
 import MainLayout from "./layouts/MainLayout";
+import RegisterFarmer from "./pages/RegisterFarmer";
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
             </PrivateRoute>
           }
         />
+        <Route path="/register" element={<RegisterFarmer />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </MainLayout>

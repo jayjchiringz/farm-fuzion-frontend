@@ -8,7 +8,8 @@ export const requestOtp = async (email: string) => {
   });
 
   if (!res.ok) {
-    throw new Error("Failed to request OTP");
+    const { error } = await res.json();
+    throw new Error(error || "Failed to request OTP");
   }
 };
 
@@ -20,10 +21,9 @@ export const verifyOtp = async (email: string, otp: string) => {
   });
 
   if (!res.ok) {
-    const errorText = await res.text();
-    console.error("❌ OTP verification failed:", errorText);
-    throw new Error("Invalid OTP");
+    const data = await res.json();
+    throw new Error(data.error || "OTP verification failed");
   }
 
-  return res.json();
+  return await res.json();
 };

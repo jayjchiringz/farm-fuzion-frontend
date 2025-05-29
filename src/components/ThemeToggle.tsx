@@ -1,3 +1,5 @@
+import React from "react";
+
 // src/components/ThemeToggle.tsx
 export default function ThemeToggle() {
   const toggleTheme = () => {
@@ -12,7 +14,7 @@ export default function ThemeToggle() {
       onClick={toggleTheme}
       className="absolute top-4 right-4 px-4 py-2 bg-brand-green text-white rounded hover:bg-brand-apple dark:bg-brand-apple dark:text-brand-dark dark:hover:bg-brand-dark dark:hover:text-brand-apple transition-colors z-50"
     >
-      🌗 Theme
+      🌗
     </button>
   );
 }

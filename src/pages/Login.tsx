@@ -15,7 +15,7 @@ export default function Login() {
       localStorage.setItem("pendingEmail", email);
       navigate("/verify");
     } catch (err) {
-      alert("Failed to send OTP");
+      alert(err instanceof Error ? err.message : "OTP request failed");
     } finally {
       setLoading(false);
     }

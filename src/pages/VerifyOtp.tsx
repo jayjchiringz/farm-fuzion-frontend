@@ -17,7 +17,11 @@ export default function VerifyOtp() {
       localStorage.setItem("user", email);
       navigate("/dashboard");
     } catch (err) {
-      alert("Invalid OTP");
+      if (err instanceof Error) {
+        alert(err.message);
+      } else {
+        alert("OTP verification failed");
+      }
     } finally {
       setLoading(false);
     }

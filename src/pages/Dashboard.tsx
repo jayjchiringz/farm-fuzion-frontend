@@ -27,9 +27,13 @@ export default function Dashboard() {
 
   const toggleTheme = () => {
     const html = document.documentElement;
-    html.classList.toggle("dark");
-    const isDark = html.classList.contains("dark");
-    localStorage.setItem("theme", isDark ? "dark" : "light");
+    if (html.classList.contains('dark')) {
+      html.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    } else {
+      html.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    }
   };
 
   return (
@@ -61,9 +65,9 @@ export default function Dashboard() {
           </button>
           <button
             onClick={toggleTheme}
-            className="mt-4 w-full px-3 py-2 rounded font-semibold bg-brand-apple text-white hover:bg-[#6fa714] transition"
+            className="fixed top-4 right-4 z-50 px-4 py-2 bg-brand-green text-white rounded hover:bg-brand-apple"
           >
-            🌓 Toggle Theme
+            Toggle Theme
           </button>
         </div>
       </aside>

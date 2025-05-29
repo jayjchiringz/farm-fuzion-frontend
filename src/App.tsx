@@ -1,25 +1,29 @@
+// src/App.tsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import VerifyOtp from "./pages/VerifyOtp";
 import Dashboard from "./pages/Dashboard";
 import PrivateRoute from "./components/Auth/PrivateRoute";
+import MainLayout from "./layouts/MainLayout";
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<RedirectBasedOnAuth />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/verify" element={<VerifyOtp />} />
-      <Route
-        path="/dashboard"
-        element={
-          <PrivateRoute>
-            <Dashboard />
-          </PrivateRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+    <MainLayout>
+      <Routes>
+        <Route path="/" element={<RedirectBasedOnAuth />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/verify" element={<VerifyOtp />} />
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute>
+              <Dashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </MainLayout>
   );
 }
 

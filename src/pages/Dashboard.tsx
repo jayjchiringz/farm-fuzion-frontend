@@ -62,22 +62,24 @@ export default function Dashboard() {
         <div className="p-4 border-t border-slate-200 dark:border-slate-700">
           <button
             onClick={logout}
-            className="w-full px-3 py-2 rounded font-semibold transition-colors text-brand-dark dark:text-white hover:bg-brand-dark hover:text-brand-apple"
+            className="w-full px-3 py-2 rounded font-semibold transition-colors text-brand-dark dark:text-brand-apple hover:bg-brand-dark dark:hover:bg-brand-apple hover:text-brand-apple dark:hover:text-brand-dark"
           >
             🔓 Logout
           </button>
           <button
             onClick={toggleTheme}
-            className="fixed top-4 right-4 z-50 px-4 py-2 bg-brand-green text-white rounded hover:bg-brand-apple"
+            className="w-full mt-3 px-3 py-2 rounded font-semibold transition-colors
+              bg-brand-dark text-brand-apple hover:bg-brand-apple hover:text-brand-dark
+              dark:bg-brand-apple dark:text-brand-dark dark:hover:bg-brand-dark dark:hover:text-brand-apple"
           >
-            Toggle Theme
+            🌗 Theme
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto bg-slate-50 dark:bg-brand-dark text-brand-dark dark:text-white transition-colors duration-300">
-        <h1 className="text-[46px] leading-[64px] font-bold mb-4 font-ubuntu">
+        <h1 className="text-[46px] leading-[64px] font-bold mb-4 font-ubuntu text-brand-dark dark:text-brand-apple">
           Welcome, {email}
         </h1>
         <p className="text-lg text-brand-green font-baloo mb-8">
@@ -100,7 +102,7 @@ export default function Dashboard() {
         </div>
 
         <div className="mt-10">
-          <h2 className="text-[46px] leading-[64px] font-bold mb-3 font-ubuntu">
+          <h2 className="text-[46px] leading-[64px] font-bold mb-3 font-ubuntu text-brand-dark dark:text-brand-apple">
             Platform Snapshot
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -112,7 +114,9 @@ export default function Dashboard() {
         </div>
 
         <div className="mt-10">
-          <h2 className="text-xl font-bold mb-3">Top Products by Quantity</h2>
+          <h2 className="text-xl font-bold mb-3 text-brand-dark dark:text-brand-apple">
+            Top Products by Quantity
+          </h2>
           <div className="bg-white dark:bg-[#022d26] p-6 rounded-lg shadow border border-slate-200 dark:border-slate-700">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
@@ -145,7 +149,7 @@ function SidebarLink({
   return (
     <Link
       to={to}
-      className="block px-3 py-2 rounded transition-colors text-brand-dark dark:text-white hover:bg-brand-dark hover:text-brand-apple"
+      className="block px-3 py-2 rounded transition-colors text-brand-dark dark:text-brand-apple hover:bg-brand-dark dark:hover:bg-brand-apple hover:text-brand-apple dark:hover:text-brand-dark"
     >
       {icon} {label}
     </Link>
@@ -165,7 +169,7 @@ function Card({
 }) {
   return (
     <div className="bg-white dark:bg-[#0a3d32] p-6 rounded-lg shadow-md border border-slate-200 dark:border-slate-700 transition-colors duration-300">
-      <h2 className="text-lg font-semibold mb-2 text-brand-dark dark:text-white">
+      <h2 className="text-lg font-semibold mb-2 text-brand-dark dark:text-brand-apple">
         {title}
       </h2>
       <p className="text-sm text-brand-dark/70 dark:text-gray-300">{desc}</p>

@@ -23,31 +23,40 @@ export default function VerifyOtp() {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center bg-brand-dark font-ubuntu">
+    <div className="h-screen flex items-center justify-center bg-slate-100 dark:bg-brand-dark text-brand-dark dark:text-brand-apple font-ubuntu transition-colors duration-300">
       <form
         onSubmit={handleVerify}
-        className="bg-white p-10 shadow-2xl rounded-lg w-full max-w-md space-y-6"
+        className="bg-white dark:bg-[#0a3d32] p-10 shadow-2xl rounded-lg w-full max-w-md space-y-6 transition-colors duration-300"
       >
-        {/* Logo + Brand */}
+        {/* Logo + Branding */}
         <div className="text-center">
+          {/* Light Logo */}
           <img
-            srcSet="
-              /Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png 1x,
-              /Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png 2x
-            "
             src="/Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png"
-            alt="Farm Fuzion Logo"
-            className="mx-auto w-72 md:w-80 lg:w-[340px] h-auto mb-6"
+            alt="Farm Fuzion Logo Light"
+            className="block dark:hidden mx-auto w-72 md:w-80 lg:w-[340px] h-auto mb-6"
           />
-          <h1 className="text-3xl font-bold text-brand-dark mb-1">OTP Verification</h1>
-          <p className="text-brand-green text-lg font-baloo -mt-2">
-            Enter the 6-digit code sent to <span className="font-medium">{email}</span>
+          {/* Dark Logo */}
+          <img
+            src="/Logos/Green_Logo_and_name_transparent_background_apple_green_font.png"
+            alt="Farm Fuzion Logo Dark"
+            className="hidden dark:block mx-auto w-72 md:w-80 lg:w-[340px] h-auto mb-6"
+          />
+          <h1 className="text-3xl font-bold text-brand-dark dark:text-brand-apple mb-1">
+            OTP Verification
+          </h1>
+          <p className="text-brand-green dark:text-brand-apple text-lg font-baloo -mt-2">
+            Enter the 6-digit code sent to{" "}
+            <span className="font-medium">{email}</span>
           </p>
         </div>
 
         {/* OTP Input */}
         <div>
-          <label htmlFor="otp" className="block text-sm font-medium text-brand-dark mb-1">
+          <label
+            htmlFor="otp"
+            className="block text-sm font-medium text-brand-dark dark:text-brand-apple mb-1"
+          >
             One-Time Password (OTP)
           </label>
           <input
@@ -57,14 +66,14 @@ export default function VerifyOtp() {
             pattern="\d{6}"
             maxLength={6}
             placeholder="6-digit code"
-            className="w-full p-3 border border-brand-apple rounded focus:outline-none focus:ring-2 focus:ring-brand-green tracking-widest text-center text-lg"
+            className="w-full p-3 border border-brand-apple rounded focus:outline-none focus:ring-2 focus:ring-brand-green tracking-widest text-center text-lg bg-white dark:bg-[#144034] text-brand-dark dark:text-brand-apple"
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
             required
           />
         </div>
 
-        {/* Submit Button */}
+        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
@@ -78,5 +87,3 @@ export default function VerifyOtp() {
     </div>
   );
 }
-// This code is a React component for verifying an OTP (One-Time Password) during user authentication.
-// It includes a form where users can enter their OTP, which is then verified against the backend service.

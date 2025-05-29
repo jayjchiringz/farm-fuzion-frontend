@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import ThemeToggle from "../components/ThemeToggle"; // ✅ Import the global toggle
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -38,16 +39,8 @@ export default function Dashboard() {
 
   return (
     <>
-      {/* Floating Theme Toggle */}
-      <button
-        onClick={toggleTheme}
-        className="fixed top-4 right-4 z-50 px-4 py-2 font-semibold rounded transition-colors 
-        text-brand-dark hover:bg-brand-dark hover:text-brand-apple 
-        dark:text-brand-apple dark:hover:bg-brand-apple dark:hover:text-brand-dark"
-      >
-        🌗 Theme
-      </button>
-
+      <ThemeToggle />
+      
       {/* Page Layout */}
       <div className="flex h-screen bg-white text-brand-dark dark:bg-brand-dark dark:text-brand-apple font-ubuntu transition-colors duration-300">
         {/* Sidebar */}

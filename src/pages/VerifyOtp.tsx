@@ -12,19 +12,37 @@ export default function VerifyOtp() {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await verifyOtp(email, otp);
-      const farmer = response.farmer;
+      console.log("🔐 Verifying OTP for email:", email, "with code:", otp);
 
-      if (!farmer) {
+      const response = await verifyOtp(email, otp);
+      console.log("🧪 Raw OTP verification response:", response);
+
+      if (!response || typeof response !== "object") {
+        console.error("❌ Response is not a valid object:", response);
+        throw new Error("Invalid response from server.");
+      }
+
+      const farmer = response.farmer;
+      console.log("🌾 Extracted farmer object:", farmer);
+
+      if (!farmer || typeof farmer !== "object") {
+        console.warn("⚠️ Farmer object is missing or not an object:", farmer);
         throw new Error("Farmer details not found.");
       }
 
-      // 🔐 Store full farmer object in localStorage
-      localStorage.setItem("user", JSON.stringify(farmer));
+      if (!farmer.first_name || typeof farmer.first_name !== "string") {
+        console.warn("⚠️ Farmer first_name missing or invalid:", farmer.first_name);
+        throw new Error("Farmer details incomplete.");
+      }
+
+      const savedData = JSON.stringify(farmer);
+      localStorage.setItem("user", savedData);
+      console.log("💾 Farmer saved to localStorage:", savedData);
+
       navigate("/dashboard");
     } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : "OTP verification failed";
+      const msg = err instanceof Error ? err.message : "OTP verification failed";
+      console.error("🚨 Verification failed:", msg);
       alert(msg);
     } finally {
       setLoading(false);

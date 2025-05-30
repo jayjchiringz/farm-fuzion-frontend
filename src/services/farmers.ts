@@ -1,5 +1,5 @@
 export async function registerFarmer(data: any) {
-  const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/farmers`, {
+  const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/farmers`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),

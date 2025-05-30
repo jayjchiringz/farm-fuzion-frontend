@@ -1,7 +1,6 @@
-import { useState } from "react";
-import { verifyOtp } from "../services/auth";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import React from "react";
+import { verifyOtp } from "../services/auth";
 
 export default function VerifyOtp() {
   const navigate = useNavigate();
@@ -14,17 +13,19 @@ export default function VerifyOtp() {
     setLoading(true);
     try {
       const response = await verifyOtp(email, otp);
-      const { farmer } = response;
+      const farmer = response.farmer;
 
-      // Save full farmer name in storage
+      if (!farmer) {
+        throw new Error("Farmer details not found.");
+      }
+
+      // 🔐 Store full farmer object in localStorage
       localStorage.setItem("user", JSON.stringify(farmer));
       navigate("/dashboard");
     } catch (err) {
-      if (err instanceof Error) {
-        alert(err.message);
-      } else {
-        alert("OTP verification failed");
-      }
+      const msg =
+        err instanceof Error ? err.message : "OTP verification failed";
+      alert(msg);
     } finally {
       setLoading(false);
     }
@@ -38,13 +39,11 @@ export default function VerifyOtp() {
       >
         {/* Logo + Branding */}
         <div className="text-center">
-          {/* Light Logo */}
           <img
             src="/Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png"
             alt="Farm Fuzion Logo Light"
             className="block dark:hidden mx-auto w-72 md:w-80 lg:w-[340px] h-auto mb-6"
           />
-          {/* Dark Logo */}
           <img
             src="/Logos/Green_Logo_and_name_transparent_background_apple_green_font.png"
             alt="Farm Fuzion Logo Dark"

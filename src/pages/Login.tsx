@@ -72,8 +72,9 @@ export default function Login() {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full bg-brand-green text-[#8dc71d] py-3 rounded font-semibold transition-colors duration-300
-            hover:text-white
+          className={`w-full bg-brand-green text-[#8dc71d] py-3 rounded font-semibold 
+            transition-colors duration-300 
+            hover:bg-brand-dark hover:text-white
             disabled:opacity-60 disabled:cursor-not-allowed`}
         >
           {loading ? "Sending OTP..." : "Send OTP"}

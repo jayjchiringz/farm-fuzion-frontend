@@ -102,9 +102,10 @@ export default function VerifyOtp() {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full bg-brand-green text-white py-3 rounded font-semibold transition hover:bg-brand-dark ${
-            loading && "opacity-60 cursor-not-allowed"
-          }`}
+          className={`w-full bg-brand-green text-[#8dc71d] py-3 rounded font-semibold 
+            transition-colors duration-300 
+            hover:bg-brand-dark hover:text-white
+            disabled:opacity-60 disabled:cursor-not-allowed`}
         >
           {loading ? "Verifying..." : "Verify OTP"}
         </button>

@@ -13,7 +13,8 @@ import React from "react";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const email = localStorage.getItem("user");
+  const farmer = JSON.parse(localStorage.getItem("user") || "{}");
+  const fullName = `${farmer.first_name || ""} ${farmer.middle_name || ""}`.trim();
 
   const chartData = [
     { name: "Tomatoes", quantity: 400 },
@@ -78,7 +79,7 @@ export default function Dashboard() {
         {/* Main Content */}
         <main className="flex-1 p-8 overflow-y-auto bg-slate-50 dark:bg-brand-dark text-brand-dark dark:text-brand-apple transition-colors duration-300">
           <h1 className="text-[46px] leading-[64px] font-bold mb-4 font-ubuntu">
-            Welcome, {email}
+            Welcome, {fullName}
           </h1>
           <p className="text-lg text-brand-green font-baloo mb-8">
             Sustained Agri-Business

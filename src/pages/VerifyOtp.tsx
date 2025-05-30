@@ -13,8 +13,11 @@ export default function VerifyOtp() {
     e.preventDefault();
     setLoading(true);
     try {
-      await verifyOtp(email, otp);
-      localStorage.setItem("user", email);
+      const response = await verifyOtp(email, otp);
+      const { farmer } = response;
+
+      // Save full farmer name in storage
+      localStorage.setItem("user", JSON.stringify(farmer));
       navigate("/dashboard");
     } catch (err) {
       if (err instanceof Error) {

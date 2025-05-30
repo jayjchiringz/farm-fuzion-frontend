@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import PrivateRoute from "./components/Auth/PrivateRoute";
 import MainLayout from "./layouts/MainLayout";
 import RegisterFarmer from "./pages/RegisterFarmer";
+import React from "react";
 
 export default function App() {
   return (

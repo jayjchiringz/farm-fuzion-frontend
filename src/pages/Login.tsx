@@ -88,12 +88,14 @@ export default function Login() {
           >
             New Farmer? Register here!
           </Link>
+          {/*
           <Link
             to="/forgot-password"
             className="text-brand-green dark:text-brand-apple hover:underline hover:text-brand-dark dark:hover:text-white"
           >
             Forgot Password?
           </Link>
+          */}
         </div>
       </form>
     </div>

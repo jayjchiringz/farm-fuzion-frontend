@@ -9,7 +9,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import ThemeToggle from "../components/ThemeToggle"; // ✅ Import the global toggle
-import React from "react";
+import React,  { useState } from "react";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -28,6 +28,7 @@ export default function Dashboard() {
     navigate("/login");
   };
 
+/*
   const toggleTheme = () => {
     const html = document.documentElement;
     if (html.classList.contains("dark")) {
@@ -38,46 +39,65 @@ export default function Dashboard() {
       localStorage.setItem("theme", "dark");
     }
   };
+*/
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   return (
-    <>
-      <ThemeToggle />
-      
-      {/* Page Layout */}
-      <div className="flex h-screen bg-white text-brand-dark dark:bg-brand-dark dark:text-brand-apple font-ubuntu transition-colors duration-300">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white dark:bg-brand-dark flex flex-col shadow-lg transition-colors duration-300">
-          <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-            <img
-              src="/Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png"
-              alt="Farm Fuzion Logo Light"
-              className="block dark:hidden mx-auto w-72 md:w-80 lg:w-[300px] h-auto mb-6"
-            />
-            <img
-              src="/Logos/Green_Logo_and_name_transparent_background_apple_green_font.png"
-              alt="Farm Fuzion Logo Dark"
-              className="hidden dark:block mx-auto w-72 md:w-80 lg:w-[300px] h-auto mb-6"
-            />
-          </div>
-          <nav className="flex-1 px-4 py-6 space-y-3">
-            <SidebarLink to="/dashboard" label="Dashboard" icon="🏠" />
-            <SidebarLink to="/products" label="Farm Products" icon="🚜" />
-            <SidebarLink to="/logistics" label="Logistics" icon="🚚" />
-          </nav>
-          <div className="p-4 border-t border-slate-200 dark:border-slate-700">
-            <button
-              onClick={logout}
-              className="w-full px-3 py-2 rounded font-semibold transition-colors 
-              text-brand-dark dark:text-brand-apple hover:bg-brand-dark dark:hover:bg-brand-apple 
-              hover:text-brand-apple dark:hover:text-brand-dark"
-            >
-              🔓 Logout
-            </button>
-          </div>
-        </aside>
+  <>
+    <ThemeToggle />
 
-        {/* Main Content */}
-        <main className="flex-1 p-8 overflow-y-auto bg-slate-50 dark:bg-brand-dark text-brand-dark dark:text-brand-apple transition-colors duration-300">
+    {/* Mobile Header */}
+    <div className="md:hidden flex items-center justify-between bg-brand-green text-white px-4 py-3 shadow">
+      <button onClick={toggleSidebar} className="text-2xl font-bold">
+        ☰
+      </button>
+      <h1 className="text-xl font-semibold">Farm Fuzion</h1>
+    </div>
+
+    <div className="flex h-screen overflow-hidden">
+      {/* Sidebar */}
+      <aside
+        className={`z-50 md:static fixed inset-y-0 left-0 w-64 bg-white dark:bg-brand-dark shadow-lg transform transition-transform duration-300 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0`}
+      >
+        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+          <img
+            src="/Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png"
+            alt="Farm Fuzion Logo Light"
+            className="block dark:hidden mx-auto w-72 md:w-80 lg:w-[300px] h-auto mb-6"
+          />
+          <img
+            src="/Logos/Green_Logo_and_name_transparent_background_apple_green_font.png"
+            alt="Farm Fuzion Logo Dark"
+            className="hidden dark:block mx-auto w-72 md:w-80 lg:w-[300px] h-auto mb-6"
+          />
+        </div>
+
+        <nav className="flex-1 px-4 py-6 space-y-3">
+          <SidebarLink to="/dashboard" label="Dashboard" icon="🏠" />
+          <SidebarLink to="/products" label="Farm Products" icon="🚜" />
+          <SidebarLink to="/logistics" label="Logistics" icon="🚚" />
+        </nav>
+
+        <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+          <button
+            onClick={logout}
+            className="w-full px-3 py-2 rounded font-semibold transition-colors 
+            text-brand-dark dark:text-brand-apple hover:bg-brand-dark dark:hover:bg-brand-apple 
+            hover:text-brand-apple dark:hover:text-brand-dark"
+          >
+            🔓 Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-brand-dark text-brand-dark dark:text-brand-apple p-6 md:p-8 transition-colors duration-300">
+      {/* 👇 (Keep existing dashboard content here 👇) */}
+
           <h1 className="text-[46px] leading-[64px] font-bold mb-4 font-ubuntu">
             Welcome, {fullName}
           </h1>

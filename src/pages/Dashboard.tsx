@@ -48,13 +48,13 @@ export default function Dashboard() {
   <>
     <ThemeToggle />
 
-    {/* Mobile Header */}
-    <div className="md:hidden flex items-center justify-between bg-brand-green text-white px-4 py-3 shadow">
-      <button onClick={toggleSidebar} className="text-2xl font-bold">
-        ☰
-      </button>
-      <h1 className="text-xl font-semibold">Farm Fuzion</h1>
-    </div>
+    {/* 🔧 Floating Hamburger Icon Above Sidebar */}
+    <button
+      onClick={toggleSidebar}
+      className="fixed top-4 left-4 z-60 md:hidden text-white bg-brand-green rounded p-2 shadow-lg focus:outline-none"
+    >
+      ☰
+    </button>
 
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
@@ -93,6 +93,14 @@ export default function Dashboard() {
           </button>
         </div>
       </aside>
+
+      {/* Overlay on mobile when sidebar is open */}
+      {sidebarOpen && (
+        <div
+          onClick={toggleSidebar}
+          className="fixed inset-0 bg-black opacity-40 z-40 md:hidden"
+        />
+      )}
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-brand-dark text-brand-dark dark:text-brand-apple p-6 md:p-8 transition-colors duration-300">

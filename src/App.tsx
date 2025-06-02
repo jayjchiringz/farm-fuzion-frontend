@@ -7,6 +7,8 @@ import PrivateRoute from "./components/Auth/PrivateRoute";
 import MainLayout from "./layouts/MainLayout";
 import RegisterFarmer from "./pages/RegisterFarmer";
 import React from "react";
+import Loans from "./pages/Loans";
+import LoanRepayments from "./pages/LoanRepayments";
 
 export default function App() {
   return (
@@ -24,6 +26,8 @@ export default function App() {
           }
         />
         <Route path="/register" element={<RegisterFarmer />} />
+        <Route path="/loans" element={<Loans />} />
+        <Route path="/repayments/:loanId" element={<LoanRepayments />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </MainLayout>

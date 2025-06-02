@@ -28,19 +28,6 @@ export default function Dashboard() {
     navigate("/login");
   };
 
-/*
-  const toggleTheme = () => {
-    const html = document.documentElement;
-    if (html.classList.contains("dark")) {
-      html.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    } else {
-      html.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    }
-  };
-*/
-
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
@@ -126,6 +113,13 @@ export default function Dashboard() {
               link="/logistics"
               linkText="Go to Logistics →"
             />
+            <Card
+              title="Loan Center"
+              desc="Apply for farm loans and monitor repayments."
+              link="/loans"
+              linkText="Manage Loans →"
+            />
+
           </div>
 
           <div className="mt-10">

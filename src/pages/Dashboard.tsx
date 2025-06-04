@@ -67,6 +67,13 @@ export default function Dashboard() {
           <SidebarLink to="/dashboard" label="Dashboard" icon="🏠" />
           <SidebarLink to="/products" label="Farm Products" icon="🚜" />
           <SidebarLink to="/logistics" label="Logistics" icon="🚚" />
+          <SidebarLink to="/weather" label="Weather" icon="⛅" />
+          <SidebarLink to="/currency" label="Currency" icon="💱" />
+          <SidebarLink to="/region" label="Region" icon="🌍" />
+          <SidebarLink to="/knowledge-hub" label="Knowledge Hub" icon="📚" />
+          <SidebarLink to="/insurance" label="Insurance" icon="🛡️" />
+          <SidebarLink to="/marketplace" label="Market" icon="🛒" />
+          <SidebarLink to="/veterinary" label="Veterinary" icon="🐄" />
         </nav>
 
         <div className="p-4 border-t border-slate-200 dark:border-slate-700">
@@ -119,7 +126,48 @@ export default function Dashboard() {
               link="/loans"
               linkText="Manage Loans →"
             />
-
+            <Card
+              title="Weather Forecast"
+              desc="Track rainfall predictions, climate updates and forecasts."
+              link="/weather"
+              linkText="Check Weather →"
+            />
+            <Card
+              title="Currency Converter"
+              desc="Live exchange rates for agro-trade in your region."
+              link="/currency"
+              linkText="View Rates →"
+            />
+            <Card
+              title="Region Settings"
+              desc="Adjust your detected location or change manually."
+              link="/region"
+              linkText="Set Region →"
+            />
+            <Card
+              title="Knowledge Hub"
+              desc="Farming tutorials, tips and sustainable practices."
+              link="/knowledge-hub"
+              linkText="Explore Resources →"
+            />
+            <Card
+              title="Insurance Plans"
+              desc="Explore coverage for crops, livestock and more."
+              link="/insurance"
+              linkText="Review Policies →"
+            />
+            <Card
+              title="Agro Marketplace"
+              desc="Discover active markets and price benchmarks."
+              link="/marketplace"
+              linkText="Browse Markets →"
+            />
+            <Card
+              title="Vet & Disease Services"
+              desc="Get support for livestock meds, crop treatment & diseases."
+              link="/veterinary"
+              linkText="Vet Support →"
+            />
           </div>
 
           <div className="mt-10">

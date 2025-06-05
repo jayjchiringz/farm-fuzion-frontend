@@ -67,9 +67,6 @@ export default function Dashboard() {
           <SidebarLink to="/dashboard" label="Dashboard" icon="🏠" />
           <SidebarLink to="/products" label="Farm Products" icon="🚜" />
           <SidebarLink to="/logistics" label="Logistics" icon="🚚" />
-          <SidebarLink to="/weather" label="Weather" icon="⛅" />
-          <SidebarLink to="/currency" label="Currency" icon="💱" />
-          <SidebarLink to="/region" label="Region" icon="🌍" />
           <SidebarLink to="/knowledge-hub" label="Knowledge Hub" icon="📚" />
           <SidebarLink to="/insurance" label="Insurance" icon="🛡️" />
           <SidebarLink to="/marketplace" label="Market" icon="🛒" />

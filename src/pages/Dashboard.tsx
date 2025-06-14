@@ -71,6 +71,9 @@ export default function Dashboard() {
           <SidebarLink to="/insurance" label="Insurance" icon="🛡️" />
           <SidebarLink to="/marketplace" label="Market" icon="🛒" />
           <SidebarLink to="/veterinary" label="Veterinary" icon="🐄" />
+          {farmer?.role === "admin" && (
+            <SidebarLink to="/register-farmer" label="Register Farmer" icon="📝" />
+          )}
         </nav>
 
         <div className="p-4 border-t border-slate-200 dark:border-slate-700">

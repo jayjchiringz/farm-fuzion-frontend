@@ -5,6 +5,8 @@ import { registerFarmer } from "../services/farmers";
 import ThemeToggle from "../components/ThemeToggle";
 import axios from "axios";
 
+const user = JSON.parse(localStorage.getItem("user") || "{}");
+
 type Group = {
   id: string;
   name: string;
@@ -29,8 +31,12 @@ export default function RegisterFarmerUnderGroup() {
 
   const navigate = useNavigate();
 
+  // Redirect non-admin users and fetch groups
   useEffect(() => {
-    // Load groups from backend
+    if (user.role !== "admin") {
+      navigate("/dashboard", { replace: true });
+      return;
+    }
     const fetchGroups = async () => {
       try {
         const res = await axios.get("/api/groups"); // ✅ endpoint must exist
@@ -40,7 +46,7 @@ export default function RegisterFarmerUnderGroup() {
       }
     };
     fetchGroups();
-  }, []);
+  }, [navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });

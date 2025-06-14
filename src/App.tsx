@@ -5,7 +5,8 @@ import VerifyOtp from "./pages/VerifyOtp";
 import Dashboard from "./pages/Dashboard";
 import PrivateRoute from "./components/Auth/PrivateRoute";
 import MainLayout from "./layouts/MainLayout";
-import RegisterFarmer from "./pages/RegisterFarmer";
+// import RegisterFarmer from "./pages/RegisterFarmer";
+import RegisterFarmerUnderGroup from "./pages/RegisterFarmerUnderGroup"; // 🧩 secure admin-only registration
 import React from "react";
 import Loans from "./pages/Loans";
 import LoanRepayments from "./pages/LoanRepayments";
@@ -25,7 +26,17 @@ export default function App() {
             </PrivateRoute>
           }
         />
+        {/*
         <Route path="/register" element={<RegisterFarmer />} />
+        */}
+        <Route
+          path="/register-farmer"
+          element={
+            <PrivateRoute>
+              <RegisterFarmerUnderGroup />
+            </PrivateRoute>
+          }
+        />
         <Route path="/loans" element={<Loans />} />
         <Route path="/repayments/:loanId" element={<LoanRepayments />} />
         <Route path="*" element={<Navigate to="/" />} />

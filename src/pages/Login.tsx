@@ -7,6 +7,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+
   const handleOtpRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -82,12 +83,16 @@ export default function Login() {
 
         {/* Actions */}
         <div className="flex justify-between text-sm mt-2 font-medium">
+          
+          {/*
           <Link
             to="/register"
             className="text-brand-green dark:text-brand-apple hover:underline hover:text-brand-dark dark:hover:text-white"
           >
             New Farmer? Register here!
           </Link>
+          */}
+          
           {/*
           <Link
             to="/forgot-password"

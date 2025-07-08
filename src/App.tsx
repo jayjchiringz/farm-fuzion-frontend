@@ -5,11 +5,12 @@ import VerifyOtp from "./pages/VerifyOtp";
 import Dashboard from "./pages/Dashboard";
 import PrivateRoute from "./components/Auth/PrivateRoute";
 import MainLayout from "./layouts/MainLayout";
-// import RegisterFarmer from "./pages/RegisterFarmer";
-import RegisterFarmerUnderGroup from "./pages/RegisterFarmerUnderGroup"; // 🧩 secure admin-only registration
-import React from "react";
+import RegisterFarmerUnderGroup from "./pages/RegisterFarmerUnderGroup";
 import Loans from "./pages/Loans";
 import LoanRepayments from "./pages/LoanRepayments";
+import AdminDashboard from "./pages/AdminDashboard"; // ✅ NEW
+
+import React from "react";
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/" element={<RedirectBasedOnAuth />} />
         <Route path="/login" element={<Login />} />
         <Route path="/verify" element={<VerifyOtp />} />
+
         <Route
           path="/dashboard"
           element={
@@ -26,9 +28,14 @@ export default function App() {
             </PrivateRoute>
           }
         />
-        {/*
-        <Route path="/register" element={<RegisterFarmer />} />
-        */}
+        <Route
+          path="/admin-dashboard"
+          element={
+            <PrivateRoute>
+              <AdminDashboard />
+            </PrivateRoute>
+          }
+        />
         <Route
           path="/register-farmer"
           element={
@@ -39,6 +46,8 @@ export default function App() {
         />
         <Route path="/loans" element={<Loans />} />
         <Route path="/repayments/:loanId" element={<LoanRepayments />} />
+
+        {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </MainLayout>

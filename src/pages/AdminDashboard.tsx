@@ -95,7 +95,7 @@ export default function AdminDashboard() {
           <div className="space-x-3">
             <button
               onClick={() => setGroupModalOpen(true)}
-              className="bg-transparent text-white border border-brand-apple  
+              className="bg-transparent text-brand-dark border border-brand-green  
                         px-4 py-2 rounded transition-colors duration-200
                         hover:bg-brand-green hover:text-white hover:border-brand-green 
                         dark:bg-transparent dark:text-white dark:hover:bg-brand-green dark:hover:text-white dark:hover:border-brand-green"
@@ -105,7 +105,7 @@ export default function AdminDashboard() {
 
             <button
               onClick={() => setFarmerModalOpen(true)}
-              className="bg-transparent text-white border border-brand-apple  
+              className="bg-transparent text-brand-dark border border-brand-green  
                         px-4 py-2 rounded transition-colors duration-200
                         hover:bg-brand-green hover:text-white hover:border-brand-green 
                         dark:bg-transparent dark:text-white dark:hover:bg-brand-green dark:hover:text-white dark:hover:border-brand-green"

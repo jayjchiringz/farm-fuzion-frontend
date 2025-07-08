@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
 import { Dialog } from "@headlessui/react";
+import ThemeToggle from "../components/ThemeToggle";
 //import { v4 as uuidv4 } from "uuid";
 
 interface Group {
@@ -87,12 +88,31 @@ export default function AdminDashboard() {
 
   return (
     <MainLayout>
+      <ThemeToggle />
       <div className="p-6 md:p-10">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl md:text-5xl font-bold font-ubuntu">Admin Dashboard</h1>
           <div className="space-x-3">
-            <button onClick={() => setGroupModalOpen(true)} className="bg-brand-green text-white px-4 py-2 rounded hover:bg-brand-dark">+ Register Group</button>
-            <button onClick={() => setFarmerModalOpen(true)} className="bg-brand-green text-white px-4 py-2 rounded hover:bg-brand-dark">+ Register Farmer</button>
+            <button
+              onClick={() => setGroupModalOpen(true)}
+              className="bg-brand-green text-white px-4 py-2 rounded 
+                        hover:bg-white hover:text-brand-green 
+                        dark:bg-white dark:text-brand-green dark:hover:bg-brand-green dark:hover:text-white 
+                        border border-brand-green transition-colors duration-200"
+            >
+              + Register Group
+            </button>
+
+            <button
+              onClick={() => setFarmerModalOpen(true)}
+              className="bg-brand-green text-white px-4 py-2 rounded 
+                        hover:bg-white hover:text-brand-green 
+                        dark:bg-white dark:text-brand-green dark:hover:bg-brand-green dark:hover:text-white 
+                        border border-brand-green transition-colors duration-200"
+            >
+              + Register Farmer
+            </button>
+
           </div>
         </div>
 
@@ -200,4 +220,9 @@ export default function AdminDashboard() {
   );
 }
 // This code is a React component for an admin dashboard that allows administrators to manage groups and farmers.
-// It includes functionality to fetch, display, and update groups and farmers, as well as mod
+// It includes functionalities to register new groups and farmers, view registered groups and farmers, and update the status of groups.
+// The component uses React hooks for state management and effects, and it fetches data from an API.
+// The UI is built using Tailwind CSS for styling, and it includes modal dialogs for group and farmer registration.
+// The code is structured to be clean and maintainable, with clear separation of concerns for fetching  data, handling form submissions, and rendering the UI.
+// The component is designed to be responsive and user-friendly, providing a seamless experience for administrators managing groups and farmers in the system.
+// The use of TypeScript interfaces helps ensure type safety and clarity in the data structures used throughout the component.

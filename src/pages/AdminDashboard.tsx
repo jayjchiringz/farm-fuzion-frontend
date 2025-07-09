@@ -22,6 +22,11 @@ interface Farmer {
   group_id: string;
 }
 
+interface GroupType {
+  id: string;
+  name: string;
+}
+
 export default function AdminDashboard() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [farmers, setFarmers] = useState<Farmer[]>([]);
@@ -29,7 +34,9 @@ export default function AdminDashboard() {
   const [isGroupModalOpen, setGroupModalOpen] = useState(false);
   const [isFarmerModalOpen, setFarmerModalOpen] = useState(false);
 
-  const [groupForm, setGroupForm] = useState({ name: "", type: "", location: "" });
+  const [groupTypes, setGroupTypes] = useState<GroupType[]>([]);
+  const [groupForm, setGroupForm] = useState({ name: "", group_type_id: "", location: "" });
+
   const [farmerForm, setFarmerForm] = useState({
     first_name: "",
     middle_name: "",
@@ -44,10 +51,14 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      const g = await fetch("/api/groups").then((r) => r.json());
-      const f = await fetch("/api/farmers").then((r) => r.json());
+      const [g, f, t] = await Promise.all([
+        fetch("/api/groups").then((r) => r.json()),
+        fetch("/api/farmers").then((r) => r.json()),
+        fetch("/api/groups/types").then((r) => r.json()),
+      ]);
       setGroups(g);
       setFarmers(f);
+      setGroupTypes(t);
     } catch (err) {
       console.error("Fetch failed", err);
     } finally {
@@ -61,14 +72,15 @@ export default function AdminDashboard() {
   };
 
   const submitGroup = async () => {
-    const response = await fetch("/api/groups", {
+    const response = await fetch("/api/groups/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(groupForm),
     });
+
     if (response.ok) {
       setGroupModalOpen(false);
-      setGroupForm({ name: "", type: "", location: "" });
+      setGroupForm({ name: "", group_type_id: "", location: "" });
       fetchData();
     }
   };
@@ -179,16 +191,51 @@ export default function AdminDashboard() {
 
         <Dialog open={isGroupModalOpen} onClose={() => setGroupModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen">
-            <Dialog.Panel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
-              <Dialog.Title className="text-xl font-bold mb-4">Register New Group</Dialog.Title>
-              <input className="w-full mb-2 p-2 border rounded" placeholder="Group Name" value={groupForm.name} onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })} />
-              <input className="w-full mb-2 p-2 border rounded" placeholder="Type (SACCO, Association, etc.)" value={groupForm.type} onChange={(e) => setGroupForm({ ...groupForm, type: e.target.value })} />
-              <input className="w-full mb-4 p-2 border rounded" placeholder="Location" value={groupForm.location} onChange={(e) => setGroupForm({ ...groupForm, location: e.target.value })} />
-              <div className="flex justify-end gap-2">
-                <button onClick={() => setGroupModalOpen(false)} className="px-3 py-2 bg-slate-500 text-white rounded">Cancel</button>
-                <button onClick={submitGroup} className="px-3 py-2 bg-brand-green text-white rounded">Register</button>
-              </div>
-            </Dialog.Panel>
+          <Dialog.Panel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
+            <Dialog.Title className="text-xl font-bold mb-4">Register New Group</Dialog.Title>
+
+            <input
+              className="w-full mb-2 p-2 border rounded"
+              placeholder="Group Name"
+              value={groupForm.name}
+              onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
+            />
+
+            <label htmlFor="group-type-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Group Type
+            </label>
+            <select
+              id="group-type-select"
+              className="w-full mb-2 p-2 border rounded"
+              value={groupForm.group_type_id}
+              onChange={(e) => setGroupForm({ ...groupForm, group_type_id: e.target.value })}
+            >
+              <option value="">Select Type</option>
+              {groupTypes.map((type) => (
+                <option key={type.id} value={type.id}>{type.name}</option>
+              ))}
+            </select>
+
+            <input
+              className="w-full mb-4 p-2 border rounded"
+              placeholder="Location"
+              value={groupForm.location}
+              onChange={(e) => setGroupForm({ ...groupForm, location: e.target.value })}
+            />
+
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setGroupModalOpen(false)} className="px-3 py-2 bg-slate-500 text-white rounded">
+                Cancel
+              </button>
+              <button
+                disabled={!groupForm.name || !groupForm.group_type_id || !groupForm.location}
+                onClick={submitGroup}
+                className="px-3 py-2 bg-brand-green text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Register
+              </button>
+            </div>
+          </Dialog.Panel>
           </div>
         </Dialog>
 
@@ -218,10 +265,3 @@ export default function AdminDashboard() {
     </MainLayout>
   );
 }
-// This code is a React component for an admin dashboard that allows administrators to manage groups and farmers.
-// It includes functionalities to register new groups and farmers, view registered groups and farmers, and update the status of groups.
-// The component uses React hooks for state management and effects, and it fetches data from an API.
-// The UI is built using Tailwind CSS for styling, and it includes modal dialogs for group and farmer registration.
-// The code is structured to be clean and maintainable, with clear separation of concerns for fetching  data, handling form submissions, and rendering the UI.
-// The component is designed to be responsive and user-friendly, providing a seamless experience for administrators managing groups and farmers in the system.
-// The use of TypeScript interfaces helps ensure type safety and clarity in the data structures used throughout the component.

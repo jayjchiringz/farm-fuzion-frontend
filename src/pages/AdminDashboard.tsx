@@ -146,15 +146,6 @@ export default function AdminDashboard() {
           <h1 className="text-3xl md:text-5xl font-bold font-ubuntu">Admin Dashboard</h1>
           <div className="space-x-3">
             <button
-              onClick={() => setGroupModalOpen(true)}
-              className="bg-transparent text-brand-dark border border-brand-green  
-                        px-4 py-2 rounded transition-colors duration-200
-                        hover:bg-brand-green hover:text-white hover:border-brand-green 
-                        dark:bg-transparent dark:text-white dark:hover:bg-brand-green dark:hover:text-white dark:hover:border-brand-green"
-            >
-              + Register Group
-            </button>
-            <button
               onClick={() => setGroupTypeModalOpen(true)}
               className="bg-transparent text-brand-dark border border-brand-green  
                         px-4 py-2 rounded transition-colors duration-200
@@ -162,6 +153,15 @@ export default function AdminDashboard() {
                         dark:bg-transparent dark:text-white dark:hover:bg-brand-green dark:hover:text-white dark:hover:border-brand-green"
             >
               ⚙️ Manage Group Types
+            </button>
+            <button
+              onClick={() => setGroupModalOpen(true)}
+              className="bg-transparent text-brand-dark border border-brand-green  
+                        px-4 py-2 rounded transition-colors duration-200
+                        hover:bg-brand-green hover:text-white hover:border-brand-green 
+                        dark:bg-transparent dark:text-white dark:hover:bg-brand-green dark:hover:text-white dark:hover:border-brand-green"
+            >
+              + Register Group
             </button>
             <button
               onClick={() => setFarmerModalOpen(true)}
@@ -174,7 +174,6 @@ export default function AdminDashboard() {
             </button>
           </div>
         </div>
-
         {loading ? (
           <p>Loading data...</p>
         ) : (

@@ -108,8 +108,9 @@ export default function AdminDashboard() {
       body: JSON.stringify({ name: newGroupType }),
     });
     if (res.ok) {
+      setEditingId(null);
       setNewGroupType("");
-      fetchData(); // refresh list
+      await fetchData(); // refresh list
     }
   };
 
@@ -239,7 +240,9 @@ export default function AdminDashboard() {
         <Dialog open={isGroupModalOpen} onClose={() => setGroupModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen">
           <Dialog.Panel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
-            <Dialog.Title className="text-xl font-bold mb-4">Register New Group</Dialog.Title>
+            <Dialog.Title className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+              Manage Group Types
+            </Dialog.Title>
 
             <input
               className="w-full mb-2 p-2 border rounded"
@@ -365,10 +368,11 @@ export default function AdminDashboard() {
 
               <div className="mt-4">
                 <input
-                  placeholder="New type name"
+                  placeholder="New group type"
+                  aria-label="New group type"
                   value={newGroupType}
                   onChange={(e) => setNewGroupType(e.target.value)}
-                  className="w-full p-2 border rounded mb-2"
+                  className="w-full p-2 border rounded mb-2 dark:bg-brand-dark dark:text-white dark:border-gray-600"
                 />
                 <button
                   onClick={handleAddGroupType}

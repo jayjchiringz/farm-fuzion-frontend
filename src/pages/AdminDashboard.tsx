@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
 import { Dialog } from "@headlessui/react";
 import ThemeToggle from "../components/ThemeToggle";
-//import { v4 as uuidv4 } from "uuid";
 
 interface Group {
   id: string;
@@ -36,6 +35,10 @@ export default function AdminDashboard() {
 
   const [groupTypes, setGroupTypes] = useState<GroupType[]>([]);
   const [groupForm, setGroupForm] = useState({ name: "", group_type_id: "", location: "" });
+
+  const [isGroupTypeModalOpen, setGroupTypeModalOpen] = useState(false);
+  const [newGroupType, setNewGroupType] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [farmerForm, setFarmerForm] = useState({
     first_name: "",
@@ -98,6 +101,43 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleAddGroupType = async () => {
+    const res = await fetch("/api/groups/types", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newGroupType }),
+    });
+    if (res.ok) {
+      setNewGroupType("");
+      fetchData(); // refresh list
+    }
+  };
+
+  const handleUpdateGroupType = async (id: string) => {
+    const res = await fetch(`/api/groups/types/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newGroupType }),
+    });
+    if (res.ok) {
+      setEditingId(null);
+      setNewGroupType("");
+      fetchData();
+    }
+  };
+
+  const handleDeleteGroupType = async (id: string) => {
+    const confirmed = window.confirm("Are you sure you want to deactivate this group type?");
+    if (!confirmed) return;
+
+    const res = await fetch(`/api/groups/types/${id}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      fetchData();
+    }
+  };
+
   return (
     <MainLayout>
       <ThemeToggle />
@@ -114,7 +154,15 @@ export default function AdminDashboard() {
             >
               + Register Group
             </button>
-
+            <button
+              onClick={() => setGroupTypeModalOpen(true)}
+              className="bg-transparent text-brand-dark border border-brand-green  
+                        px-4 py-2 rounded transition-colors duration-200
+                        hover:bg-brand-green hover:text-white hover:border-brand-green 
+                        dark:bg-transparent dark:text-white dark:hover:bg-brand-green dark:hover:text-white dark:hover:border-brand-green"
+            >
+              ⚙️ Manage Group Types
+            </button>
             <button
               onClick={() => setFarmerModalOpen(true)}
               className="bg-transparent text-brand-dark border border-brand-green  
@@ -261,6 +309,80 @@ export default function AdminDashboard() {
             </Dialog.Panel>
           </div>
         </Dialog>
+
+        <Dialog
+          open={isGroupTypeModalOpen}
+          onClose={() => setGroupTypeModalOpen(false)}
+          className="fixed z-50 inset-0 overflow-y-auto"
+        >
+          <div className="flex items-center justify-center min-h-screen">
+            <Dialog.Panel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
+              <Dialog.Title className="text-xl font-bold mb-4">Manage Group Types</Dialog.Title>
+
+              <div className="space-y-2">
+                {groupTypes.map((type) => (
+                  <div key={type.id} className="flex justify-between items-center">
+                    {editingId === type.id ? (
+                      <>
+                        <input
+                          value={newGroupType}
+                          onChange={(e) => setNewGroupType(e.target.value)}
+                          placeholder="Edit group type name"
+                          aria-label="Group type name"
+                          className="flex-1 mr-2 p-2 border rounded"
+                        />
+                        <button
+                          className="text-green-600 font-semibold"
+                          onClick={() => handleUpdateGroupType(type.id)}
+                        >
+                          Save
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span>{type.name}</span>
+                        <div className="space-x-2">
+                          <button
+                            className="text-blue-600 font-semibold"
+                            onClick={() => {
+                              setEditingId(type.id);
+                              setNewGroupType(type.name);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="text-red-600 font-semibold"
+                            onClick={() => handleDeleteGroupType(type.id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4">
+                <input
+                  placeholder="New type name"
+                  value={newGroupType}
+                  onChange={(e) => setNewGroupType(e.target.value)}
+                  className="w-full p-2 border rounded mb-2"
+                />
+                <button
+                  onClick={handleAddGroupType}
+                  className="w-full bg-brand-green text-white py-2 rounded disabled:opacity-50"
+                  disabled={!newGroupType}
+                >
+                  Add Group Type
+                </button>
+              </div>
+            </Dialog.Panel>
+          </div>
+        </Dialog>
+
       </div>
     </MainLayout>
   );

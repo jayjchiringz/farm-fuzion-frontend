@@ -57,7 +57,7 @@ export default function AdminDashboard() {
       const [g, f, t] = await Promise.all([
         fetch("/api/groups").then((r) => r.json()),
         fetch("/api/farmers").then((r) => r.json()),
-        fetch("/api/groups/types").then((r) => r.json()),
+        fetch("/api/groups-types").then((r) => r.json()),
       ]);
       setGroups(g);
       setFarmers(f);
@@ -75,16 +75,26 @@ export default function AdminDashboard() {
   };
 
   const submitGroup = async () => {
-    const response = await fetch("/api/groups/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(groupForm),
-    });
+    try {
+      const response = await fetch("/api/groups/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(groupForm),
+      });
 
-    if (response.ok) {
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Group creation failed:", errorText);
+        alert(`Failed to create group: ${errorText}`);
+        return;
+      }
+
       setGroupModalOpen(false);
       setGroupForm({ name: "", group_type_id: "", location: "" });
       fetchData();
+    } catch (err) {
+      console.error("Error submitting group:", err);
+      alert("Something went wrong while registering group.");
     }
   };
 
@@ -102,28 +112,50 @@ export default function AdminDashboard() {
   };
 
   const handleAddGroupType = async () => {
-    const res = await fetch("/api/groups/types", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newGroupType }),
-    });
-    if (res.ok) {
+    try {
+      const res = await fetch("/api/groups-types", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newGroupType }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Group type creation failed:", errorText);
+        alert(`Failed to add group type: ${errorText}`);
+        return;
+      }
+
       setEditingId(null);
       setNewGroupType("");
-      await fetchData(); // refresh list
+      await fetchData();
+    } catch (err) {
+      console.error("Network or server error:", err);
+      alert("Something went wrong while adding group type.");
     }
   };
 
   const handleUpdateGroupType = async (id: string) => {
-    const res = await fetch(`/api/groups/types/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newGroupType }),
-    });
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/groups-types/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newGroupType }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Update failed:", errorText);
+        alert(`Failed to update group type: ${errorText}`);
+        return;
+      }
+
       setEditingId(null);
       setNewGroupType("");
-      fetchData();
+      await fetchData();
+    } catch (err) {
+      console.error("Network or server error during update:", err);
+      alert("An unexpected error occurred while updating the group type.");
     }
   };
 
@@ -131,11 +163,22 @@ export default function AdminDashboard() {
     const confirmed = window.confirm("Are you sure you want to deactivate this group type?");
     if (!confirmed) return;
 
-    const res = await fetch(`/api/groups/types/${id}`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
-      fetchData();
+    try {
+      const res = await fetch(`/api/groups-types/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Deletion failed:", errorText);
+        alert(`Failed to delete group type: ${errorText}`);
+        return;
+      }
+
+      await fetchData();
+    } catch (err) {
+      console.error("Network or server error during deletion:", err);
+      alert("An unexpected error occurred while deleting the group type.");
     }
   };
 

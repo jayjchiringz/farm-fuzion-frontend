@@ -54,16 +54,35 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      const [g, f, t] = await Promise.all([
-        fetch("/api/groups").then((r) => r.json()),
-        fetch("/api/farmers").then((r) => r.json()),
-        fetch("/api/groups-types").then((r) => r.json()),
+      const [groupsRes, farmersRes, typesRes] = await Promise.all([
+        fetch("/api/groups"),
+        fetch("/api/farmers"),
+        fetch("/api/groups-types"),
       ]);
-      setGroups(g);
-      setFarmers(f);
-      setGroupTypes(t);
+
+      const groups = await groupsRes.json().catch(async (err) => {
+        const text = await groupsRes.text();
+        console.error("❌ /api/groups failed:", err, text);
+        throw new Error("Failed to load groups");
+      });
+
+      const farmers = await farmersRes.json().catch(async (err) => {
+        const text = await farmersRes.text();
+        console.error("❌ /api/farmers failed:", err, text);
+        throw new Error("Failed to load farmers");
+      });
+
+      const groupTypes = await typesRes.json().catch(async (err) => {
+        const text = await typesRes.text();
+        console.error("❌ /api/groups-types failed:", err, text);
+        throw new Error("Failed to load group types");
+      });
+
+      setGroups(groups);
+      setFarmers(farmers);
+      setGroupTypes(groupTypes);
     } catch (err) {
-      console.error("Fetch failed", err);
+      console.error("🚨 fetchData error:", err);
     } finally {
       setLoading(false);
     }

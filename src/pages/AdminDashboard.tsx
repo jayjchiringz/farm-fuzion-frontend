@@ -60,23 +60,20 @@ export default function AdminDashboard() {
         fetch("/api/groups-types"),
       ]);
 
-      const groups = await groupsRes.json().catch(async (err) => {
-        const text = await groupsRes.text();
-        console.error("❌ /api/groups failed:", err, text);
-        throw new Error("Failed to load groups");
-      });
+      const safeJson = async (res: Response, label: string) => {
+        const clone = res.clone(); // ⚠️ clone allows second read
+        try {
+          return await res.json();
+        } catch (err) {
+          const fallback = await clone.text();
+          console.error(`❌ ${label} JSON parse error:`, fallback);
+          throw new Error(`${label} failed`);
+        }
+      };
 
-      const farmers = await farmersRes.json().catch(async (err) => {
-        const text = await farmersRes.text();
-        console.error("❌ /api/farmers failed:", err, text);
-        throw new Error("Failed to load farmers");
-      });
-
-      const groupTypes = await typesRes.json().catch(async (err) => {
-        const text = await typesRes.text();
-        console.error("❌ /api/groups-types failed:", err, text);
-        throw new Error("Failed to load group types");
-      });
+      const groups = await safeJson(groupsRes, "Groups");
+      const farmers = await safeJson(farmersRes, "Farmers");
+      const groupTypes = await safeJson(typesRes, "GroupTypes");
 
       setGroups(groups);
       setFarmers(farmers);

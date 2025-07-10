@@ -55,9 +55,9 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     try {
       const [g, f, t] = await Promise.all([
-        fetch("/api/groups").then((r) => r.json()),
-        fetch("/api/farmers").then((r) => r.json()),
-        fetch("/api/groups-types").then((r) => r.json()),
+        fetch("/groups").then((r) => r.json()),
+        fetch("/farmers").then((r) => r.json()),
+        fetch("/groups-types").then((r) => r.json()),
       ]);
       setGroups(g);
       setFarmers(f);
@@ -70,13 +70,13 @@ export default function AdminDashboard() {
   };
 
   const updateGroupStatus = async (id: string, status: string) => {
-    await fetch(`/api/groups/${id}/${status}`, { method: "POST" });
+    await fetch(`/groups/${id}/${status}`, { method: "POST" });
     fetchData();
   };
 
   const submitGroup = async () => {
     try {
-      const response = await fetch("/api/groups/register", {
+      const response = await fetch("/groups/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(groupForm),
@@ -99,7 +99,7 @@ export default function AdminDashboard() {
   };
 
   const submitFarmer = async () => {
-    const response = await fetch("/api/farmers", {
+    const response = await fetch("/farmers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(farmerForm),
@@ -113,7 +113,7 @@ export default function AdminDashboard() {
 
   const handleAddGroupType = async () => {
     try {
-      const res = await fetch("/api/groups-types", {
+      const res = await fetch("/groups-types", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newGroupType }),
@@ -137,7 +137,7 @@ export default function AdminDashboard() {
 
   const handleUpdateGroupType = async (id: string) => {
     try {
-      const res = await fetch(`/api/groups-types/${id}`, {
+      const res = await fetch(`/groups-types/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newGroupType }),
@@ -164,7 +164,7 @@ export default function AdminDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`/api/groups-types/${id}`, {
+      const res = await fetch(`/groups-types/${id}`, {
         method: "DELETE",
       });
 

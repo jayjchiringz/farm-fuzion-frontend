@@ -5,7 +5,7 @@ import ThemeToggle from "../components/ThemeToggle";
 
 const BASE_URL = import.meta.env.MODE === "development"
   ? "/api"
-  : "https://farm-fuzion-abdf3.web.app/api";
+  : "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
 
 interface Group {
   id: string;

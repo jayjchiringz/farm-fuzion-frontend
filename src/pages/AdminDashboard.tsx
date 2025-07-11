@@ -89,9 +89,43 @@ export default function AdminDashboard() {
     }
   };
 
+  const [updatingGroupId, setUpdatingGroupId] = useState<string | null>(null);
+
   const updateGroupStatus = async (id: string, status: string) => {
-    await fetch(`${BASE_URL}/groups/${id}/${status}`, { method: "POST" });
-    fetchData();
+    try {
+      setUpdatingGroupId(id);
+
+      let endpoint = `${BASE_URL}/groups/${id}/approve`;
+      let body: string | undefined = undefined;
+
+      if (status === "rejected") {
+        endpoint = `${BASE_URL}/groups/${id}/reject`;
+        body = JSON.stringify({ remarks: "Rejected by admin" });
+      } else if (status === "pending") {
+        endpoint = `${BASE_URL}/groups/${id}/reject`;
+        body = JSON.stringify({ remarks: "Reverted to pending", revertToPending: true });
+      }
+
+      const res = await fetch(endpoint, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        ...(body ? { body } : {}),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("Status update failed:", errText);
+        alert(`Failed: ${errText}`);
+        return;
+      }
+
+      await fetchData();
+    } catch (err) {
+      console.error("Update error:", err);
+      alert("Something went wrong.");
+    } finally {
+      setUpdatingGroupId(null);
+    }
   };
 
   const submitGroup = async () => {
@@ -263,10 +297,29 @@ export default function AdminDashboard() {
                         <td className="p-2 text-center">{g.location}</td>
                         <td className="p-2 text-center capitalize">{g.status}</td>
                         <td className="p-2 text-center space-x-2">
-                          <button onClick={() => updateGroupStatus(g.id, "approved")} className="px-2 py-1 rounded bg-green-500 hover:bg-green-600 text-white">Approve</button>
-                          <button onClick={() => updateGroupStatus(g.id, "rejected")} className="px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white">Reject</button>
-                          <button onClick={() => updateGroupStatus(g.id, "pending")} className="px-2 py-1 rounded bg-yellow-500 hover:bg-yellow-600 text-white">Pending</button>
+                          <button
+                            onClick={() => updateGroupStatus(g.id, "approved")}
+                            disabled={updatingGroupId === g.id}
+                            className="px-2 py-1 rounded bg-green-500 hover:bg-green-600 text-white disabled:opacity-50"
+                          >
+                            {updatingGroupId === g.id ? "..." : "Approve"}
+                          </button>
+                          <button
+                            onClick={() => updateGroupStatus(g.id, "rejected")}
+                            disabled={updatingGroupId === g.id}
+                            className="px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white disabled:opacity-50"
+                          >
+                            {updatingGroupId === g.id ? "..." : "Reject"}
+                          </button>
+                          <button
+                            onClick={() => updateGroupStatus(g.id, "pending")}
+                            disabled={updatingGroupId === g.id}
+                            className="px-2 py-1 rounded bg-yellow-500 hover:bg-yellow-600 text-white disabled:opacity-50"
+                          >
+                            {updatingGroupId === g.id ? "..." : "Pending"}
+                          </button>
                         </td>
+
                       </tr>
                     ))}
                   </tbody>

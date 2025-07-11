@@ -394,10 +394,10 @@ export default function AdminDashboard() {
                           onChange={(e) => setNewGroupType(e.target.value)}
                           placeholder="Edit group type name"
                           aria-label="Group type name"
-                          className="flex-1 mr-2 p-2 border rounded"
+                          className="flex-1 mr-2 p-2 border rounded dark:bg-brand-dark dark:text-white dark:border-gray-600"
                         />
                         <button
-                          className="text-green-600 font-semibold"
+                          className="text-green-600 dark:text-green-400 font-semibold"
                           onClick={() => handleUpdateGroupType(type.id)}
                         >
                           Save
@@ -405,10 +405,10 @@ export default function AdminDashboard() {
                       </>
                     ) : (
                       <>
-                        <span>{type.name}</span>
+                        <span className="text-gray-900 dark:text-white">{type.name}</span>
                         <div className="space-x-2">
                           <button
-                            className="text-blue-600 font-semibold"
+                            className="text-blue-600 dark:text-blue-400 font-semibold"
                             onClick={() => {
                               setEditingId(type.id);
                               setNewGroupType(type.name);
@@ -417,7 +417,7 @@ export default function AdminDashboard() {
                             Edit
                           </button>
                           <button
-                            className="text-red-600 font-semibold"
+                            className="text-red-600 dark:text-red-400 font-semibold"
                             onClick={() => handleDeleteGroupType(type.id)}
                           >
                             Delete

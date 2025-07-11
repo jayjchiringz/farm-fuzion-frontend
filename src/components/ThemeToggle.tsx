@@ -1,7 +1,18 @@
-import React from "react";
+import React, { useEffect } from "react";
 
-// src/components/ThemeToggle.tsx
 export default function ThemeToggle() {
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const html = document.documentElement;
+
+    if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
+      html.classList.add("dark");
+    } else {
+      html.classList.remove("dark");
+    }
+  }, []);
+
   const toggleTheme = () => {
     const html = document.documentElement;
     const isDark = html.classList.contains("dark");

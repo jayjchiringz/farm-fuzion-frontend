@@ -303,9 +303,9 @@ export default function AdminDashboard() {
         <Dialog open={isGroupModalOpen} onClose={() => setGroupModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen">
           <Dialog.Panel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
-            <DialogTitle className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
               Manage Group Types
-            </DialogTitle>
+            </h2>
 
             <input
               className="w-full mb-2 p-2 border rounded"
@@ -355,7 +355,7 @@ export default function AdminDashboard() {
         <Dialog open={isFarmerModalOpen} onClose={() => setFarmerModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen">
             <Dialog.Panel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
-              <DialogTitle className="text-xl font-bold mb-4">Register New Farmer</DialogTitle>
+              <h2 className="text-xl font-bold mb-4">Register New Farmer</h2>
               <input className="w-full mb-2 p-2 border rounded" placeholder="First Name" value={farmerForm.first_name} onChange={(e) => setFarmerForm({ ...farmerForm, first_name: e.target.value })} />
               <input className="w-full mb-2 p-2 border rounded" placeholder="Middle Name" value={farmerForm.middle_name} onChange={(e) => setFarmerForm({ ...farmerForm, middle_name: e.target.value })} />
               <input className="w-full mb-2 p-2 border rounded" placeholder="Last Name" value={farmerForm.last_name} onChange={(e) => setFarmerForm({ ...farmerForm, last_name: e.target.value })} />
@@ -382,7 +382,7 @@ export default function AdminDashboard() {
         >
           <div className="flex items-center justify-center min-h-screen">
             <Dialog.Panel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
-              <DialogTitle className="text-xl font-bold mb-4">Manage Group Types</DialogTitle>
+              <h2 className="text-xl font-bold mb-4">Manage Group Types</h2>
 
               <div className="space-y-2">
                 {groupTypes.map((type) => (

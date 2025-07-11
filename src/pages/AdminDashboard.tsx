@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
-import { Dialog, DialogTitle } from "@headlessui/react";
+import { Dialog, DialogTitle, DialogPanel } from "@headlessui/react";
 import ThemeToggle from "../components/ThemeToggle";
 
 const BASE_URL = import.meta.env.MODE === "development"
@@ -302,7 +302,7 @@ export default function AdminDashboard() {
 
         <Dialog open={isGroupModalOpen} onClose={() => setGroupModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen">
-          <Dialog.Panel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
+          <DialogPanel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
             <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
               Manage Group Types
             </h2>
@@ -348,14 +348,17 @@ export default function AdminDashboard() {
                 Register
               </button>
             </div>
-          </Dialog.Panel>
+          </DialogPanel>
           </div>
         </Dialog>
 
         <Dialog open={isFarmerModalOpen} onClose={() => setFarmerModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen">
-            <Dialog.Panel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
-              <h2 className="text-xl font-bold mb-4">Register New Farmer</h2>
+            <DialogPanel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
+              <DialogTitle className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+                Register New Farmer
+              </DialogTitle>
+
               <input className="w-full mb-2 p-2 border rounded" placeholder="First Name" value={farmerForm.first_name} onChange={(e) => setFarmerForm({ ...farmerForm, first_name: e.target.value })} />
               <input className="w-full mb-2 p-2 border rounded" placeholder="Middle Name" value={farmerForm.middle_name} onChange={(e) => setFarmerForm({ ...farmerForm, middle_name: e.target.value })} />
               <input className="w-full mb-2 p-2 border rounded" placeholder="Last Name" value={farmerForm.last_name} onChange={(e) => setFarmerForm({ ...farmerForm, last_name: e.target.value })} />
@@ -371,7 +374,7 @@ export default function AdminDashboard() {
                 <button onClick={() => setFarmerModalOpen(false)} className="px-3 py-2 bg-slate-500 text-white rounded">Cancel</button>
                 <button onClick={submitFarmer} className="px-3 py-2 bg-brand-green text-white rounded">Register</button>
               </div>
-            </Dialog.Panel>
+            </DialogPanel>
           </div>
         </Dialog>
 
@@ -381,8 +384,10 @@ export default function AdminDashboard() {
           className="fixed z-50 inset-0 overflow-y-auto"
         >
           <div className="flex items-center justify-center min-h-screen">
-            <Dialog.Panel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
-              <h2 className="text-xl font-bold mb-4">Manage Group Types</h2>
+            <DialogPanel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
+              <DialogTitle className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+                Manage Group Types
+              </DialogTitle>
 
               <div className="space-y-2">
                 {groupTypes.map((type) => (
@@ -445,7 +450,7 @@ export default function AdminDashboard() {
                   Add Group Type
                 </button>
               </div>
-            </Dialog.Panel>
+            </DialogPanel>
           </div>
         </Dialog>
 

@@ -32,12 +32,23 @@ export default function AdminDashboard() {
   const [isGroupTypeModalOpen, setGroupTypeModalOpen] = useState(false);
   const [newGroupType, setNewGroupType] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-
   const [farmerForm, setFarmerForm] = useState({first_name: "", middle_name: "", last_name: "", email: "",group_id: ""});
-
   useEffect(() => {fetchData();}, []);
-
+  const [newDocType, setNewDocType] = useState("");
   const [documentTypes, setDocumentTypes] = useState<{ doc_type: string }[]>([]);
+
+  // ✅ Sync form requirements when documentTypes update
+  useEffect(() => {
+    if (documentTypes.length > 0) {
+      setGroupForm((prev) => ({
+        ...prev,
+        documentRequirements: documentTypes.map((d) => ({
+          doc_type: d.doc_type,
+          is_required: false,
+        })),
+      }));
+    }
+  }, [documentTypes]);
 
   const fetchData = async () => {
     try {
@@ -62,23 +73,12 @@ export default function AdminDashboard() {
       const groups = await safeJson(groupsRes, "Groups");
       const farmers = await safeJson(farmersRes, "Farmers");
       const groupTypes = await safeJson(typesRes, "GroupTypes");
-      const docs = await safeJson(docsRes, "DocumentTypes");
+      const docs = (await safeJson(docsRes, "DocumentTypes")) as { doc_type: string }[];
 
       setGroups(groups);
       setFarmers(farmers);
       setGroupTypes(groupTypes);
-      setDocumentTypes(docs);
-
-      // Dynamically set document checklist on modal open
-      setGroupForm({
-        name: "",
-        group_type_id: "",
-        location: "",
-        documentRequirements: documentTypes.map((d) => ({
-          doc_type: d.doc_type,
-          is_required: false,
-        })),
-      });
+      setDocumentTypes(docs.sort((a, b) => a.doc_type.localeCompare(b.doc_type)));
 
     } catch (err) {
       console.error("🚨 fetchData error:", err);
@@ -254,6 +254,39 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error("Network or server error during deletion:", err);
       alert("An unexpected error occurred while deleting the group type.");
+    }
+  };
+
+  const addDocumentType = async () => {
+    if (!newDocType.trim()) return;
+    try {
+      const res = await fetch(`${BASE_URL}/document-types`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ doc_type: newDocType }),
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+      setNewDocType("");
+      await fetchData();
+    } catch (err) {
+      alert("Failed to add document type.");
+      console.error(err);
+    }
+  };
+
+  const deleteDocumentType = async (doc_type: string) => {
+    if (!window.confirm(`Remove "${doc_type}"?`)) return;
+    try {
+      const res = await fetch(`${BASE_URL}/document-types/${encodeURIComponent(doc_type)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error(await res.text());
+
+      await fetchData();
+    } catch (err) {
+      alert("Failed to delete document type.");
+      console.error(err);
     }
   };
 
@@ -437,6 +470,41 @@ export default function AdminDashboard() {
               >
                 Register
               </button>
+            </div>
+
+            <div className="mt-6 border-t pt-4">
+              <h3 className="text-lg font-semibold mb-2">Manage Required Documents</h3>
+
+              <div className="space-y-2">
+                {documentTypes.map((doc) => (
+                  <div key={doc.doc_type} className="flex justify-between items-center">
+                    <span>{doc.doc_type}</span>
+                    <button
+                      onClick={() => deleteDocumentType(doc.doc_type)}
+                      className="text-sm text-red-600"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="New document type"
+                  value={newDocType}
+                  onChange={(e) => setNewDocType(e.target.value)}
+                  className="flex-1 p-2 border rounded"
+                />
+                <button
+                  disabled={!newDocType.trim() || documentTypes.some((d) => d.doc_type === newDocType.trim())}
+                  className="bg-brand-green text-white px-4 py-2 rounded disabled:opacity-50"
+                  onClick={addDocumentType}
+                >
+                  Add
+                </button>
+              </div>
             </div>
           </DialogPanel>
           </div>

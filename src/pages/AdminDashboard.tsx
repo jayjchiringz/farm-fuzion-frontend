@@ -28,6 +28,7 @@ export default function AdminDashboard() {
     location: "",
     registration_number: "",
     documentRequirements: [] as { doc_type: string; is_required: boolean }[],
+    uploadedDocs: {} as Record<string, File>,
   });
 
   const [isGroupTypeModalOpen, setGroupTypeModalOpen] = useState(false);
@@ -129,28 +130,36 @@ export default function AdminDashboard() {
 
   const submitGroup = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/groups/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: groupForm.name,
-          group_type_id: groupForm.group_type_id,
-          location: groupForm.location,
-          registration_number: groupForm.registration_number,
-        }),
+      // Create FormData to support file uploads
+      const formData = new FormData();
+      formData.append("name", groupForm.name);
+      formData.append("group_type_id", groupForm.group_type_id);
+      formData.append("location", groupForm.location);
+      formData.append("registration_number", groupForm.registration_number);
+
+      // Attach all required document files
+      groupForm.documentRequirements.forEach((r) => {
+        if (r.is_required && groupForm.uploadedDocs[r.doc_type]) {
+          formData.append(`documents[${r.doc_type}]`, groupForm.uploadedDocs[r.doc_type]);
+        }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
+      const res = await fetch(`${BASE_URL}/groups/register-with-docs`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
         console.error("Group creation failed:", errorText);
         alert(`Failed to create group: ${errorText}`);
         return;
       }
 
-      const data = await response.json();
+      const data = await res.json();
       const groupId = data.id;
 
-      // 🔗 Post requirements
+      // 🎯 Save requirements metadata
       await fetch(`${BASE_URL}/groups/${groupId}/requirements`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -161,11 +170,15 @@ export default function AdminDashboard() {
 
       setGroupModalOpen(false);
       setGroupForm({
-        name: "", group_type_id: "", location: "", registration_number: "",
+        name: "",
+        group_type_id: "",
+        location: "",
+        registration_number: "",
         documentRequirements: documentTypes.map((d) => ({
           doc_type: d.doc_type,
           is_required: false,
         })),
+        uploadedDocs: {},
       });
 
       fetchData();
@@ -291,6 +304,11 @@ export default function AdminDashboard() {
       console.error(err);
     }
   };
+  
+  // ✅ Check if all required documents are uploaded
+  const requiredDocsValid = groupForm.documentRequirements
+    .filter((r) => r.is_required)
+    .every((r) => !!groupForm.uploadedDocs[r.doc_type]);
 
   return (
     <MainLayout>
@@ -455,18 +473,39 @@ export default function AdminDashboard() {
 
             <h3 className="font-semibold mt-4 mb-2 text-gray-900 dark:text-white">Required Documents</h3>
             {groupForm.documentRequirements.map((item, i) => (
-              <label key={i} className="block mb-1 text-gray-900 dark:text-white">
-                <input
-                  type="checkbox"
-                  checked={item.is_required}
-                  onChange={(e) => {
-                    const newList = [...groupForm.documentRequirements];
-                    newList[i].is_required = e.target.checked;
-                    setGroupForm({ ...groupForm, documentRequirements: newList });
-                  }}
-                />
-                <span className="ml-2">{item.doc_type}</span>
-              </label>
+              <div key={i} className="mb-2">
+                <label className="block text-gray-900 dark:text-white mb-1">
+                  <input
+                    type="checkbox"
+                    checked={item.is_required}
+                    onChange={(e) => {
+                      const newList = [...groupForm.documentRequirements];
+                      newList[i].is_required = e.target.checked;
+                      setGroupForm({ ...groupForm, documentRequirements: newList });
+                    }}
+                  />
+                  <span className="ml-2">{item.doc_type}</span>
+                </label>
+
+                {item.is_required && (
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="w-full border rounded p-1 text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setGroupForm((prev) => ({
+                        ...prev,
+                        uploadedDocs: {
+                          ...prev.uploadedDocs,
+                          [item.doc_type]: file,
+                        },
+                      }));
+                    }}
+                  />
+                )}
+              </div>
             ))}
 
             <div className="flex justify-end gap-2">
@@ -474,7 +513,7 @@ export default function AdminDashboard() {
                 Cancel
               </button>
               <button
-                disabled={!groupForm.name || !groupForm.group_type_id || !groupForm.location || !groupForm.registration_number}
+                disabled={!groupForm.name || !groupForm.group_type_id || !groupForm.location || !groupForm.registration_number || !requiredDocsValid}
                 onClick={submitGroup}
                 className="px-3 py-2 bg-brand-green text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
               >

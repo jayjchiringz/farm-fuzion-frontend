@@ -7,7 +7,10 @@ const BASE_URL = import.meta.env.MODE === "development"
   ? "/api"
   : "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
 
-interface Group {id: string; name: string; type: string; location: string;status: string;remarks?: string;}
+interface Group {id: string; name: string; type: string; location: string;status: string;remarks?: string;
+  registration_number?: string;
+  documents?: { doc_type: string; path?: string }[];
+}
 
 interface Farmer {id: number; first_name: string; middle_name: string; last_name: string; email: string; group_id: string;}
 
@@ -359,6 +362,8 @@ export default function AdminDashboard() {
                       <th className="p-2 text-left">Name</th>
                       <th className="p-2">Type</th>
                       <th className="p-2">Location</th>
+                      <th className="p-2">Reg. No</th>
+                      <th className="p-2">Documents</th>
                       <th className="p-2">Status</th>
                       <th className="p-2">Actions</th>
                     </tr>
@@ -369,6 +374,12 @@ export default function AdminDashboard() {
                         <td className="p-2 font-medium">{g.name}</td>
                         <td className="p-2 text-center">{g.type}</td>
                         <td className="p-2 text-center">{g.location}</td>
+                        <td className="p-2 text-center">{g.registration_number ?? "—"}</td>
+                        <td className="p-2 text-center">
+                          {g.documents?.length
+                            ? `${g.documents.length} uploaded`
+                            : <span className="text-red-500">None</span>}
+                        </td>                        
                         <td className="p-2 text-center capitalize">{g.status}</td>
                         <td className="p-2 text-center space-x-2">
                           <button

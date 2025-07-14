@@ -26,6 +26,7 @@ export default function AdminDashboard() {
     name: "",
     group_type_id: "",
     location: "",
+    registration_number: "",
     documentRequirements: [] as { doc_type: string; is_required: boolean }[],
   });
 
@@ -135,6 +136,7 @@ export default function AdminDashboard() {
           name: groupForm.name,
           group_type_id: groupForm.group_type_id,
           location: groupForm.location,
+          registration_number: groupForm.registration_number,
         }),
       });
 
@@ -159,7 +161,7 @@ export default function AdminDashboard() {
 
       setGroupModalOpen(false);
       setGroupForm({
-        name: "", group_type_id: "", location: "",
+        name: "", group_type_id: "", location: "", registration_number: "",
         documentRequirements: documentTypes.map((d) => ({
           doc_type: d.doc_type,
           is_required: false,
@@ -443,6 +445,15 @@ export default function AdminDashboard() {
               onChange={(e) => setGroupForm({ ...groupForm, location: e.target.value })}
             />
 
+            <input
+              className="w-full mb-4 p-2 border rounded"
+              placeholder="Group Registration Number"
+              value={groupForm.registration_number}
+              onChange={(e) =>
+                setGroupForm({ ...groupForm, registration_number: e.target.value })
+              }
+            />
+
             <h3 className="font-semibold mt-4 mb-2">Required Documents</h3>
             {groupForm.documentRequirements.map((item, i) => (
               <label key={i} className="block mb-1">
@@ -464,7 +475,7 @@ export default function AdminDashboard() {
                 Cancel
               </button>
               <button
-                disabled={!groupForm.name || !groupForm.group_type_id || !groupForm.location}
+                disabled={!groupForm.name || !groupForm.group_type_id || !groupForm.location || !groupForm.registration_number}
                 onClick={submitGroup}
                 className="px-3 py-2 bg-brand-green text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
               >

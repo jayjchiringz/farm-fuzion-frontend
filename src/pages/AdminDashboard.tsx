@@ -453,9 +453,9 @@ export default function AdminDashboard() {
               }
             />
 
-            <h3 className="font-semibold mt-4 mb-2">Required Documents</h3>
+            <h3 className="font-semibold mt-4 mb-2 text-gray-900 dark:text-white">Required Documents</h3>
             {groupForm.documentRequirements.map((item, i) => (
-              <label key={i} className="block mb-1">
+              <label key={i} className="block mb-1 text-gray-900 dark:text-white">
                 <input
                   type="checkbox"
                   checked={item.is_required}
@@ -483,15 +483,15 @@ export default function AdminDashboard() {
             </div>
 
             <div className="mt-6 border-t pt-4">
-              <h3 className="text-lg font-semibold mb-2">Manage Required Documents</h3>
+              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Manage Required Documents</h3>
 
               <div className="space-y-2">
                 {documentTypes.map((doc) => (
-                  <div key={doc.doc_type} className="flex justify-between items-center">
+                  <div key={doc.doc_type} className="flex justify-between items-center text-gray-900 dark:text-white">
                     <span>{doc.doc_type}</span>
                     <button
                       onClick={() => deleteDocumentType(doc.doc_type)}
-                      className="text-sm text-red-600"
+                      className="text-sm text-red-600 dark:text-red-400"
                     >
                       Delete
                     </button>

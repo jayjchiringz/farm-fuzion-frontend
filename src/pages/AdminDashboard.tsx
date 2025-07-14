@@ -417,7 +417,7 @@ export default function AdminDashboard() {
             </h2>
 
             <input
-              className="w-full mb-2 p-2 border rounded"
+              className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
               placeholder="Group Name"
               value={groupForm.name}
               onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
@@ -428,7 +428,7 @@ export default function AdminDashboard() {
             </label>
             <select
               id="group-type-select"
-              className="w-full mb-2 p-2 border rounded"
+              className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
               value={groupForm.group_type_id}
               onChange={(e) => setGroupForm({ ...groupForm, group_type_id: e.target.value })}
             >
@@ -439,15 +439,14 @@ export default function AdminDashboard() {
             </select>
 
             <input
-              className="w-full mb-4 p-2 border rounded"
+              className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
               placeholder="Location"
               value={groupForm.location}
               onChange={(e) => setGroupForm({ ...groupForm, location: e.target.value })}
             />
 
             <input
-              className="w-full mb-4 p-2 border rounded"
-              placeholder="Group Registration Number"
+              className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"              placeholder="Group Registration Number"
               value={groupForm.registration_number}
               onChange={(e) =>
                 setGroupForm({ ...groupForm, registration_number: e.target.value })
@@ -506,7 +505,7 @@ export default function AdminDashboard() {
                   placeholder="New document type"
                   value={newDocType}
                   onChange={(e) => setNewDocType(e.target.value)}
-                  className="flex-1 p-2 border rounded"
+                  className="flex-1 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
                 />
                 <button
                   disabled={!newDocType.trim() || documentTypes.some((d) => d.doc_type === newDocType.trim())}
@@ -528,12 +527,12 @@ export default function AdminDashboard() {
                 Register New Farmer
               </DialogTitle>
 
-              <input className="w-full mb-2 p-2 border rounded" placeholder="First Name" value={farmerForm.first_name} onChange={(e) => setFarmerForm({ ...farmerForm, first_name: e.target.value })} />
-              <input className="w-full mb-2 p-2 border rounded" placeholder="Middle Name" value={farmerForm.middle_name} onChange={(e) => setFarmerForm({ ...farmerForm, middle_name: e.target.value })} />
-              <input className="w-full mb-2 p-2 border rounded" placeholder="Last Name" value={farmerForm.last_name} onChange={(e) => setFarmerForm({ ...farmerForm, last_name: e.target.value })} />
-              <input className="w-full mb-2 p-2 border rounded" placeholder="Email" type="email" value={farmerForm.email} onChange={(e) => setFarmerForm({ ...farmerForm, email: e.target.value })} />
+              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600" placeholder="First Name" value={farmerForm.first_name} onChange={(e) => setFarmerForm({ ...farmerForm, first_name: e.target.value })} />
+              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600" placeholder="Middle Name" value={farmerForm.middle_name} onChange={(e) => setFarmerForm({ ...farmerForm, middle_name: e.target.value })} />
+              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600" placeholder="Last Name" value={farmerForm.last_name} onChange={(e) => setFarmerForm({ ...farmerForm, last_name: e.target.value })} />
+              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600" placeholder="Email" type="email" value={farmerForm.email} onChange={(e) => setFarmerForm({ ...farmerForm, email: e.target.value })} />
               <label htmlFor="group-select" className="sr-only">Select Group</label>
-              <select id="group-select" className="w-full mb-4 p-2 border rounded" value={farmerForm.group_id} onChange={(e) => setFarmerForm({ ...farmerForm, group_id: e.target.value })}>
+              <select id="group-select" className="w-full mb-4 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600" value={farmerForm.group_id} onChange={(e) => setFarmerForm({ ...farmerForm, group_id: e.target.value })}>
                 <option value="">Select Group</option>
                 {groups.map((g) => (
                   <option key={g.id} value={g.id}>{g.name}</option>

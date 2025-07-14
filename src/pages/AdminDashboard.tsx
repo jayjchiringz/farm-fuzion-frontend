@@ -7,28 +7,11 @@ const BASE_URL = import.meta.env.MODE === "development"
   ? "/api"
   : "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
 
-interface Group {
-  id: string;
-  name: string;
-  type: string;
-  location: string;
-  status: string;
-  remarks?: string;
-}
+interface Group {id: string; name: string; type: string; location: string;status: string;remarks?: string;}
 
-interface Farmer {
-  id: number;
-  first_name: string;
-  middle_name: string;
-  last_name: string;
-  email: string;
-  group_id: string;
-}
+interface Farmer {id: number; first_name: string; middle_name: string; last_name: string; email: string; group_id: string;}
 
-interface GroupType {
-  id: string;
-  name: string;
-}
+interface GroupType {id: string; name: string;}
 
 export default function AdminDashboard() {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -38,30 +21,31 @@ export default function AdminDashboard() {
   const [isFarmerModalOpen, setFarmerModalOpen] = useState(false);
 
   const [groupTypes, setGroupTypes] = useState<GroupType[]>([]);
-  const [groupForm, setGroupForm] = useState({ name: "", group_type_id: "", location: "" });
+    
+  const [groupForm, setGroupForm] = useState({
+    name: "",
+    group_type_id: "",
+    location: "",
+    documentRequirements: [] as { doc_type: string; is_required: boolean }[],
+  });
 
   const [isGroupTypeModalOpen, setGroupTypeModalOpen] = useState(false);
   const [newGroupType, setNewGroupType] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [farmerForm, setFarmerForm] = useState({
-    first_name: "",
-    middle_name: "",
-    last_name: "",
-    email: "",
-    group_id: "",
-  });
+  const [farmerForm, setFarmerForm] = useState({first_name: "", middle_name: "", last_name: "", email: "",group_id: ""});
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => {fetchData();}, []);
+
+  const [documentTypes, setDocumentTypes] = useState<{ doc_type: string }[]>([]);
 
   const fetchData = async () => {
     try {
-      const [groupsRes, farmersRes, typesRes] = await Promise.all([
+      const [groupsRes, farmersRes, typesRes, docsRes] = await Promise.all([
         fetch(`${BASE_URL}/groups`),
         fetch(`${BASE_URL}/farmers`),
         fetch(`${BASE_URL}/groups-types`),
+        fetch(`${BASE_URL}/document-types`), 
       ]);
 
       const safeJson = async (res: Response, label: string) => {
@@ -78,10 +62,24 @@ export default function AdminDashboard() {
       const groups = await safeJson(groupsRes, "Groups");
       const farmers = await safeJson(farmersRes, "Farmers");
       const groupTypes = await safeJson(typesRes, "GroupTypes");
+      const docs = await safeJson(docsRes, "DocumentTypes");
 
       setGroups(groups);
       setFarmers(farmers);
       setGroupTypes(groupTypes);
+      setDocumentTypes(docs);
+
+      // Dynamically set document checklist on modal open
+      setGroupForm({
+        name: "",
+        group_type_id: "",
+        location: "",
+        documentRequirements: documentTypes.map((d) => ({
+          doc_type: d.doc_type,
+          is_required: false,
+        })),
+      });
+
     } catch (err) {
       console.error("🚨 fetchData error:", err);
     } finally {
@@ -133,7 +131,11 @@ export default function AdminDashboard() {
       const response = await fetch(`${BASE_URL}/groups/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(groupForm),
+        body: JSON.stringify({
+          name: groupForm.name,
+          group_type_id: groupForm.group_type_id,
+          location: groupForm.location,
+        }),
       });
 
       if (!response.ok) {
@@ -143,8 +145,27 @@ export default function AdminDashboard() {
         return;
       }
 
+      const data = await response.json();
+      const groupId = data.id;
+
+      // 🔗 Post requirements
+      await fetch(`${BASE_URL}/groups/${groupId}/requirements`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requirements: groupForm.documentRequirements.filter((r) => r.is_required),
+        }),
+      });
+
       setGroupModalOpen(false);
-      setGroupForm({ name: "", group_type_id: "", location: "" });
+      setGroupForm({
+        name: "", group_type_id: "", location: "",
+        documentRequirements: documentTypes.map((d) => ({
+          doc_type: d.doc_type,
+          is_required: false,
+        })),
+      });
+
       fetchData();
     } catch (err) {
       console.error("Error submitting group:", err);
@@ -388,6 +409,22 @@ export default function AdminDashboard() {
               value={groupForm.location}
               onChange={(e) => setGroupForm({ ...groupForm, location: e.target.value })}
             />
+
+            <h3 className="font-semibold mt-4 mb-2">Required Documents</h3>
+            {groupForm.documentRequirements.map((item, i) => (
+              <label key={i} className="block mb-1">
+                <input
+                  type="checkbox"
+                  checked={item.is_required}
+                  onChange={(e) => {
+                    const newList = [...groupForm.documentRequirements];
+                    newList[i].is_required = e.target.checked;
+                    setGroupForm({ ...groupForm, documentRequirements: newList });
+                  }}
+                />
+                <span className="ml-2">{item.doc_type}</span>
+              </label>
+            ))}
 
             <div className="flex justify-end gap-2">
               <button onClick={() => setGroupModalOpen(false)} className="px-3 py-2 bg-slate-500 text-white rounded">

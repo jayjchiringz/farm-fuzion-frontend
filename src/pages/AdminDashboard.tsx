@@ -153,7 +153,7 @@ export default function AdminDashboard() {
         }
       });
 
-      const res = await fetch(`${BASE_URL}/groups/register-with-docs`, {
+      const res = await fetch(`${BASE_URL}/registerWithDocs`, {
         method: "POST",
         body: formData,
       });

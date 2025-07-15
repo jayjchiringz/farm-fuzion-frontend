@@ -146,11 +146,10 @@ export default function AdminDashboard() {
         JSON.stringify(groupForm.documentRequirements)
       );
 
-      // ✅ Files must match backend field naming: documents[<doc_type>]
+      // Upload document files
       groupForm.documentRequirements.forEach((r) => {
-        const file = groupForm.uploadedDocs[r.doc_type];
-        if (r.is_required && file) {
-          formData.append(`documents[${r.doc_type}]`, file);
+        if (r.is_required && groupForm.uploadedDocs[r.doc_type]) {
+          formData.append(`documents[${r.doc_type}]`, groupForm.uploadedDocs[r.doc_type]);
         }
       });
 

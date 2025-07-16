@@ -148,10 +148,15 @@ export default function AdminDashboard() {
 
       // Upload document files
       groupForm.documentRequirements.forEach((r) => {
-        if (r.is_required && groupForm.uploadedDocs[r.doc_type]) {
-          formData.append(`documents[${r.doc_type}]`, groupForm.uploadedDocs[r.doc_type]);
+        const file = groupForm.uploadedDocs[r.doc_type];
+        if (r.is_required && file && file instanceof File) {
+          formData.append(`documents[${r.doc_type}]`, file);
         }
       });
+
+      for (let pair of formData.entries()) {
+        console.log(`${pair[0]}:`, pair[1]);
+      }
 
       const res = await fetch(`https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/registerWithDocs`, {
         method: "POST",

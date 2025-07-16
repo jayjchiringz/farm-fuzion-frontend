@@ -194,6 +194,14 @@ export default function AdminDashboard() {
         })),
         uploadedDocs: {},
       });
+      
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`✅ ${key}: File of type ${value.type}, size ${value.size}`);
+        } else {
+          console.log(`📝 ${key}: ${value}`);
+        }
+      }
 
       fetchData();
     } catch (err) {

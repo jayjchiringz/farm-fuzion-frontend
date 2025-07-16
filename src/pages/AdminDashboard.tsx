@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
 import { Dialog, DialogTitle, DialogPanel } from "@headlessui/react";
 import ThemeToggle from "../components/ThemeToggle";
+import axios from "axios"; 
 
 const BASE_URL = import.meta.env.MODE === "development"
   ? "/api"
@@ -133,47 +134,41 @@ export default function AdminDashboard() {
 
   const submitGroup = async () => {
     try {
-      // Create FormData to support file uploads
       const formData = new FormData();
       formData.append("name", groupForm.name);
       formData.append("group_type_id", groupForm.group_type_id);
       formData.append("location", groupForm.location);
       formData.append("registration_number", groupForm.registration_number);
 
-      // ✅ ADD THIS: include document requirements in the FormData
+      // ✅ Document metadata
       formData.append(
         "requirements",
         JSON.stringify(groupForm.documentRequirements)
       );
 
-      // Upload document files
+      // ✅ File uploads
       groupForm.documentRequirements.forEach((r) => {
         const file = groupForm.uploadedDocs[r.doc_type];
-        if (r.is_required && file && file instanceof File) {
+        if (r.is_required && file instanceof File) {
           formData.append(`documents[${r.doc_type}]`, file);
         }
       });
 
-      for (let pair of formData.entries()) {
-        console.log(`${pair[0]}:`, pair[1]);
-      }
+      // ✅ Axios instead of fetch — handles multipart better
+      const res = await axios.post(
+        "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/registerWithDocs",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
-      const res = await fetch(`https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/registerWithDocs`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Group creation failed:", errorText);
-        alert(`Failed to create group: ${errorText}`);
-        return;
-      }
-
-      const data = await res.json();
+      const data = res.data;
       const groupId = data.id;
 
-      // 🎯 Save requirements metadata
+      // ✅ Save metadata
       await fetch(`${BASE_URL}/groups/${groupId}/requirements`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -182,6 +177,7 @@ export default function AdminDashboard() {
         }),
       });
 
+      // ✅ Reset form
       setGroupModalOpen(false);
       setGroupForm({
         name: "",
@@ -194,21 +190,22 @@ export default function AdminDashboard() {
         })),
         uploadedDocs: {},
       });
-      
-      for (const [key, value] of formData.entries()) {
-        if (value instanceof File) {
-          console.log(`✅ ${key}: File of type ${value.type}, size ${value.size}`);
-        } else {
-          console.log(`📝 ${key}: ${value}`);
-        }
-      }
 
       fetchData();
-    } catch (err) {
-      console.error("Error submitting group:", err);
-      alert("Something went wrong while registering group.");
+    } catch (err: any) {
+      console.error("❌ Group creation failed:", err);
+      if (axios.isAxiosError(err)) {
+        alert(
+          `Group registration failed:\n${
+            err.response?.data?.error || err.message
+          }`
+        );
+      } else {
+        alert("An unknown error occurred while submitting the group.");
+      }
     }
   };
+
 
   const submitFarmer = async () => {
     const response = await fetch(`${BASE_URL}/farmers`, {

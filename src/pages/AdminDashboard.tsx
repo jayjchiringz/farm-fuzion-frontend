@@ -153,7 +153,7 @@ export default function AdminDashboard() {
         }
       });
 
-      const res = await fetch(`${BASE_URL}/registerWithDocs`, {
+      const res = await fetch(`https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/registerWithDocs`, {
         method: "POST",
         body: formData,
       });

@@ -371,6 +371,23 @@ export default function AdminDashboard() {
     .filter((r) => r.is_required)
     .every((r) => !!groupForm.uploadedDocs[r.doc_type]);
 
+  const handleAssignGroup = async (farmerId: number, groupId: string) => {
+    try {
+      const res = await fetch(`${BASE_URL}/farmers/${farmerId}/group`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ group_id: groupId }),
+      });
+
+      if (!res.ok) throw new Error("Group assignment failed");
+
+      fetchData(); // Refresh the table with updated group
+    } catch (err) {
+      console.error("❌ Failed to assign group:", err);
+      alert("Failed to assign group. Please try again.");
+    }
+  };
+
   return (
     <MainLayout>
       <ThemeToggle />
@@ -490,7 +507,22 @@ export default function AdminDashboard() {
                             {f.first_name} {f.middle_name} {f.last_name}
                           </td>
                           <td className="p-2 text-center">{f.email}</td>
-                          <td className="p-2 text-center">{group ? group.name : "—"}</td>
+                          <td className="p-2 text-center">
+                            {group ? (
+                              group.name
+                            ) : (
+                              <select
+                                className="p-1 border rounded text-sm dark:bg-brand-dark dark:border-gray-600"
+                                onChange={(e) => handleAssignGroup(f.id, e.target.value)}
+                                defaultValue=""
+                              >
+                                <option value="" disabled>Select Group</option>
+                                {groups.map((g) => (
+                                  <option key={g.id} value={g.id}>{g.name}</option>
+                                ))}
+                              </select>
+                            )}
+                          </td>
                         </tr>
                       );
                     })}

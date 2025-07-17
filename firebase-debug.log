@@ -1,0 +1,29 @@
+[debug] [2025-07-17T19:08:30.741Z] ----------------------------------------------------------------------
+[debug] [2025-07-17T19:08:30.759Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\dell\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2025-07-17T19:08:30.762Z] CLI Version:   14.11.0
+[debug] [2025-07-17T19:08:30.763Z] Platform:      win32
+[debug] [2025-07-17T19:08:30.763Z] Node Version:  v22.13.1
+[debug] [2025-07-17T19:08:30.764Z] Time:          Thu Jul 17 2025 22:08:30 GMT+0300 (East Africa Time)
+[debug] [2025-07-17T19:08:30.765Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-07-17T19:08:31.727Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-07-17T19:08:31.729Z] > authorizing via signed-in user (caxshuganda@gmail.com)
+[debug] [2025-07-17T19:08:31.729Z] [iam] checking project farm-fuzion-abdf3 for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-07-17T19:08:31.733Z] Checked if tokens are valid: true, expires at: 1752782849321
+[debug] [2025-07-17T19:08:31.734Z] Checked if tokens are valid: true, expires at: 1752782849321
+[debug] [2025-07-17T19:08:31.736Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions [none]
+[debug] [2025-07-17T19:08:31.737Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions x-goog-quota-user=projects/farm-fuzion-abdf3
+[debug] [2025-07-17T19:08:31.737Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-07-17T19:08:48.874Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions 200
+[debug] [2025-07-17T19:08:48.874Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-07-17T19:08:48.875Z] Checked if tokens are valid: true, expires at: 1752782849321
+[debug] [2025-07-17T19:08:48.875Z] Checked if tokens are valid: true, expires at: 1752782849321
+[debug] [2025-07-17T19:08:48.875Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/farm-fuzion-abdf3 [none]
+[debug] [2025-07-17T19:09:07.135Z] *** [apiv2] error from fetch(https://firebase.googleapis.com/v1beta1/projects/farm-fuzion-abdf3, {"headers":{},"method":"GET","signal":{}}): FetchError: request to https://firebase.googleapis.com/v1beta1/projects/farm-fuzion-abdf3 failed, reason: socket hang up
+[debug] [2025-07-17T19:09:07.135Z] Failed to make request to https://firebase.googleapis.com/v1beta1/projects/farm-fuzion-abdf3 (original: request to https://firebase.googleapis.com/v1beta1/projects/farm-fuzion-abdf3 failed, reason: socket hang up)
+[debug] [2025-07-17T19:09:12.153Z] Error: Timed out.
+    at Timeout._onTimeout (C:\Users\dell\AppData\Roaming\npm\node_modules\firebase-tools\lib\utils.js:267:49)
+    at listOnTimeout (node:internal/timers:594:17)
+    at process.processTimers (node:internal/timers:529:7)
+[error] 
+[error] Error: An unexpected error has occurred.

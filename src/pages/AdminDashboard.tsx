@@ -5,6 +5,7 @@ import ThemeToggle from "../components/ThemeToggle";
 import axios from "axios"; 
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
+import { storage } from "../lib/firebase";
 
 const BASE_URL = import.meta.env.MODE === "development"
   ? "/api"
@@ -138,22 +139,21 @@ export default function AdminDashboard() {
 
   const submitGroup = async () => {
     try {
-      const storage = getStorage(); // Firebase Web SDK
       const uploadedPaths: { [docType: string]: string } = {};
 
-      // 🔼 Upload files to Firebase Storage first
+      // 🔼 Upload files to Firebase Storage
       for (const r of groupForm.documentRequirements) {
         const file = groupForm.uploadedDocs[r.doc_type];
         if (r.is_required && file instanceof File) {
           const ext = file.name.split(".").pop();
           const path = `group_docs/${uuidv4()}.${ext}`;
           const fileRef = ref(storage, path);
-          await uploadBytes(fileRef, file);
-          uploadedPaths[r.doc_type] = path;
+          await uploadBytes(fileRef, file); // 📡 Upload
+          uploadedPaths[r.doc_type] = path; // 🧾 Store for API payload
         }
       }
 
-      // 📨 Send metadata to Cloud Function
+      // 📨 Send metadata to your Cloud Function
       const res = await fetch("https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/registerWithDocs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -173,10 +173,9 @@ export default function AdminDashboard() {
 
       if (!res.ok) throw new Error("Cloud function failed");
 
-      const data = await res.json();
-      const groupId = data.id;
+      const { id: groupId } = await res.json();
 
-      // 🗃️ Save requirements metadata to your backend
+      // 🗃️ Save requirements metadata (if needed)
       const metaRes = await fetch(`${BASE_URL}/groups/${groupId}/requirements`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -187,7 +186,7 @@ export default function AdminDashboard() {
 
       if (!metaRes.ok) throw new Error("Requirement save failed");
 
-      // ✅ Cleanup UI
+      // ✅ UI Reset
       setGroupModalOpen(false);
       setGroupForm({
         name: "",
@@ -206,7 +205,9 @@ export default function AdminDashboard() {
     } catch (err: any) {
       console.error("❌ Group creation failed:", err);
       alert(
-        `Group registration failed:\n${axios.isAxiosError(err) ? err.response?.data?.error || err.message : "Unknown error"}`
+        `Group registration failed:\n${
+          axios.isAxiosError(err) ? err.response?.data?.error || err.message : "Unknown error"
+        }`
       );
     }
   };

@@ -388,443 +388,452 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleLogout = () => {
+    // Clear any auth state or token
+    localStorage.removeItem("authToken"); // Example cleanup
+    window.location.href = "/login"; // Redirect to login or home page
+  };
+
   return (
     <MainLayout>
       <ThemeToggle />
-      <div className="p-6 md:p-10">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl md:text-5xl font-bold font-ubuntu">Admin Dashboard</h1>
-          <div className="space-x-3">
+      <div className="flex min-h-screen">
+        {/* Sidebar */}
+        <aside className="w-64 bg-brand-green text-white flex flex-col justify-between py-6 px-4 shadow-lg">
+          <div>
+            <h2 className="text-xl font-bold mb-6">Admin Panel</h2>
             <button
               onClick={() => setGroupTypeModalOpen(true)}
-              className="bg-transparent text-brand-dark border border-brand-green  
-                        px-4 py-2 rounded transition-colors duration-200
-                        hover:bg-brand-green hover:text-white hover:border-brand-green 
-                        dark:bg-transparent dark:text-white dark:hover:bg-brand-green dark:hover:text-white dark:hover:border-brand-green"
+              className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
             >
               ⚙️ Manage Group Types
             </button>
             <button
               onClick={() => setGroupModalOpen(true)}
-              className="bg-transparent text-brand-dark border border-brand-green  
-                        px-4 py-2 rounded transition-colors duration-200
-                        hover:bg-brand-green hover:text-white hover:border-brand-green 
-                        dark:bg-transparent dark:text-white dark:hover:bg-brand-green dark:hover:text-white dark:hover:border-brand-green"
+              className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
             >
               + Register Group
             </button>
             <button
               onClick={() => setFarmerModalOpen(true)}
-              className="bg-transparent text-brand-dark border border-brand-green  
-                        px-4 py-2 rounded transition-colors duration-200
-                        hover:bg-brand-green hover:text-white hover:border-brand-green 
-                        dark:bg-transparent dark:text-white dark:hover:bg-brand-green dark:hover:text-white dark:hover:border-brand-green"
+              className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
             >
               + Register Farmer
             </button>
           </div>
-        </div>
-        {loading ? (
-          <p>Loading data...</p>
-        ) : (
-          <>
-            <section className="mb-12">
-              <h2 className="text-2xl font-bold font-ubuntu mb-4">Registered SACCOs & Groups</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full border dark:border-slate-700 text-sm">
-                  <thead>
-                    <tr className="bg-brand-green text-white dark:bg-brand-apple dark:text-brand-dark">
-                      <th className="p-2 text-left">Name</th>
-                      <th className="p-2">Type</th>
-                      <th className="p-2">Location</th>
-                      <th className="p-2">Reg. No</th>
-                      <th className="p-2">Documents</th>
-                      <th className="p-2">Status</th>
-                      <th className="p-2">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {groups.map((g) => (
-                      <tr key={g.id} className="odd:bg-slate-100 dark:odd:bg-[#033127]">
-                        <td className="p-2 font-medium">{g.name}</td>
-                        <td className="p-2 text-center">{g.type}</td>
-                        <td className="p-2 text-center">{g.location}</td>
-                        <td className="p-2 text-center">{g.registration_number ?? "—"}</td>
-                        <td className="p-2 text-center">
-                          {g.documents?.length
-                            ? `${g.documents.length} uploaded`
-                            : <span className="text-red-500">None</span>}
-                        </td>                        
-                        <td className="p-2 text-center capitalize">{g.status}</td>
-                        <td className="p-2 text-center space-x-2">
-                          <button
-                            onClick={() => updateGroupStatus(g.id, "approved")}
-                            disabled={updatingGroupId === g.id}
-                            className="px-2 py-1 rounded bg-green-500 hover:bg-green-600 text-white disabled:opacity-50"
-                          >
-                            {updatingGroupId === g.id ? "..." : "Approve"}
-                          </button>
-                          <button
-                            onClick={() => updateGroupStatus(g.id, "rejected")}
-                            disabled={updatingGroupId === g.id}
-                            className="px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white disabled:opacity-50"
-                          >
-                            {updatingGroupId === g.id ? "..." : "Reject"}
-                          </button>
-                          <button
-                            onClick={() => updateGroupStatus(g.id, "pending")}
-                            disabled={updatingGroupId === g.id}
-                            className="px-2 py-1 rounded bg-yellow-500 hover:bg-yellow-600 text-white disabled:opacity-50"
-                          >
-                            {updatingGroupId === g.id ? "..." : "Pending"}
-                          </button>
-                        </td>
+          <button
+            onClick={handleLogout}
+            className="mt-6 px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white"
+          >
+            🚪 Logout
+          </button>
+        </aside>
 
+        {/* Main content */}
+        <main className="flex-1 p-6 md:p-10 bg-gray-50 dark:bg-brand-dark text-gray-900 dark:text-white overflow-y-auto">
+          <h1 className="text-3xl md:text-5xl font-bold font-ubuntu mb-6">Admin Dashboard</h1>
+
+          {loading ? (
+            <p>Loading data...</p>
+          ) : (
+            <>
+              <section className="mb-12">
+                <h2 className="text-2xl font-bold font-ubuntu mb-4">Registered SACCOs & Groups</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full border dark:border-slate-700 text-sm">
+                    <thead>
+                      <tr className="bg-brand-green text-white dark:bg-brand-apple dark:text-brand-dark">
+                        <th className="p-2 text-left">Name</th>
+                        <th className="p-2">Type</th>
+                        <th className="p-2">Location</th>
+                        <th className="p-2">Reg. No</th>
+                        <th className="p-2">Documents</th>
+                        <th className="p-2">Status</th>
+                        <th className="p-2">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-bold font-ubuntu mb-4">Registered Farmers</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full border dark:border-slate-700 text-sm">
-                  <thead>
-                    <tr className="bg-brand-green text-white dark:bg-brand-apple dark:text-brand-dark">
-                      <th className="p-2 text-left">Name</th>
-                      <th className="p-2">Email</th>
-                      <th className="p-2">Group</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {farmers.map((f) => {
-                      const group = groups.find((g) => g.id === f.group_id);
-                      return (
-                        <tr key={f.id} className="odd:bg-slate-100 dark:odd:bg-[#033127]">
-                          <td className="p-2 font-medium">
-                            {f.first_name} {f.middle_name} {f.last_name}
-                          </td>
-                          <td className="p-2 text-center">{f.email}</td>
+                    </thead>
+                    <tbody>
+                      {groups.map((g) => (
+                        <tr key={g.id} className="odd:bg-slate-100 dark:odd:bg-[#033127]">
+                          <td className="p-2 font-medium">{g.name}</td>
+                          <td className="p-2 text-center">{g.type}</td>
+                          <td className="p-2 text-center">{g.location}</td>
+                          <td className="p-2 text-center">{g.registration_number ?? "—"}</td>
                           <td className="p-2 text-center">
-                            {group ? (
-                              group.name
-                            ) : (
-                              <select
-                                className="p-1 border rounded text-sm dark:bg-brand-dark dark:border-gray-600"
-                                onChange={(e) => handleAssignGroup(f.id, e.target.value)}
-                                defaultValue=""
-                              >
-                                <option value="" disabled>Select Group</option>
-                                {groups.map((g) => (
-                                  <option key={g.id} value={g.id}>{g.name}</option>
-                                ))}
-                              </select>
-                            )}
+                            {g.documents?.length
+                              ? `${g.documents.length} uploaded`
+                              : <span className="text-red-500">None</span>}
+                          </td>                        
+                          <td className="p-2 text-center capitalize">{g.status}</td>
+                          <td className="p-2 text-center space-x-2">
+                            <button
+                              onClick={() => updateGroupStatus(g.id, "approved")}
+                              disabled={updatingGroupId === g.id}
+                              className="px-2 py-1 rounded bg-green-500 hover:bg-green-600 text-white disabled:opacity-50"
+                            >
+                              {updatingGroupId === g.id ? "..." : "Approve"}
+                            </button>
+                            <button
+                              onClick={() => updateGroupStatus(g.id, "rejected")}
+                              disabled={updatingGroupId === g.id}
+                              className="px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white disabled:opacity-50"
+                            >
+                              {updatingGroupId === g.id ? "..." : "Reject"}
+                            </button>
+                            <button
+                              onClick={() => updateGroupStatus(g.id, "pending")}
+                              disabled={updatingGroupId === g.id}
+                              className="px-2 py-1 rounded bg-yellow-500 hover:bg-yellow-600 text-white disabled:opacity-50"
+                            >
+                              {updatingGroupId === g.id ? "..." : "Pending"}
+                            </button>
                           </td>
+
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </>
-        )}
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
 
-        <Dialog open={isGroupModalOpen} onClose={() => setGroupModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen">
-          <DialogPanel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
-            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-              Manage Group Types
-            </h2>
+              <section>
+                <h2 className="text-2xl font-bold font-ubuntu mb-4">Registered Farmers</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full border dark:border-slate-700 text-sm">
+                    <thead>
+                      <tr className="bg-brand-green text-white dark:bg-brand-apple dark:text-brand-dark">
+                        <th className="p-2 text-left">Name</th>
+                        <th className="p-2">Email</th>
+                        <th className="p-2">Group</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {farmers.map((f) => {
+                        const group = groups.find((g) => g.id === f.group_id);
+                        return (
+                          <tr key={f.id} className="odd:bg-slate-100 dark:odd:bg-[#033127]">
+                            <td className="p-2 font-medium">
+                              {f.first_name} {f.middle_name} {f.last_name}
+                            </td>
+                            <td className="p-2 text-center">{f.email}</td>
+                            <td className="p-2 text-center">
+                              {group ? (
+                                group.name
+                              ) : (
+                                <select
+                                  className="p-1 border rounded text-sm dark:bg-brand-dark dark:border-gray-600"
+                                  onChange={(e) => handleAssignGroup(f.id, e.target.value)}
+                                  defaultValue=""
+                                >
+                                  <option value="" disabled>Select Group</option>
+                                  {groups.map((g) => (
+                                    <option key={g.id} value={g.id}>{g.name}</option>
+                                  ))}
+                                </select>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </>
+          )}
 
-            <input
-              className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-              placeholder="Group Name"
-              value={groupForm.name}
-              onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
-            />
-
-            <label htmlFor="group-type-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Group Type
-            </label>
-            <select
-              id="group-type-select"
-              className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-              value={groupForm.group_type_id}
-              onChange={(e) => setGroupForm({ ...groupForm, group_type_id: e.target.value })}
-            >
-              <option value="">Select Type</option>
-              {groupTypes.map((type) => (
-                <option key={type.id} value={type.id}>{type.name}</option>
-              ))}
-            </select>
-
-            <input
-              className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-              placeholder="Location"
-              value={groupForm.location}
-              onChange={(e) => setGroupForm({ ...groupForm, location: e.target.value })}
-            />
-
-            <input
-              className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"              placeholder="Group Registration Number"
-              value={groupForm.registration_number}
-              onChange={(e) =>
-                setGroupForm({ ...groupForm, registration_number: e.target.value })
-              }
-            />
-
-            <h3 className="font-semibold mt-4 mb-2 text-gray-900 dark:text-white">Required Documents</h3>
-            {groupForm.documentRequirements.map((item, i) => (
-              <div key={i} className="mb-2">
-                <label className="block text-gray-900 dark:text-white mb-1">
-                  <input
-                    type="checkbox"
-                    checked={item.is_required}
-                    onChange={(e) => {
-                      const newList = [...groupForm.documentRequirements];
-                      newList[i].is_required = e.target.checked;
-                      setGroupForm({ ...groupForm, documentRequirements: newList });
-                    }}
-                  />
-                  <span className="ml-2">{item.doc_type}</span>
-                </label>
-
-                {item.is_required && (
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    className="w-full border rounded p-1 text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      setGroupForm((prev) => ({
-                        ...prev,
-                        uploadedDocs: {
-                          ...prev.uploadedDocs,
-                          [item.doc_type]: file,
-                        },
-                      }));
-                    }}
-                  />
-                )}
-              </div>
-            ))}
-
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setGroupModalOpen(false)} className="px-3 py-2 bg-slate-500 text-white rounded">
-                Cancel
-              </button>
-              <button
-                disabled={!groupForm.name || !groupForm.group_type_id || !groupForm.location || !groupForm.registration_number || !requiredDocsValid}
-                onClick={submitGroup}
-                className="px-3 py-2 bg-brand-green text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Register
-              </button>
-            </div>
-
-            <div className="mt-6 border-t pt-4">
-              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Manage Required Documents</h3>
-
-              <div className="space-y-2">
-                {documentTypes.map((doc) => (
-                  <div key={doc.doc_type} className="flex justify-between items-center text-gray-900 dark:text-white">
-                    <span>{doc.doc_type}</span>
-                    <button
-                      onClick={() => deleteDocumentType(doc.doc_type)}
-                      className="text-sm text-red-600 dark:text-red-400"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 flex gap-2">
-                <input
-                  type="text"
-                  placeholder="New document type"
-                  value={newDocType}
-                  onChange={(e) => setNewDocType(e.target.value)}
-                  className="flex-1 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                />
-                <button
-                  disabled={!newDocType.trim() || documentTypes.some((d) => d.doc_type === newDocType.trim())}
-                  className="bg-brand-green text-white px-4 py-2 rounded disabled:opacity-50"
-                  onClick={addDocumentType}
-                >
-                  Add
-                </button>
-              </div>
-            </div>
-          </DialogPanel>
-          </div>
-        </Dialog>
-
-        <Dialog open={isFarmerModalOpen} onClose={() => setFarmerModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen">
+          <Dialog open={isGroupModalOpen} onClose={() => setGroupModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen">
             <DialogPanel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
-              <DialogTitle className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-                Register New Farmer
-              </DialogTitle>
+              <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+                Manage Group Types
+              </h2>
 
-              {/* ✍️ Identity */}
-              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                placeholder="First Name"
-                value={farmerForm.first_name}
-                onChange={(e) => setFarmerForm({ ...farmerForm, first_name: e.target.value })}
-              />
-              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                placeholder="Middle Name"
-                value={farmerForm.middle_name}
-                onChange={(e) => setFarmerForm({ ...farmerForm, middle_name: e.target.value })}
-              />
-              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                placeholder="Last Name"
-                value={farmerForm.last_name}
-                onChange={(e) => setFarmerForm({ ...farmerForm, last_name: e.target.value })}
-              />
-
-              {/* 🗓️ Additional Info */}
               <input
-                type="date"
                 className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                value={farmerForm.dob}
-                onChange={(e) => setFarmerForm({ ...farmerForm, dob: e.target.value })}
-                placeholder="MM/DD/YYYY"
-              />
-              <small className="text-gray-500 dark:text-gray-400 block mb-2">Date of Birth (MM/DD/YYYY)</small>
-
-              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                placeholder="ID / Passport No"
-                value={farmerForm.id_passport_no}
-                onChange={(e) => setFarmerForm({ ...farmerForm, id_passport_no: e.target.value })}
-              />
-              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                placeholder="Location"
-                value={farmerForm.location}
-                onChange={(e) => setFarmerForm({ ...farmerForm, location: e.target.value })}
-              />
-              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                placeholder="Address"
-                value={farmerForm.address}
-                onChange={(e) => setFarmerForm({ ...farmerForm, address: e.target.value })}
-              />
-              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                placeholder="Mobile"
-                value={farmerForm.mobile}
-                onChange={(e) => setFarmerForm({ ...farmerForm, mobile: e.target.value })}
+                placeholder="Group Name"
+                value={groupForm.name}
+                onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
               />
 
-              {/* 📧 Email */}
-              <input type="email" className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                placeholder="Email"
-                value={farmerForm.email}
-                onChange={(e) => setFarmerForm({ ...farmerForm, email: e.target.value })}
-              />
-
-              {/* 🧑‍🌾 Group Select */}
-              <label htmlFor="group-select" className="sr-only">Select Group</label>
-              <select id="group-select"
-                className="w-full mb-4 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                value={farmerForm.group_id}
-                onChange={(e) => setFarmerForm({ ...farmerForm, group_id: e.target.value })}
+              <label htmlFor="group-type-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Group Type
+              </label>
+              <select
+                id="group-type-select"
+                className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                value={groupForm.group_type_id}
+                onChange={(e) => setGroupForm({ ...groupForm, group_type_id: e.target.value })}
               >
-                <option value="">Select Group</option>
-                {groups.map((g) => (
-                  <option key={g.id} value={g.id}>{g.name}</option>
+                <option value="">Select Type</option>
+                {groupTypes.map((type) => (
+                  <option key={type.id} value={type.id}>{type.name}</option>
                 ))}
               </select>
 
-              {/* 🎛️ Actions */}
+              <input
+                className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="Location"
+                value={groupForm.location}
+                onChange={(e) => setGroupForm({ ...groupForm, location: e.target.value })}
+              />
+
+              <input
+                className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"              placeholder="Group Registration Number"
+                value={groupForm.registration_number}
+                onChange={(e) =>
+                  setGroupForm({ ...groupForm, registration_number: e.target.value })
+                }
+              />
+
+              <h3 className="font-semibold mt-4 mb-2 text-gray-900 dark:text-white">Required Documents</h3>
+              {groupForm.documentRequirements.map((item, i) => (
+                <div key={i} className="mb-2">
+                  <label className="block text-gray-900 dark:text-white mb-1">
+                    <input
+                      type="checkbox"
+                      checked={item.is_required}
+                      onChange={(e) => {
+                        const newList = [...groupForm.documentRequirements];
+                        newList[i].is_required = e.target.checked;
+                        setGroupForm({ ...groupForm, documentRequirements: newList });
+                      }}
+                    />
+                    <span className="ml-2">{item.doc_type}</span>
+                  </label>
+
+                  {item.is_required && (
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      className="w-full border rounded p-1 text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setGroupForm((prev) => ({
+                          ...prev,
+                          uploadedDocs: {
+                            ...prev.uploadedDocs,
+                            [item.doc_type]: file,
+                          },
+                        }));
+                      }}
+                    />
+                  )}
+                </div>
+              ))}
+
               <div className="flex justify-end gap-2">
-                <button onClick={() => setFarmerModalOpen(false)} className="px-3 py-2 bg-slate-500 text-white rounded">Cancel</button>
-                <button onClick={submitFarmer} className="px-3 py-2 bg-brand-green text-white rounded">Register</button>
-              </div>
-            </DialogPanel>
-          </div>
-        </Dialog>
-
-        <Dialog
-          open={isGroupTypeModalOpen}
-          onClose={() => setGroupTypeModalOpen(false)}
-          className="fixed z-50 inset-0 overflow-y-auto"
-        >
-          <div className="flex items-center justify-center min-h-screen">
-            <DialogPanel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
-              <DialogTitle className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-                Manage Group Types
-              </DialogTitle>
-
-              <div className="space-y-2">
-                {groupTypes.map((type) => (
-                  <div key={type.id} className="flex justify-between items-center">
-                    {editingId === type.id ? (
-                      <>
-                        <input
-                          value={newGroupType}
-                          onChange={(e) => setNewGroupType(e.target.value)}
-                          placeholder="Edit group type name"
-                          aria-label="Group type name"
-                          className="flex-1 mr-2 p-2 border rounded dark:bg-brand-dark dark:text-white dark:border-gray-600"
-                        />
-                        <button
-                          className="text-green-600 dark:text-green-400 font-semibold"
-                          onClick={() => handleUpdateGroupType(type.id)}
-                        >
-                          Save
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-gray-900 dark:text-white">{type.name}</span>
-                        <div className="space-x-2">
-                          <button
-                            className="text-blue-600 dark:text-blue-400 font-semibold"
-                            onClick={() => {
-                              setEditingId(type.id);
-                              setNewGroupType(type.name);
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="text-red-600 dark:text-red-400 font-semibold"
-                            onClick={() => handleDeleteGroupType(type.id)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4">
-                <input
-                  placeholder="New group type"
-                  aria-label="New group type"
-                  value={newGroupType}
-                  onChange={(e) => setNewGroupType(e.target.value)}
-                  className="w-full p-2 border rounded mb-2 dark:bg-brand-dark dark:text-white dark:border-gray-600"
-                />
+                <button onClick={() => setGroupModalOpen(false)} className="px-3 py-2 bg-slate-500 text-white rounded">
+                  Cancel
+                </button>
                 <button
-                  onClick={handleAddGroupType}
-                  className="w-full bg-brand-green text-white py-2 rounded disabled:opacity-50"
-                  disabled={!newGroupType}
+                  disabled={!groupForm.name || !groupForm.group_type_id || !groupForm.location || !groupForm.registration_number || !requiredDocsValid}
+                  onClick={submitGroup}
+                  className="px-3 py-2 bg-brand-green text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Add Group Type
+                  Register
                 </button>
               </div>
-            </DialogPanel>
-          </div>
-        </Dialog>
 
+              <div className="mt-6 border-t pt-4">
+                <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Manage Required Documents</h3>
+
+                <div className="space-y-2">
+                  {documentTypes.map((doc) => (
+                    <div key={doc.doc_type} className="flex justify-between items-center text-gray-900 dark:text-white">
+                      <span>{doc.doc_type}</span>
+                      <button
+                        onClick={() => deleteDocumentType(doc.doc_type)}
+                        className="text-sm text-red-600 dark:text-red-400"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="New document type"
+                    value={newDocType}
+                    onChange={(e) => setNewDocType(e.target.value)}
+                    className="flex-1 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                  />
+                  <button
+                    disabled={!newDocType.trim() || documentTypes.some((d) => d.doc_type === newDocType.trim())}
+                    className="bg-brand-green text-white px-4 py-2 rounded disabled:opacity-50"
+                    onClick={addDocumentType}
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+            </DialogPanel>
+            </div>
+          </Dialog>
+
+          <Dialog open={isFarmerModalOpen} onClose={() => setFarmerModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen">
+              <DialogPanel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
+                <DialogTitle className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+                  Register New Farmer
+                </DialogTitle>
+
+                {/* ✍️ Identity */}
+                <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                  placeholder="First Name"
+                  value={farmerForm.first_name}
+                  onChange={(e) => setFarmerForm({ ...farmerForm, first_name: e.target.value })}
+                />
+                <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                  placeholder="Middle Name"
+                  value={farmerForm.middle_name}
+                  onChange={(e) => setFarmerForm({ ...farmerForm, middle_name: e.target.value })}
+                />
+                <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                  placeholder="Last Name"
+                  value={farmerForm.last_name}
+                  onChange={(e) => setFarmerForm({ ...farmerForm, last_name: e.target.value })}
+                />
+
+                {/* 🗓️ Additional Info */}
+                <input
+                  type="date"
+                  className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                  value={farmerForm.dob}
+                  onChange={(e) => setFarmerForm({ ...farmerForm, dob: e.target.value })}
+                  placeholder="MM/DD/YYYY"
+                />
+                <small className="text-gray-500 dark:text-gray-400 block mb-2">Date of Birth (MM/DD/YYYY)</small>
+
+                <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                  placeholder="ID / Passport No"
+                  value={farmerForm.id_passport_no}
+                  onChange={(e) => setFarmerForm({ ...farmerForm, id_passport_no: e.target.value })}
+                />
+                <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                  placeholder="Location"
+                  value={farmerForm.location}
+                  onChange={(e) => setFarmerForm({ ...farmerForm, location: e.target.value })}
+                />
+                <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                  placeholder="Address"
+                  value={farmerForm.address}
+                  onChange={(e) => setFarmerForm({ ...farmerForm, address: e.target.value })}
+                />
+                <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                  placeholder="Mobile"
+                  value={farmerForm.mobile}
+                  onChange={(e) => setFarmerForm({ ...farmerForm, mobile: e.target.value })}
+                />
+
+                {/* 📧 Email */}
+                <input type="email" className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                  placeholder="Email"
+                  value={farmerForm.email}
+                  onChange={(e) => setFarmerForm({ ...farmerForm, email: e.target.value })}
+                />
+
+                {/* 🧑‍🌾 Group Select */}
+                <label htmlFor="group-select" className="sr-only">Select Group</label>
+                <select id="group-select"
+                  className="w-full mb-4 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                  value={farmerForm.group_id}
+                  onChange={(e) => setFarmerForm({ ...farmerForm, group_id: e.target.value })}
+                >
+                  <option value="">Select Group</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </select>
+
+                {/* 🎛️ Actions */}
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setFarmerModalOpen(false)} className="px-3 py-2 bg-slate-500 text-white rounded">Cancel</button>
+                  <button onClick={submitFarmer} className="px-3 py-2 bg-brand-green text-white rounded">Register</button>
+                </div>
+              </DialogPanel>
+            </div>
+          </Dialog>
+
+          <Dialog
+            open={isGroupTypeModalOpen}
+            onClose={() => setGroupTypeModalOpen(false)}
+            className="fixed z-50 inset-0 overflow-y-auto"
+          >
+            <div className="flex items-center justify-center min-h-screen">
+              <DialogPanel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
+                <DialogTitle className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+                  Manage Group Types
+                </DialogTitle>
+
+                <div className="space-y-2">
+                  {groupTypes.map((type) => (
+                    <div key={type.id} className="flex justify-between items-center">
+                      {editingId === type.id ? (
+                        <>
+                          <input
+                            value={newGroupType}
+                            onChange={(e) => setNewGroupType(e.target.value)}
+                            placeholder="Edit group type name"
+                            aria-label="Group type name"
+                            className="flex-1 mr-2 p-2 border rounded dark:bg-brand-dark dark:text-white dark:border-gray-600"
+                          />
+                          <button
+                            className="text-green-600 dark:text-green-400 font-semibold"
+                            onClick={() => handleUpdateGroupType(type.id)}
+                          >
+                            Save
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-gray-900 dark:text-white">{type.name}</span>
+                          <div className="space-x-2">
+                            <button
+                              className="text-blue-600 dark:text-blue-400 font-semibold"
+                              onClick={() => {
+                                setEditingId(type.id);
+                                setNewGroupType(type.name);
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="text-red-600 dark:text-red-400 font-semibold"
+                              onClick={() => handleDeleteGroupType(type.id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4">
+                  <input
+                    placeholder="New group type"
+                    aria-label="New group type"
+                    value={newGroupType}
+                    onChange={(e) => setNewGroupType(e.target.value)}
+                    className="w-full p-2 border rounded mb-2 dark:bg-brand-dark dark:text-white dark:border-gray-600"
+                  />
+                  <button
+                    onClick={handleAddGroupType}
+                    className="w-full bg-brand-green text-white py-2 rounded disabled:opacity-50"
+                    disabled={!newGroupType}
+                  >
+                    Add Group Type
+                  </button>
+                </div>
+              </DialogPanel>
+            </div>
+          </Dialog>
+        </main>
       </div>
     </MainLayout>
   );

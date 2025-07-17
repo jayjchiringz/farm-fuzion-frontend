@@ -17,33 +17,44 @@ interface Farmer {id: number; first_name: string; middle_name: string; last_name
 
 interface GroupType {id: string; name: string;}
 
+const sanitizeKey = (key: string) =>
+  key.toLowerCase().replace(/[^a-z0-9]/gi, "_");
+
 export default function AdminDashboard() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [farmers, setFarmers] = useState<Farmer[]>([]);
+  const [groupTypes, setGroupTypes] = useState<GroupType[]>([]);
+  const [documentTypes, setDocumentTypes] = useState<{ doc_type: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingGroupId, setUpdatingGroupId] = useState<string | null>(null);
   const [isGroupModalOpen, setGroupModalOpen] = useState(false);
   const [isFarmerModalOpen, setFarmerModalOpen] = useState(false);
+  const [isGroupTypeModalOpen, setGroupTypeModalOpen] = useState(false);
 
-  const [groupTypes, setGroupTypes] = useState<GroupType[]>([]);
-    
   const [groupForm, setGroupForm] = useState({
     name: "",
     group_type_id: "",
     location: "",
     registration_number: "",
+    description: "",
     documentRequirements: [] as { doc_type: string; is_required: boolean }[],
     uploadedDocs: {} as Record<string, File>,
   });
 
-  const [isGroupTypeModalOpen, setGroupTypeModalOpen] = useState(false);
+  const [farmerForm, setFarmerForm] = useState({
+    first_name: "",
+    middle_name: "",
+    last_name: "",
+    email: "",
+    group_id: "",
+  });
+
   const [newGroupType, setNewGroupType] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [farmerForm, setFarmerForm] = useState({first_name: "", middle_name: "", last_name: "", email: "",group_id: ""});
-  useEffect(() => {fetchData();}, []);
   const [newDocType, setNewDocType] = useState("");
-  const [documentTypes, setDocumentTypes] = useState<{ doc_type: string }[]>([]);
 
-  // ✅ Sync form requirements when documentTypes update
+  useEffect(() => { fetchData(); }, []);
+
   useEffect(() => {
     if (documentTypes.length > 0) {
       setGroupForm((prev) => ({
@@ -62,30 +73,24 @@ export default function AdminDashboard() {
         fetch(`${BASE_URL}/groups`),
         fetch(`${BASE_URL}/farmers`),
         fetch(`${BASE_URL}/groups-types`),
-        fetch(`${BASE_URL}/document-types`), 
+        fetch(`${BASE_URL}/document-types`),
       ]);
 
       const safeJson = async (res: Response, label: string) => {
-        const clone = res.clone(); // ⚠️ clone allows second read
+        const clone = res.clone();
         try {
           return await res.json();
-        } catch (err) {
+        } catch {
           const fallback = await clone.text();
           console.error(`❌ ${label} JSON parse error:`, fallback);
           throw new Error(`${label} failed`);
         }
       };
 
-      const groups = await safeJson(groupsRes, "Groups");
-      const farmers = await safeJson(farmersRes, "Farmers");
-      const groupTypes = await safeJson(typesRes, "GroupTypes");
-      const docs = (await safeJson(docsRes, "DocumentTypes")) as { doc_type: string }[];
-
-      setGroups(groups);
-      setFarmers(farmers);
-      setGroupTypes(groupTypes);
-      setDocumentTypes(docs.sort((a, b) => a.doc_type.localeCompare(b.doc_type)));
-
+      setGroups(await safeJson(groupsRes, "Groups"));
+      setFarmers(await safeJson(farmersRes, "Farmers"));
+      setGroupTypes(await safeJson(typesRes, "GroupTypes"));
+      setDocumentTypes((await safeJson(docsRes, "DocumentTypes")).sort((a: { doc_type: string; }, b: { doc_type: any; }) => a.doc_type.localeCompare(b.doc_type)));
     } catch (err) {
       console.error("🚨 fetchData error:", err);
     } finally {
@@ -93,14 +98,11 @@ export default function AdminDashboard() {
     }
   };
 
-  const [updatingGroupId, setUpdatingGroupId] = useState<string | null>(null);
-
   const updateGroupStatus = async (id: string, status: string) => {
     try {
       setUpdatingGroupId(id);
-
       let endpoint = `${BASE_URL}/groups/${id}/approve`;
-      let body: string | undefined = undefined;
+      let body;
 
       if (status === "rejected") {
         endpoint = `${BASE_URL}/groups/${id}/reject`;
@@ -139,37 +141,24 @@ export default function AdminDashboard() {
       formData.append("group_type_id", groupForm.group_type_id);
       formData.append("location", groupForm.location);
       formData.append("registration_number", groupForm.registration_number);
+      formData.append("description", groupForm.description || "");
+      formData.append("requirements", JSON.stringify(groupForm.documentRequirements));
 
-      // ✅ Document metadata
-      formData.append(
-        "requirements",
-        JSON.stringify(groupForm.documentRequirements)
-      );
-
-      // ✅ File uploads
       groupForm.documentRequirements.forEach((r) => {
         const file = groupForm.uploadedDocs[r.doc_type];
         if (r.is_required && file instanceof File) {
-          formData.append(`documents[${r.doc_type}]`, file);
+          formData.append(`documents[${sanitizeKey(r.doc_type)}]`, file);
         }
       });
 
-      // ✅ Axios instead of fetch — handles multipart better
       const res = await axios.post(
         "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/registerWithDocs",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
+        formData
       );
 
-      const data = res.data;
-      const groupId = data.id;
+      const groupId = res.data.id;
 
-      // ✅ Save metadata
-      await fetch(`${BASE_URL}/groups/${groupId}/requirements`, {
+      const metaRes = await fetch(`${BASE_URL}/groups/${groupId}/requirements`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -177,13 +166,15 @@ export default function AdminDashboard() {
         }),
       });
 
-      // ✅ Reset form
+      if (!metaRes.ok) throw new Error("Requirement save failed");
+
       setGroupModalOpen(false);
       setGroupForm({
         name: "",
         group_type_id: "",
         location: "",
         registration_number: "",
+        description: "",
         documentRequirements: documentTypes.map((d) => ({
           doc_type: d.doc_type,
           is_required: false,
@@ -194,18 +185,11 @@ export default function AdminDashboard() {
       fetchData();
     } catch (err: any) {
       console.error("❌ Group creation failed:", err);
-      if (axios.isAxiosError(err)) {
-        alert(
-          `Group registration failed:\n${
-            err.response?.data?.error || err.message
-          }`
-        );
-      } else {
-        alert("An unknown error occurred while submitting the group.");
-      }
+      alert(
+        `Group registration failed:\n${axios.isAxiosError(err) ? err.response?.data?.error || err.message : "Unknown error"}`
+      );
     }
   };
-
 
   const submitFarmer = async () => {
     const response = await fetch(`${BASE_URL}/farmers`, {

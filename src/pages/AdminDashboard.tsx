@@ -394,41 +394,65 @@ export default function AdminDashboard() {
     window.location.href = "/login"; // Redirect to login or home page
   };
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   return (
     <MainLayout>
       <ThemeToggle />
       <div className="flex min-h-screen">
-        {/* Sidebar */}
-        <aside className="w-64 bg-brand-green text-white flex flex-col justify-between py-6 px-4 shadow-lg">
-          <div>
-            <h2 className="text-xl font-bold mb-6">Admin Panel</h2>
+        {/* Collapsible Sidebar */}
+        <aside
+          className={`${
+            isSidebarOpen ? "w-64" : "w-16"
+          } transition-all duration-300 bg-brand-green text-white flex flex-col justify-between py-6 px-4 shadow-lg`}
+        >
+          {/* Toggle Button */}
+          <div className="mb-6">
             <button
-              onClick={() => setGroupTypeModalOpen(true)}
-              className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="w-full px-2 text-left text-white hover:text-gray-300 transition"
             >
-              ⚙️ Manage Group Types
-            </button>
-            <button
-              onClick={() => setGroupModalOpen(true)}
-              className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
-            >
-              + Register Group
-            </button>
-            <button
-              onClick={() => setFarmerModalOpen(true)}
-              className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
-            >
-              + Register Farmer
+              {isSidebarOpen ? "← Collapse" : "→"}
             </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="mt-6 px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white"
-          >
-            🚪 Logout
-          </button>
-        </aside>
 
+          {/* Top Content */}
+          <div className="flex-1">
+            {isSidebarOpen && (
+              <>
+                <h2 className="text-xl font-bold mb-6">Admin Panel</h2>
+                <button
+                  onClick={() => setGroupTypeModalOpen(true)}
+                  className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
+                >
+                  ⚙️ Manage Group Types
+                </button>
+                <button
+                  onClick={() => setGroupModalOpen(true)}
+                  className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
+                >
+                  + Register Group
+                </button>
+                <button
+                  onClick={() => setFarmerModalOpen(true)}
+                  className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
+                >
+                  + Register Farmer
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Logout Button */}
+          {isSidebarOpen && (
+            <button
+              onClick={handleLogout}
+              className="mt-6 px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white"
+            >
+              🚪 Logout
+            </button>
+          )}
+        </aside>
         {/* Main content */}
         <main className="flex-1 p-6 md:p-10 bg-gray-50 dark:bg-brand-dark text-gray-900 dark:text-white overflow-y-auto">
           <h1 className="text-3xl md:text-5xl font-bold font-ubuntu mb-6">Admin Dashboard</h1>

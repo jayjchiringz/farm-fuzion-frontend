@@ -232,6 +232,7 @@ export default function AdminDashboard() {
           address: farmerForm.address,
           mobile: farmerForm.mobile,
           email: farmerForm.email,
+          group_id: farmerForm.group_id,
         }),
       });
 
@@ -634,17 +635,71 @@ export default function AdminDashboard() {
                 Register New Farmer
               </DialogTitle>
 
-              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600" placeholder="First Name" value={farmerForm.first_name} onChange={(e) => setFarmerForm({ ...farmerForm, first_name: e.target.value })} />
-              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600" placeholder="Middle Name" value={farmerForm.middle_name} onChange={(e) => setFarmerForm({ ...farmerForm, middle_name: e.target.value })} />
-              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600" placeholder="Last Name" value={farmerForm.last_name} onChange={(e) => setFarmerForm({ ...farmerForm, last_name: e.target.value })} />
-              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600" placeholder="Email" type="email" value={farmerForm.email} onChange={(e) => setFarmerForm({ ...farmerForm, email: e.target.value })} />
+              {/* ✍️ Identity */}
+              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="First Name"
+                value={farmerForm.first_name}
+                onChange={(e) => setFarmerForm({ ...farmerForm, first_name: e.target.value })}
+              />
+              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="Middle Name"
+                value={farmerForm.middle_name}
+                onChange={(e) => setFarmerForm({ ...farmerForm, middle_name: e.target.value })}
+              />
+              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="Last Name"
+                value={farmerForm.last_name}
+                onChange={(e) => setFarmerForm({ ...farmerForm, last_name: e.target.value })}
+              />
+
+              {/* 🗓️ Additional Info */}
+              <input type="date" className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="Date of Birth"
+                value={farmerForm.dob}
+                onChange={(e) => setFarmerForm({ ...farmerForm, dob: e.target.value })}
+              />
+              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="ID / Passport No"
+                value={farmerForm.id_passport_no}
+                onChange={(e) => setFarmerForm({ ...farmerForm, id_passport_no: e.target.value })}
+              />
+              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="Location"
+                value={farmerForm.location}
+                onChange={(e) => setFarmerForm({ ...farmerForm, location: e.target.value })}
+              />
+              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="Address"
+                value={farmerForm.address}
+                onChange={(e) => setFarmerForm({ ...farmerForm, address: e.target.value })}
+              />
+              <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="Mobile"
+                value={farmerForm.mobile}
+                onChange={(e) => setFarmerForm({ ...farmerForm, mobile: e.target.value })}
+              />
+
+              {/* 📧 Email */}
+              <input type="email" className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="Email"
+                value={farmerForm.email}
+                onChange={(e) => setFarmerForm({ ...farmerForm, email: e.target.value })}
+              />
+
+              {/* 🧑‍🌾 Group Select */}
               <label htmlFor="group-select" className="sr-only">Select Group</label>
-              <select id="group-select" className="w-full mb-4 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600" value={farmerForm.group_id} onChange={(e) => setFarmerForm({ ...farmerForm, group_id: e.target.value })}>
+              <select id="group-select"
+                className="w-full mb-4 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                value={farmerForm.group_id}
+                onChange={(e) => setFarmerForm({ ...farmerForm, group_id: e.target.value })}
+              >
                 <option value="">Select Group</option>
                 {groups.map((g) => (
                   <option key={g.id} value={g.id}>{g.name}</option>
                 ))}
               </select>
+
+              {/* 🎛️ Actions */}
               <div className="flex justify-end gap-2">
                 <button onClick={() => setFarmerModalOpen(false)} className="px-3 py-2 bg-slate-500 text-white rounded">Cancel</button>
                 <button onClick={submitFarmer} className="px-3 py-2 bg-brand-green text-white rounded">Register</button>

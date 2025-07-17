@@ -13,26 +13,23 @@ export default function VerifyOtp() {
     setLoading(true);
     try {
       const response = await verifyOtp(email, otp);
-
       const { role, user } = response;
 
-      if (!role || !user) {
-        throw new Error("Missing user or role in response.");
-      }
+      if (!role || !user) throw new Error("Missing user or role in response.");
 
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("role", role);
 
       console.log("✅ Authenticated:", role, user);
 
-      // Redirect based on role
       if (role === "user") {
         if (user.role === "admin") navigate("/admin-dashboard");
         else if (user.role === "sacco") navigate("/sacco-dashboard");
-        else navigate("/dashboard");
+        else navigate("/dashboard"); // default fallback
+      } else if (role === "farmer") {
+        navigate("/dashboard");
       } else {
-        // farmer fallback
-        navigate("/farmer-dashboard");
+        throw new Error("Unknown role");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "OTP verification failed";

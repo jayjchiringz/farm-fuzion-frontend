@@ -395,6 +395,26 @@ export default function AdminDashboard() {
   };
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isUserRoleModalOpen, setUserRoleModalOpen] = useState(false);
+  const [userRoles, setUserRoles] = useState<any[]>([]);
+  const [newRoleName, setNewRoleName] = useState("");
+
+  const handleAddUserRole = async () => {
+    const added = await createRole({ name: newRoleName });
+    setUserRoles([...userRoles, added]);
+    setNewRoleName("");
+  };
+
+  const handleUpdateUserRole = async (id: string) => {
+    const updated = await updateRole(id, { name: newRoleName });
+    setUserRoles(userRoles.map((r) => (r.id === id ? updated : r)));
+    setEditingId(null);
+  };
+
+  const handleDeleteUserRole = async (id: string) => {
+    await deleteRole(id);
+    setUserRoles(userRoles.filter((r) => r.id !== id));
+  };
 
   return (
     <MainLayout>
@@ -438,6 +458,15 @@ export default function AdminDashboard() {
                   className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
                 >
                   + Register Farmer
+                </button>
+                <button
+                  onClick={() => setUserRoleModalOpen(true)}
+                  className="bg-transparent text-brand-dark border border-brand-green  
+                            px-4 py-2 rounded transition-colors duration-200
+                            hover:bg-brand-green hover:text-white hover:border-brand-green 
+                            dark:bg-transparent dark:text-white dark:hover:bg-brand-green dark:hover:text-white dark:hover:border-brand-green"
+                >
+                  🛠️ Manage User Roles
                 </button>
               </>
             )}
@@ -857,8 +886,94 @@ export default function AdminDashboard() {
               </DialogPanel>
             </div>
           </Dialog>
+          <Dialog
+            open={isUserRoleModalOpen}
+            onClose={() => setUserRoleModalOpen(false)}
+            className="fixed z-50 inset-0 overflow-y-auto"
+          >
+            <div className="flex items-center justify-center min-h-screen">
+              <DialogPanel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
+                <DialogTitle className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+                  Manage User Roles
+                </DialogTitle>
+
+                <div className="space-y-2">
+                  {userRoles.map((role) => (
+                    <div key={role.id} className="flex justify-between items-center">
+                      {editingId === role.id ? (
+                        <>
+                          <input
+                            value={newRoleName}
+                            onChange={(e) => setNewRoleName(e.target.value)}
+                            placeholder="Edit role name"
+                            className="flex-1 mr-2 p-2 border rounded dark:bg-brand-dark dark:text-white dark:border-gray-600"
+                          />
+                          <button
+                            className="text-green-600 dark:text-green-400 font-semibold"
+                            onClick={() => handleUpdateUserRole(role.id)}
+                          >
+                            Save
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-gray-900 dark:text-white">{role.name}</span>
+                          <div className="space-x-2">
+                            <button
+                              className="text-blue-600 dark:text-blue-400 font-semibold"
+                              onClick={() => {
+                                setEditingId(role.id);
+                                setNewRoleName(role.name);
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="text-red-600 dark:text-red-400 font-semibold"
+                              onClick={() => handleDeleteUserRole(role.id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4">
+                  <input
+                    placeholder="New role name"
+                    value={newRoleName}
+                    onChange={(e) => setNewRoleName(e.target.value)}
+                    className="w-full p-2 border rounded mb-2 dark:bg-brand-dark dark:text-white dark:border-gray-600"
+                  />
+                  <button
+                    onClick={handleAddUserRole}
+                    className="w-full bg-brand-green text-white py-2 rounded disabled:opacity-50"
+                    disabled={!newRoleName}
+                  >
+                    Add Role
+                  </button>
+                </div>
+              </DialogPanel>
+            </div>
+          </Dialog>
+
         </main>
       </div>
     </MainLayout>
   );
 }
+function createRole(arg0: { name: string; }) {
+  throw new Error("Function not implemented.");
+}
+
+function updateRole(id: string, arg1: { name: string; }) {
+  throw new Error("Function not implemented.");
+}
+
+function deleteRole(id: string) {
+  throw new Error("Function not implemented.");
+}
+

@@ -55,6 +55,15 @@ export default function App() {
 }
 
 function RedirectBasedOnAuth() {
-  const isLoggedIn = !!localStorage.getItem("user");
-  return <Navigate to={isLoggedIn ? "/dashboard" : "/login"} replace />;
+  const raw = localStorage.getItem("user");
+  const user = raw ? JSON.parse(raw) : null;
+
+  if (!user) return <Navigate to="/login" replace />;
+
+  if (user.role === "farmer") {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Navigate to="/admin-dashboard" replace />;
 }
+

@@ -1,15 +1,22 @@
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 
-interface Props {
-  children: JSX.Element;
-}
+export default function PrivateRoute({ children }: { children: React.ReactElement }) {
+  const location = useLocation();
+  const user = JSON.parse(localStorage.getItem("user") || "null");
 
-export default function PrivateRoute({ children }: Props) {
-  const user = localStorage.getItem("user");
+  if (!user) return <Navigate to="/login" replace />;
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
+  // Role-based access guard
+  const isFarmerDashboard = location.pathname.startsWith("/dashboard");
+  const isAdminRoute = location.pathname.startsWith("/admin-dashboard") || location.pathname.startsWith("/register-farmer");
+
+  if (isFarmerDashboard && user.role !== "farmer") {
+    return <Navigate to="/admin-dashboard" replace />;
+  }
+
+  if (isAdminRoute && user.role === "farmer") {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;

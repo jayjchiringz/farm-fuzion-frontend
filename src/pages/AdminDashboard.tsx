@@ -3,6 +3,8 @@ import MainLayout from "../layouts/MainLayout";
 import { Dialog, DialogTitle, DialogPanel } from "@headlessui/react";
 import ThemeToggle from "../components/ThemeToggle";
 import axios from "axios"; 
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { v4 as uuidv4 } from "uuid";
 
 const BASE_URL = import.meta.env.MODE === "development"
   ? "/api"
@@ -136,28 +138,45 @@ export default function AdminDashboard() {
 
   const submitGroup = async () => {
     try {
-      const formData = new FormData();
-      formData.append("name", groupForm.name);
-      formData.append("group_type_id", groupForm.group_type_id);
-      formData.append("location", groupForm.location);
-      formData.append("registration_number", groupForm.registration_number);
-      formData.append("description", groupForm.description || "");
-      formData.append("requirements", JSON.stringify(groupForm.documentRequirements));
+      const storage = getStorage(); // Firebase Web SDK
+      const uploadedPaths: { [docType: string]: string } = {};
 
-      groupForm.documentRequirements.forEach((r) => {
+      // 🔼 Upload files to Firebase Storage first
+      for (const r of groupForm.documentRequirements) {
         const file = groupForm.uploadedDocs[r.doc_type];
         if (r.is_required && file instanceof File) {
-          formData.append(`documents[${sanitizeKey(r.doc_type)}]`, file);
+          const ext = file.name.split(".").pop();
+          const path = `group_docs/${uuidv4()}.${ext}`;
+          const fileRef = ref(storage, path);
+          await uploadBytes(fileRef, file);
+          uploadedPaths[r.doc_type] = path;
         }
+      }
+
+      // 📨 Send metadata to Cloud Function
+      const res = await fetch("https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/registerWithDocs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: groupForm.name,
+          group_type_id: groupForm.group_type_id,
+          location: groupForm.location,
+          registration_number: groupForm.registration_number,
+          description: groupForm.description || "",
+          requirements: groupForm.documentRequirements.map((r) => ({
+            doc_type: r.doc_type,
+            is_required: r.is_required,
+            file_path: uploadedPaths[r.doc_type] || null,
+          })),
+        }),
       });
 
-      const res = await axios.post(
-        "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/registerWithDocs",
-        formData
-      );
+      if (!res.ok) throw new Error("Cloud function failed");
 
-      const groupId = res.data.id;
+      const data = await res.json();
+      const groupId = data.id;
 
+      // 🗃️ Save requirements metadata to your backend
       const metaRes = await fetch(`${BASE_URL}/groups/${groupId}/requirements`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -168,6 +187,7 @@ export default function AdminDashboard() {
 
       if (!metaRes.ok) throw new Error("Requirement save failed");
 
+      // ✅ Cleanup UI
       setGroupModalOpen(false);
       setGroupForm({
         name: "",

@@ -50,6 +50,11 @@ export default function AdminDashboard() {
     last_name: "",
     email: "",
     group_id: "",
+    dob: "",
+    id_passport_no: "",
+    location: "",
+    address: "",
+    mobile: "",
   });
 
   const [newGroupType, setNewGroupType] = useState("");
@@ -213,15 +218,46 @@ export default function AdminDashboard() {
   };
 
   const submitFarmer = async () => {
-    const response = await fetch(`${BASE_URL}/farmers`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(farmerForm),
-    });
-    if (response.ok) {
+    try {
+      const response = await fetch(`${BASE_URL}/farmers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: farmerForm.first_name,
+          middle_name: farmerForm.middle_name,
+          last_name: farmerForm.last_name,
+          dob: farmerForm.dob,
+          id_passport_no: farmerForm.id_passport_no,
+          location: farmerForm.location,
+          address: farmerForm.address,
+          mobile: farmerForm.mobile,
+          email: farmerForm.email,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data?.error || "Unknown error");
+      }
+
       setFarmerModalOpen(false);
-      setFarmerForm({ first_name: "", middle_name: "", last_name: "", email: "", group_id: "" });
+      setFarmerForm({
+        first_name: "",
+        middle_name: "",
+        last_name: "",
+        dob: "",
+        id_passport_no: "",
+        location: "",
+        address: "",
+        mobile: "",
+        email: "",
+        group_id: "",
+      });
+
       fetchData();
+    } catch (err: any) {
+      console.error("❌ Farmer registration failed:", err);
+      alert(`Farmer registration failed:\n${err.message}`);
     }
   };
 

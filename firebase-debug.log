@@ -119,3 +119,28 @@
     at process.processTimers (node:internal/timers:529:7)
 [error] 
 [error] Error: An unexpected error has occurred.
+[debug] [2025-07-17T19:16:55.305Z] ----------------------------------------------------------------------
+[debug] [2025-07-17T19:16:55.312Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\dell\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2025-07-17T19:16:55.314Z] CLI Version:   14.11.0
+[debug] [2025-07-17T19:16:55.314Z] Platform:      win32
+[debug] [2025-07-17T19:16:55.314Z] Node Version:  v22.13.1
+[debug] [2025-07-17T19:16:55.315Z] Time:          Thu Jul 17 2025 22:16:55 GMT+0300 (East Africa Time)
+[debug] [2025-07-17T19:16:55.316Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-07-17T19:16:55.876Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-07-17T19:16:55.878Z] > authorizing via signed-in user (caxshuganda@gmail.com)
+[debug] [2025-07-17T19:16:55.878Z] [iam] checking project farm-fuzion-abdf3 for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-07-17T19:16:55.883Z] Checked if tokens are valid: true, expires at: 1752782849321
+[debug] [2025-07-17T19:16:55.884Z] Checked if tokens are valid: true, expires at: 1752782849321
+[debug] [2025-07-17T19:16:55.888Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions [none]
+[debug] [2025-07-17T19:16:55.889Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions x-goog-quota-user=projects/farm-fuzion-abdf3
+[debug] [2025-07-17T19:16:55.889Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-07-17T19:16:56.010Z] *** [apiv2] error from fetch(https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions, {"headers":{},"method":"POST","body":"{\"permissions\":[\"firebase.projects.get\",\"firebasehosting.sites.update\"]}"}): FetchError: request to https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions failed, reason: getaddrinfo ENOTFOUND cloudresourcemanager.googleapis.com
+[debug] [2025-07-17T19:16:56.010Z] [iam] error while checking permissions, command may fail: Failed to make request to https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions
+[debug] [2025-07-17T19:16:56.011Z] Checked if tokens are valid: true, expires at: 1752782849321
+[debug] [2025-07-17T19:16:56.011Z] Checked if tokens are valid: true, expires at: 1752782849321
+[debug] [2025-07-17T19:16:56.012Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/farm-fuzion-abdf3 [none]
+[debug] [2025-07-17T19:16:56.035Z] *** [apiv2] error from fetch(https://firebase.googleapis.com/v1beta1/projects/farm-fuzion-abdf3, {"headers":{},"method":"GET","signal":{}}): FetchError: request to https://firebase.googleapis.com/v1beta1/projects/farm-fuzion-abdf3 failed, reason: getaddrinfo ENOTFOUND firebase.googleapis.com
+[debug] [2025-07-17T19:16:56.036Z] Failed to make request to https://firebase.googleapis.com/v1beta1/projects/farm-fuzion-abdf3 (original: request to https://firebase.googleapis.com/v1beta1/projects/farm-fuzion-abdf3 failed, reason: getaddrinfo ENOTFOUND firebase.googleapis.com)
+[error] 
+[error] Error: Assertion failed: resolving hosting target of a site with no site name or target name. This should have caused an error earlier

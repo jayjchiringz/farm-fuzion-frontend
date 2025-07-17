@@ -478,17 +478,22 @@ export default function AdminDashboard() {
                     <tr className="bg-brand-green text-white dark:bg-brand-apple dark:text-brand-dark">
                       <th className="p-2 text-left">Name</th>
                       <th className="p-2">Email</th>
-                      <th className="p-2">Group ID</th>
+                      <th className="p-2">Group</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {farmers.map((f) => (
-                      <tr key={f.id} className="odd:bg-slate-100 dark:odd:bg-[#033127]">
-                        <td className="p-2 font-medium">{f.first_name} {f.middle_name} {f.last_name}</td>
-                        <td className="p-2 text-center">{f.email}</td>
-                        <td className="p-2 text-center">{f.group_id}</td>
-                      </tr>
-                    ))}
+                    {farmers.map((f) => {
+                      const group = groups.find((g) => g.id === f.group_id);
+                      return (
+                        <tr key={f.id} className="odd:bg-slate-100 dark:odd:bg-[#033127]">
+                          <td className="p-2 font-medium">
+                            {f.first_name} {f.middle_name} {f.last_name}
+                          </td>
+                          <td className="p-2 text-center">{f.email}</td>
+                          <td className="p-2 text-center">{group ? group.name : "—"}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -653,11 +658,15 @@ export default function AdminDashboard() {
               />
 
               {/* 🗓️ Additional Info */}
-              <input type="date" className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                placeholder="Date of Birth"
+              <input
+                type="date"
+                className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
                 value={farmerForm.dob}
                 onChange={(e) => setFarmerForm({ ...farmerForm, dob: e.target.value })}
+                placeholder="MM/DD/YYYY"
               />
+              <small className="text-gray-500 dark:text-gray-400 block mb-2">Date of Birth (MM/DD/YYYY)</small>
+
               <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
                 placeholder="ID / Passport No"
                 value={farmerForm.id_passport_no}

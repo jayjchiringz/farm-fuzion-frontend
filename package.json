@@ -10,6 +10,8 @@
     "@headlessui/react": "^2.2.4",
     "axios": "^1.6.0",
     "firebase": "^11.10.0",
+    "kenya-administrative-divisions": "^0.0.18",
+    "kenya-locations": "^0.1.8",
     "lucide-react": "^0.525.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",

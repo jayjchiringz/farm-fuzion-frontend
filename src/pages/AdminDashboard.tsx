@@ -448,6 +448,12 @@ export default function AdminDashboard() {
                   ⚙️ Manage Group Types
                 </button>
                 <button
+                  onClick={() => setUserRoleModalOpen(true)}
+                  className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
+                >
+                  🛠️ Manage User Roles
+                </button>
+                <button
                   onClick={() => setGroupModalOpen(true)}
                   className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
                 >
@@ -458,15 +464,6 @@ export default function AdminDashboard() {
                   className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
                 >
                   + Register Farmer
-                </button>
-                <button
-                  onClick={() => setUserRoleModalOpen(true)}
-                  className="bg-transparent text-brand-dark border border-brand-green  
-                            px-4 py-2 rounded transition-colors duration-200
-                            hover:bg-brand-green hover:text-white hover:border-brand-green 
-                            dark:bg-transparent dark:text-white dark:hover:bg-brand-green dark:hover:text-white dark:hover:border-brand-green"
-                >
-                  🛠️ Manage User Roles
                 </button>
               </>
             )}
@@ -976,4 +973,3 @@ function updateRole(id: string, arg1: { name: string; }) {
 function deleteRole(id: string) {
   throw new Error("Function not implemented.");
 }
-

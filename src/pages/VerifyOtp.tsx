@@ -22,14 +22,14 @@ export default function VerifyOtp() {
 
       console.log("✅ Authenticated:", role, user);
 
-      if (role === "user") {
-        if (user.role === "admin") navigate("/admin-dashboard");
-        else if (user.role === "sacco") navigate("/sacco-dashboard");
-        else navigate("/dashboard"); // default fallback
-      } else if (role === "farmer") {
+      if (user.role === "admin") {
+        navigate("/admin-dashboard");
+      } else if (user.role === "sacco") {
+        navigate("/sacco-dashboard");
+      } else if (user.role === "farmer") {
         navigate("/dashboard");
       } else {
-        throw new Error("Unknown role");
+        throw new Error("Unknown user role.");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "OTP verification failed";

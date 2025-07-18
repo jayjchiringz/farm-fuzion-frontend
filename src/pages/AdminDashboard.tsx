@@ -60,6 +60,10 @@ export default function AdminDashboard() {
   const [newGroupType, setNewGroupType] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newDocType, setNewDocType] = useState("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isUserRoleModalOpen, setUserRoleModalOpen] = useState(false);
+  const [userRoles, setUserRoles] = useState<any[]>([]);
+  const [newRoleName, setNewRoleName] = useState("");
 
   useEffect(() => { fetchData(); }, []);
 
@@ -74,6 +78,16 @@ export default function AdminDashboard() {
       }));
     }
   }, [documentTypes]);
+
+  // 🛰️ Load roles on mount
+  useEffect(() => {
+    fetchRoles();
+  }, []);
+
+  const fetchRoles = async () => {
+    const res = (await getRoles()) as unknown as any[];
+    setUserRoles(res);
+  };
 
   const fetchData = async () => {
     try {
@@ -393,11 +407,6 @@ export default function AdminDashboard() {
     localStorage.removeItem("authToken"); // Example cleanup
     window.location.href = "/login"; // Redirect to login or home page
   };
-
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isUserRoleModalOpen, setUserRoleModalOpen] = useState(false);
-  const [userRoles, setUserRoles] = useState<any[]>([]);
-  const [newRoleName, setNewRoleName] = useState("");
 
   const handleAddUserRole = async () => {
     const added = await createRole({ name: newRoleName });
@@ -973,3 +982,7 @@ function updateRole(id: string, arg1: { name: string; }) {
 function deleteRole(id: string) {
   throw new Error("Function not implemented.");
 }
+function getRoles() {
+  throw new Error("Function not implemented.");
+}
+

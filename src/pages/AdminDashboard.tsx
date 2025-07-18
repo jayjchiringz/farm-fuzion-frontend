@@ -434,7 +434,10 @@ export default function AdminDashboard() {
         <aside
           className={`${
             isSidebarOpen ? "w-64" : "w-16"
-          } transition-all duration-300 bg-brand-green text-white flex flex-col justify-between py-6 px-4 shadow-lg`}
+          } transition-all duration-300 
+            bg-brand-green 
+            dark:bg-brand-dark 
+            text-white flex flex-col justify-between py-6 px-4 shadow-lg`}
         >
           {/* Toggle Button */}
           <div className="mb-6">

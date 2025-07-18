@@ -7,7 +7,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { storage } from "../lib/firebase";
 import { getRoles, createRole, updateRole, deleteRole } from "../services/roles";
-import { Users, UsersRound, PlusSquare, Settings } from "lucide-react"; // Optional: Use icon lib
+import { Users, UsersRound, PlusSquare, Settings, Menu, LogOut, } from "lucide-react"; // Optional: Use icon lib
 
 const BASE_URL = import.meta.env.MODE === "development"
   ? "/api"
@@ -26,6 +26,7 @@ const sanitizeKey = (key: string) =>
   key.toLowerCase().replace(/[^a-z0-9]/gi, "_");
 
 export default function AdminSidebar({ children }: { children: React.ReactNode }) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [openGroupSub, setOpenGroupSub] = useState(false);
   const [openUserSub, setOpenUserSub] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -64,7 +65,6 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
   const [newGroupType, setNewGroupType] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newDocType, setNewDocType] = useState("");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isUserRoleModalOpen, setUserRoleModalOpen] = useState(false);
   const [userRoles, setUserRoles] = useState<any[]>([]);
   const [newRoleName, setNewRoleName] = useState("");
@@ -424,9 +424,8 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
   };
 
   const handleLogout = () => {
-    // Clear any auth state or token
-    localStorage.removeItem("authToken"); // Example cleanup
-    window.location.href = "/login"; // Redirect to login or home page
+    localStorage.clear();
+    window.location.href = "/login";
   };
 
   return (

@@ -6,6 +6,7 @@ import axios from "axios";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { storage } from "../lib/firebase";
+import { getRoles, createRole, updateRole, deleteRole } from "../services/roles";
 
 const BASE_URL = import.meta.env.MODE === "development"
   ? "/api"
@@ -402,12 +403,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    // Clear any auth state or token
-    localStorage.removeItem("authToken"); // Example cleanup
-    window.location.href = "/login"; // Redirect to login or home page
-  };
-
   const handleAddUserRole = async () => {
     const added = await createRole({ name: newRoleName });
     setUserRoles([...userRoles, added]);
@@ -423,6 +418,12 @@ export default function AdminDashboard() {
   const handleDeleteUserRole = async (id: string) => {
     await deleteRole(id);
     setUserRoles(userRoles.filter((r) => r.id !== id));
+  };
+
+  const handleLogout = () => {
+    // Clear any auth state or token
+    localStorage.removeItem("authToken"); // Example cleanup
+    window.location.href = "/login"; // Redirect to login or home page
   };
 
   return (
@@ -971,18 +972,3 @@ export default function AdminDashboard() {
     </MainLayout>
   );
 }
-function createRole(arg0: { name: string; }) {
-  throw new Error("Function not implemented.");
-}
-
-function updateRole(id: string, arg1: { name: string; }) {
-  throw new Error("Function not implemented.");
-}
-
-function deleteRole(id: string) {
-  throw new Error("Function not implemented.");
-}
-function getRoles() {
-  throw new Error("Function not implemented.");
-}
-

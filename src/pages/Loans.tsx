@@ -13,7 +13,7 @@ export default function Loans() {
   const fetchLoans = async () => {
     try {
       const res = await axios.get(
-        `https://us-central1-farm-fuzion.cloudfunctions.net/api/loans/${farmer.id}`
+        `https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/loans/${farmer.id}`
       );
       setLoans(res.data);
     } catch (err) {
@@ -25,7 +25,7 @@ export default function Loans() {
     if (!amount) return alert("Amount is required");
     try {
       await axios.post(
-        "https://us-central1-farm-fuzion.cloudfunctions.net/api/loans",
+        "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/loans",
         {
           farmer_id: farmer.id,
           amount: parseFloat(amount),

@@ -14,7 +14,7 @@ export default function LoanRepayments() {
   const fetchRepayments = async () => {
     try {
       const res = await axios.get(
-        `https://us-central1-farm-fuzion.cloudfunctions.net/api/loan-repayments/${loanId}`
+        `https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/loan-repayments/${loanId}`
       );
       setRepayments(res.data);
     } catch (err) {
@@ -27,7 +27,7 @@ export default function LoanRepayments() {
 
     try {
       await axios.post(
-        `https://us-central1-farm-fuzion.cloudfunctions.net/api/loan-repayments`,
+        `https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/loan-repayments`,
         {
           loan_id: loanId,
           farmer_id: farmer.id,

@@ -1,9 +1,9 @@
 import { api } from "./api";
 
-const BASE_URL = "https://us-central1-farm-fuzion.cloudfunctions.net/getRoles";
-const CREATE_URL = "https://us-central1-farm-fuzion.cloudfunctions.net/createRole";
-const UPDATE_URL = "https://us-central1-farm-fuzion.cloudfunctions.net/updateRole";
-const DELETE_URL = "https://us-central1-farm-fuzion.cloudfunctions.net/deleteRole";
+const BASE_URL = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/getRoles";
+const CREATE_URL = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/createRole";
+const UPDATE_URL = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/updateRole";
+const DELETE_URL = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/deleteRole";
 
 export async function getRoles(): Promise<any[]> {
   try {

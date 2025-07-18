@@ -1,7 +1,7 @@
 import { api } from "./api";
 
 export const requestOtp = async (email: string) => {
-  //const res = await fetch("https://us-central1-farm-fuzion.cloudfunctions.net/api/auth/request-otp", {
+  //const res = await fetch("https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/auth/request-otp", {
   const res = await fetch("https://api-ugbghpzhpa-uc.a.run.app/auth/request-otp", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -18,7 +18,7 @@ export const requestOtp = async (email: string) => {
 
 export const verifyOtp = async (email: string, otp: string) => {
   //const res = await fetch("http://localhost:5001/farm-fuzion/us-central1/api/auth/verify-otp", {
-  //const res = await fetch("https://us-central1-farm-fuzion.cloudfunctions.net/api/auth/verify-otp", {
+  //const res = await fetch("https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/auth/verify-otp", {
   const res = await fetch("https://api-ugbghpzhpa-uc.a.run.app/auth/verify-otp", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

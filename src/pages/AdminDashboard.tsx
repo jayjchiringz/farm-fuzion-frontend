@@ -7,6 +7,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { storage } from "../lib/firebase";
 import { getRoles, createRole, updateRole, deleteRole } from "../services/roles";
+import { Users, UsersRound, PlusSquare, Settings } from "lucide-react"; // Optional: Use icon lib
 
 const BASE_URL = import.meta.env.MODE === "development"
   ? "/api"
@@ -24,7 +25,9 @@ interface GroupType {id: string; name: string;}
 const sanitizeKey = (key: string) =>
   key.toLowerCase().replace(/[^a-z0-9]/gi, "_");
 
-export default function AdminDashboard() {
+export default function AdminSidebar({ children }: { children: React.ReactNode }) {
+  const [openGroupSub, setOpenGroupSub] = useState(false);
+  const [openUserSub, setOpenUserSub] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
   const [farmers, setFarmers] = useState<Farmer[]>([]);
   const [groupTypes, setGroupTypes] = useState<GroupType[]>([]);
@@ -449,40 +452,64 @@ export default function AdminDashboard() {
             </button>
           </div>
 
-          {/* Top Content */}
-          <div className="flex-1">
-            {isSidebarOpen && (
-              <>
-                <h2 className="text-xl font-bold mb-6">Admin Panel</h2>
-                <button
-                  onClick={() => setGroupTypeModalOpen(true)}
-                  className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
-                >
-                  ⚙️ Manage Group Types
-                </button>
-                <button
-                  onClick={() => setUserRoleModalOpen(true)}
-                  className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
-                >
-                  🛠️ Manage User Roles
-                </button>
-                <button
-                  onClick={() => setGroupModalOpen(true)}
-                  className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
-                >
-                  + Register Group
-                </button>
-                <button
-                  onClick={() => setFarmerModalOpen(true)}
-                  className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
-                >
-                  + Register Farmer
-                </button>
-              </>
-            )}
+          {/* Main Content */}
+          <div className="flex-1 space-y-4">
+            {/* Manage Group */}
+            <div>
+              <button
+                onClick={() => setOpenGroupSub(!openGroupSub)}
+                className="flex items-center w-full px-2 py-2 rounded hover:bg-white/20 transition"
+              >
+                <Users className="w-5 h-5 mr-2" />
+                {isSidebarOpen && <span className="font-semibold">Manage Group</span>}
+              </button>
+              {isSidebarOpen && openGroupSub && (
+                <div className="ml-6 mt-1 space-y-2">
+                  <button
+                    onClick={() => setGroupModalOpen(true)}
+                    className="w-full text-left text-sm hover:text-brand-apple"
+                  >
+                    + Register Group
+                  </button>
+                  <button
+                    onClick={() => setGroupTypeModalOpen(true)}
+                    className="w-full text-left text-sm hover:text-brand-apple"
+                  >
+                    ⚙️ Group Types
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Manage Users */}
+            <div>
+              <button
+                onClick={() => setOpenUserSub(!openUserSub)}
+                className="flex items-center w-full px-2 py-2 rounded hover:bg-white/20 transition"
+              >
+                <UsersRound className="w-5 h-5 mr-2" />
+                {isSidebarOpen && <span className="font-semibold">Manage Users</span>}
+              </button>
+              {isSidebarOpen && openUserSub && (
+                <div className="ml-6 mt-1 space-y-2">
+                  <button
+                    onClick={() => setFarmerModalOpen(true)}
+                    className="w-full text-left text-sm hover:text-brand-apple"
+                  >
+                    + Register Farmer
+                  </button>
+                  <button
+                    onClick={() => setUserRoleModalOpen(true)}
+                    className="w-full text-left text-sm hover:text-brand-apple"
+                  >
+                    🛠️ User Roles
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Logout Button */}
+          {/* Logout */}
           {isSidebarOpen && (
             <button
               onClick={handleLogout}

@@ -443,37 +443,25 @@ export default function AdminDashboard() {
                 <h2 className="text-xl font-bold mb-6">Admin Panel</h2>
                 <button
                   onClick={() => setGroupTypeModalOpen(true)}
-                  className="bg-transparent text-brand-dark border border-brand-green  
-                            px-4 py-2 rounded transition-colors duration-200
-                            hover:bg-brand-green hover:text-white hover:border-brand-green 
-                            dark:bg-transparent dark:text-white dark:hover:bg-brand-green dark:hover:text-white dark:hover:border-brand-green"
+                  className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
                 >
                   ⚙️ Manage Group Types
                 </button>
                 <button
                   onClick={() => setUserRoleModalOpen(true)}
-                  className="bg-transparent text-brand-dark border border-brand-green  
-                            px-4 py-2 rounded transition-colors duration-200
-                            hover:bg-brand-green hover:text-white hover:border-brand-green 
-                            dark:bg-transparent dark:text-white dark:hover:bg-brand-green dark:hover:text-white dark:hover:border-brand-green"
+                  className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
                 >
                   🛠️ Manage User Roles
                 </button>
                 <button
                   onClick={() => setGroupModalOpen(true)}
-                  className="bg-transparent text-brand-dark border border-brand-green  
-                            px-4 py-2 rounded transition-colors duration-200
-                            hover:bg-brand-green hover:text-white hover:border-brand-green 
-                            dark:bg-transparent dark:text-white dark:hover:bg-brand-green dark:hover:text-white dark:hover:border-brand-green"
+                  className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
                 >
                   + Register Group
                 </button>
                 <button
                   onClick={() => setFarmerModalOpen(true)}
-                  className="bg-transparent text-brand-dark border border-brand-green  
-                            px-4 py-2 rounded transition-colors duration-200
-                            hover:bg-brand-green hover:text-white hover:border-brand-green 
-                            dark:bg-transparent dark:text-white dark:hover:bg-brand-green dark:hover:text-white dark:hover:border-brand-green"
+                  className="w-full text-left mb-3 px-4 py-2 rounded bg-white/10 hover:bg-white/20 transition"
                 >
                   + Register Farmer
                 </button>

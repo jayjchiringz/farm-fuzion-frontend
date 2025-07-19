@@ -3,18 +3,22 @@ import {
   PieChart,
   Pie,
   Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
   ResponsiveContainer,
+  Tooltip,
   Legend,
 } from "recharts";
+import { Users, UsersRound } from "lucide-react";
 
-// Type Definitions
-interface StatusPieProps {
-  data: { label: string; value: number }[];
+const COLORS = ["#8dc71d", "#0d5b10", "#facc15", "#ef4444"];
+
+interface StatusDataItem {
+  label: string;
+  value: number;
+}
+
+interface FarmerGroupData {
+  group: string;
+  total: number;
 }
 
 interface OverviewStatsProps {
@@ -27,79 +31,72 @@ interface GroupStatsProps {
 }
 
 interface FarmerStatsProps {
-  farmerByGroup: { group: string; total: number }[];
+  farmerByGroup: FarmerGroupData[];
 }
 
-const COLORS = ["#8dc71d", "#0d5b10", "#facc15", "#ef4444"];
-
-const StatusPie: React.FC<StatusPieProps> = ({ data }) => (
-  <ResponsiveContainer width="100%" height={200}>
+const StatusPie = ({ data }: { data: StatusDataItem[] }) => (
+  <ResponsiveContainer width="100%" height={180}>
     <PieChart>
       <Pie
         data={data}
         dataKey="value"
         nameKey="label"
         outerRadius={60}
-        label
+        innerRadius={30}
+        labelLine={false}
       >
         {data.map((entry, index) => (
           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
         ))}
       </Pie>
       <Tooltip />
-      <Legend />
+      <Legend verticalAlign="bottom" height={36} iconType="circle" />
     </PieChart>
   </ResponsiveContainer>
 );
 
-const OverviewStats: React.FC<OverviewStatsProps> = ({ totalGroups, totalFarmers }) => (
-  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-    <div className="bg-brand-green dark:bg-brand-apple p-4 rounded-xl text-white dark:text-brand-dark shadow">
-      <p className="text-sm font-medium">Total Groups</p>
-      <p className="text-2xl font-bold">{totalGroups}</p>
+// Compact total counters with icons
+const OverviewStats = ({ totalGroups, totalFarmers }: OverviewStatsProps) => (
+  <div className="flex flex-wrap gap-4 mb-8">
+    <div className="flex items-center bg-brand-green dark:bg-brand-apple text-white dark:text-brand-dark px-4 py-3 rounded-xl shadow w-full sm:w-52">
+      <Users className="w-6 h-6 mr-3" />
+      <div>
+        <p className="text-sm font-medium">Groups</p>
+        <p className="text-xl font-bold">{totalGroups}</p>
+      </div>
     </div>
-    <div className="bg-brand-green dark:bg-brand-apple p-4 rounded-xl text-white dark:text-brand-dark shadow">
-      <p className="text-sm font-medium">Total Farmers</p>
-      <p className="text-2xl font-bold">{totalFarmers}</p>
+
+    <div className="flex items-center bg-brand-green dark:bg-brand-apple text-white dark:text-brand-dark px-4 py-3 rounded-xl shadow w-full sm:w-52">
+      <UsersRound className="w-6 h-6 mr-3" />
+      <div>
+        <p className="text-sm font-medium">Farmers</p>
+        <p className="text-xl font-bold">{totalFarmers}</p>
+      </div>
     </div>
   </div>
 );
 
-const GroupStats: React.FC<GroupStatsProps> = ({ statusCounts }) => {
-  const chartData = Object.entries(statusCounts).map(([label, value]) => ({
-    label,
-    value,
-  }));
+const GroupStats = ({ statusCounts }: GroupStatsProps) => {
+  const chartData: StatusDataItem[] = Object.entries(statusCounts).map(
+    ([label, value]) => ({ label, value })
+  );
 
   return (
-    <div className="mb-8">
-      <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-brand-apple">
-        Group Status Summary
-      </h3>
+    <div className="mb-6 w-full max-w-xs">
       <StatusPie data={chartData} />
     </div>
   );
 };
 
-const FarmerStats: React.FC<FarmerStatsProps> = ({ farmerByGroup }) => {
-  const chartData = farmerByGroup.map((item) => ({
-    name: item.group,
-    count: item.total,
+const FarmerStats = ({ farmerByGroup }: FarmerStatsProps) => {
+  const chartData: StatusDataItem[] = farmerByGroup.map((item) => ({
+    label: item.group,
+    value: item.total,
   }));
 
   return (
-    <div className="mb-8">
-      <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-brand-apple">
-        Farmers per Group
-      </h3>
-      <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={chartData}>
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-          <Bar dataKey="count" fill="#8dc71d" />
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="mb-6 w-full max-w-xs">
+      <StatusPie data={chartData} />
     </div>
   );
 };

@@ -545,14 +545,18 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
         {/* Main content */}
         <main className="flex-1 p-6 md:p-10 bg-gray-50 dark:bg-brand-dark text-gray-900 dark:text-white overflow-y-auto">
           <h1 className="text-3xl md:text-5xl font-bold font-ubuntu mb-6 text-brand-apple dark:text-brand-apple">Farm Fuzion's Admin</h1>
-          <OverviewStats totalGroups={groups.length} totalFarmers={farmers.length} />
+          <div className="flex flex-wrap gap-6">
+            <OverviewStats totalGroups={groups.length} totalFarmers={farmers.length} />
+          </div>
           {loading ? (
             <p className="text-brand-apple dark:text-brand-apple">Loading data...</p>
           ) : (
             <>
               <section className="mb-12">
                 <h2 className="text-2xl font-bold font-ubuntu mb-4 text-brand-apple dark:text-brand-apple">Registered SACCOs & Groups</h2>
-                <GroupStats statusCounts={{ active: 12, pending: 5, suspended: 3 }} />
+                <div className="flex flex-wrap gap-6">
+                  <GroupStats statusCounts={{ active: 12, pending: 5, suspended: 3 }} />
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full border dark:border-slate-700 text-sm">
                     <thead>
@@ -612,7 +616,9 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
 
               <section>
                 <h2 className="text-2xl font-bold font-ubuntu mb-4 text-brand-apple dark:text-brand-apple">Registered Farmers</h2>
-                <FarmerStats farmerByGroup={[{ group: 'ABC', total: 25 }, { group: 'XYZ', total: 10 }]} />
+                <div className="flex flex-wrap gap-6">
+                  <FarmerStats farmerByGroup={[{ group: 'ABC', total: 25 }, { group: 'XYZ', total: 10 }]} />
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full border dark:border-slate-700 text-sm">
                     <thead>

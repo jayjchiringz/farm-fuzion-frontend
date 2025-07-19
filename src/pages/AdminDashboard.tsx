@@ -10,6 +10,8 @@ import { getRoles, createRole, updateRole, deleteRole } from "../services/roles"
 import { Users, UsersRound, Group, ShieldCheck, PlusSquare, Settings, Menu, Plus, LogOut, Settings2 } from "lucide-react"; // Optional: Use icon lib
 import { constituencies, counties, county, wards } from "kenya-locations";
 import { OverviewStats, GroupStats, FarmerStats } from "../components/Dashboard/DashboardStatsUI";
+import { usePagination } from "../hooks/usePagination";
+import PaginationFooter from "../components/Pagination/PaginationFooter";
 
 const BASE_URL = import.meta.env.MODE === "development"
   ? "/api"
@@ -443,6 +445,24 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
     setUserRoles(userRoles.filter((r) => r.id !== id));
   };
 
+  const {
+    page: groupPage,
+    perPage: groupPerPage,
+    setPage: setGroupPage,
+    setPerPage: setGroupPerPage,
+    maxPage: groupMaxPage,
+    paginatedItems: paginatedGroups,
+  } = usePagination(groups);
+
+  const {
+    page: farmerPage,
+    perPage: farmerPerPage,
+    setPage: setFarmerPage,
+    setPerPage: setFarmerPerPage,
+    maxPage: farmerMaxPage,
+    paginatedItems: paginatedFarmers,
+  } = usePagination(farmers);
+
   const handleLogout = () => {
     localStorage.clear();
     window.location.href = "/login";
@@ -571,7 +591,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                       </tr>
                     </thead>
                     <tbody>
-                      {groups.map((g) => (
+                      {paginatedGroups.map((g) => (
                         <tr key={g.id} className="odd:bg-slate-100 dark:odd:bg-[#033127]">
                           <td className="p-2 font-medium">{g.name}</td>
                           <td className="p-2 text-center">{g.type}</td>
@@ -610,6 +630,13 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                         </tr>
                       ))}
                     </tbody>
+                    <PaginationFooter
+                      page={groupPage}
+                      maxPage={groupMaxPage}
+                      perPage={groupPerPage}
+                      setPage={setGroupPage}
+                      setPerPage={setGroupPerPage}
+                    />
                   </table>
                 </div>
               </section>
@@ -629,7 +656,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                       </tr>
                     </thead>
                     <tbody>
-                      {farmers.map((f) => {
+                      {paginatedFarmers.map((f) => {
                         const group = groups.find((g) => g.id === f.group_id);
                         return (
                           <tr key={f.id} className="odd:bg-slate-100 dark:odd:bg-[#033127]">

@@ -1,0 +1,16 @@
+[debug] [2025-07-19T02:40:07.362Z] ----------------------------------------------------------------------
+[debug] [2025-07-19T02:40:07.366Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\dell\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2025-07-19T02:40:07.366Z] CLI Version:   14.11.0
+[debug] [2025-07-19T02:40:07.366Z] Platform:      win32
+[debug] [2025-07-19T02:40:07.366Z] Node Version:  v22.13.1
+[debug] [2025-07-19T02:40:07.367Z] Time:          Sat Jul 19 2025 05:40:07 GMT+0300 (East Africa Time)
+[debug] [2025-07-19T02:40:07.367Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-07-19T02:40:07.749Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-07-19T02:40:07.750Z] > authorizing via signed-in user (caxshuganda@gmail.com)
+[debug] [2025-07-19T02:40:07.750Z] [iam] checking project farm-fuzion-abdf3 for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-07-19T02:40:07.753Z] Checked if tokens are valid: false, expires at: 1752882515466
+[debug] [2025-07-19T02:40:07.754Z] Checked if tokens are valid: false, expires at: 1752882515466
+[debug] [2025-07-19T02:40:07.754Z] > refreshing access token with scopes: []
+[debug] [2025-07-19T02:40:07.758Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-07-19T02:40:07.758Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]

@@ -567,7 +567,8 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
           <h1 className="text-3xl md:text-5xl font-bold font-ubuntu mb-6 text-brand-apple dark:text-brand-apple">Farm Fuzion's Admin</h1>
           <div className="flex flex-wrap gap-6">
             <OverviewStats totalGroups={groups.length} totalFarmers={farmers.length} />
-            <GroupStats statusCounts={{ active: 12, pending: 5, suspended: 3 }} />
+            <GroupStats statusCounts={{ active_groups: 12, pending_groups: 5, suspended_groups: 3 }} />
+            <FarmerStats farmerByGroup={[{ group: 'Active Farmers', total: 25 }, { group: 'Inactive Farmers', total: 10 }]} />
           </div>
           {loading ? (
             <p className="text-brand-apple dark:text-brand-apple">Loading data...</p>
@@ -644,7 +645,6 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
               <section>
                 <h2 className="text-2xl font-bold font-ubuntu mb-4 text-brand-apple dark:text-brand-apple">Registered Farmers</h2>
                 <div className="flex flex-wrap gap-6">
-                  <FarmerStats farmerByGroup={[{ group: 'ABC', total: 25 }, { group: 'XYZ', total: 10 }]} />
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full border dark:border-slate-700 text-sm">

@@ -106,7 +106,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch("https://<YOUR_FUNCTION_URL>/stats/summary");
+        const res = await fetch(`${BASE_URL}/stats/summary`);
         const json = await res.json();
         setStats(json);
       } catch (err) {
@@ -116,7 +116,6 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
 
     fetchStats();
   }, []);
-
 
   const fetchData = async () => {
     try {

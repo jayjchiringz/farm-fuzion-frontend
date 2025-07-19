@@ -684,6 +684,13 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                         );
                       })}
                     </tbody>
+                    <PaginationFooter
+                      page={farmerPage}
+                      maxPage={farmerMaxPage}
+                      perPage={farmerPerPage}
+                      setPage={setFarmerPage}
+                      setPerPage={setFarmerPerPage}
+                    />
                   </table>
                 </div>
               </section>

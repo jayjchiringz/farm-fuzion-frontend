@@ -479,7 +479,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                 className="flex items-center gap-2 w-full px-2 py-2 rounded hover:bg-white/20 transition"
               >
                 <Group className="w-5 h-5 shrink-0" />
-                {isSidebarOpen && <span className="font-semibold">Manage Group</span>}
+                {isSidebarOpen && <span className="font-semibold text-brand-apple dark:text-brand-apple">Manage Group</span>}
               </button>
               {isSidebarOpen && openGroupSub && (
                 <div className="ml-6 mt-1 space-y-2">
@@ -508,7 +508,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                 className="flex items-center gap-2 w-full px-2 py-2 rounded hover:bg-white/20 transition"
               >
                 <UsersRound className="w-5 h-5 shrink-0" />
-                {isSidebarOpen && <span className="font-semibold">Manage Users</span>}
+                {isSidebarOpen && <span className="font-semibold text-brand-apple dark:text-brand-apple">Manage Users</span>}
               </button>
               {isSidebarOpen && openUserSub && (
                 <div className="ml-6 mt-1 space-y-2">
@@ -543,14 +543,14 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
 
         {/* Main content */}
         <main className="flex-1 p-6 md:p-10 bg-gray-50 dark:bg-brand-dark text-gray-900 dark:text-white overflow-y-auto">
-          <h1 className="text-3xl md:text-5xl font-bold font-ubuntu mb-6">Admin Dashboard</h1>
+          <h1 className="text-3xl md:text-5xl font-bold font-ubuntu mb-6 text-brand-apple dark:text-brand-apple">Super Admin</h1>
 
           {loading ? (
             <p>Loading data...</p>
           ) : (
             <>
               <section className="mb-12">
-                <h2 className="text-2xl font-bold font-ubuntu mb-4">Registered SACCOs & Groups</h2>
+                <h2 className="text-2xl font-bold font-ubuntu mb-4 text-brand-apple dark:text-brand-apple">Registered SACCOs & Groups</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full border dark:border-slate-700 text-sm">
                     <thead>

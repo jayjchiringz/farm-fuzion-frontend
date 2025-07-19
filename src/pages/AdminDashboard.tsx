@@ -585,7 +585,23 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
 
         {/* Main content */}
         <main className="flex-1 p-6 md:p-10 bg-gray-50 dark:bg-brand-dark text-gray-900 dark:text-white overflow-y-auto">
-          <h1 className="text-3xl md:text-5xl font-bold font-ubuntu mb-6 text-brand-apple dark:text-brand-apple">Farm Fuzion's Admin</h1>          
+          <div className="flex items-center gap-4 mb-6">
+            {/* Logo with theme switching */}
+            <img
+              src="/Logos/FF Logo only transparent background.png"
+              alt="Farm Fuzion Logo"
+              className="h-12 w-auto dark:hidden"
+            />
+            <img
+              src="/Logos/FF Logo only transparent background.png"
+              alt="Farm Fuzion Logo"
+              className="h-12 w-auto hidden dark:block"
+            />
+
+            <h1 className="text-3xl md:text-5xl font-bold font-ubuntu text-brand-apple dark:text-brand-apple">
+              Farm Fuzion's Admin
+            </h1>
+          </div>
           <div className="flex flex-wrap gap-6">
             <OverviewStats
               totalGroups={stats.totalGroups}

@@ -7,7 +7,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { storage } from "../lib/firebase";
 import { getRoles, createRole, updateRole, deleteRole } from "../services/roles";
-import { Users, UsersRound, PlusSquare, Settings, Menu, LogOut, } from "lucide-react"; // Optional: Use icon lib
+import { Users, UsersRound, Group, ShieldCheck, PlusSquare, Settings, Menu, Plus, LogOut, Settings2 } from "lucide-react"; // Optional: Use icon lib
 import { county } from "kenya-locations";
 
 const BASE_URL = import.meta.env.MODE === "development"
@@ -478,22 +478,22 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                 onClick={() => setOpenGroupSub(!openGroupSub)}
                 className="flex items-center w-full px-2 py-2 rounded hover:bg-white/20 transition"
               >
-                <Users className="w-5 h-5 mr-2" />
+                <Group className="w-5 h-5 mr-0 sm:mr-2" />
                 {isSidebarOpen && <span className="font-semibold">Manage Group</span>}
               </button>
               {isSidebarOpen && openGroupSub && (
                 <div className="ml-6 mt-1 space-y-2">
                   <button
                     onClick={() => setGroupModalOpen(true)}
-                    className="w-full text-left text-sm hover:text-brand-apple"
+                    className="w-full text-left text-sm hover:text-brand-apple flex items-center gap-2"
                   >
-                    + Register Group
+                    <Plus className="w-4 h-4" /> Register Group
                   </button>
                   <button
                     onClick={() => setGroupTypeModalOpen(true)}
-                    className="w-full text-left text-sm hover:text-brand-apple"
+                    className="w-full text-left text-sm hover:text-brand-apple flex items-center gap-2"
                   >
-                    ⚙️ Group Types
+                    <Settings2 className="w-4 h-4" /> Group Types
                   </button>
                 </div>
               )}
@@ -505,22 +505,22 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                 onClick={() => setOpenUserSub(!openUserSub)}
                 className="flex items-center w-full px-2 py-2 rounded hover:bg-white/20 transition"
               >
-                <UsersRound className="w-5 h-5 mr-2" />
+                <UsersRound className="w-5 h-5 mr-0 sm:mr-2" />
                 {isSidebarOpen && <span className="font-semibold">Manage Users</span>}
               </button>
               {isSidebarOpen && openUserSub && (
                 <div className="ml-6 mt-1 space-y-2">
                   <button
                     onClick={() => setFarmerModalOpen(true)}
-                    className="w-full text-left text-sm hover:text-brand-apple"
+                    className="w-full text-left text-sm hover:text-brand-apple flex items-center gap-2"
                   >
-                    + Register Farmer
+                    <Plus className="w-4 h-4" /> Register Farmer
                   </button>
                   <button
                     onClick={() => setUserRoleModalOpen(true)}
-                    className="w-full text-left text-sm hover:text-brand-apple"
+                    className="w-full text-left text-sm hover:text-brand-apple flex items-center gap-2"
                   >
-                    🛠️ User Roles
+                    <ShieldCheck className="w-4 h-4" /> User Roles
                   </button>
                 </div>
               )}
@@ -528,14 +528,12 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
           </div>
 
           {/* Logout */}
-          {isSidebarOpen && (
-            <button
-              onClick={handleLogout}
-              className="mt-6 px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white"
-            >
-              🚪 Logout
-            </button>
-          )}
+          <button
+            onClick={handleLogout}
+            className="mt-6 px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white flex items-center justify-center gap-2"
+          >
+            <LogOut className="w-4 h-4" /> {isSidebarOpen && "Logout"}
+          </button>
         </aside>
         {/* Main content */}
         <main className="flex-1 p-6 md:p-10 bg-gray-50 dark:bg-brand-dark text-gray-900 dark:text-white overflow-y-auto">

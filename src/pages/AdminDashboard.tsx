@@ -17,6 +17,8 @@ const BASE_URL = import.meta.env.MODE === "development"
   ? "/api"
   : "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
 
+/*Interfaces*/
+// -------------------------------------------------------------------------------------------------------------------------------  
 interface Group {id: string; name: string; type: string; location: string;status: string;remarks?: string;
   registration_number?: string;
   documents?: { doc_type: string; path?: string }[];
@@ -25,10 +27,13 @@ interface Group {id: string; name: string; type: string; location: string;status
 interface Farmer {id: number; first_name: string; middle_name: string; last_name: string; email: string; group_id: string;}
 
 interface GroupType {id: string; name: string;}
+// -------------------------------------------------------------------------------------------------------------------------------  
 
 const sanitizeKey = (key: string) =>
   key.toLowerCase().replace(/[^a-z0-9]/gi, "_");
 
+/*--Admin Panel*/
+// -------------------------------------------------------------------------------------------------------------------------------  
 export default function AdminSidebar({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [openGroupSub, setOpenGroupSub] = useState(false);
@@ -655,19 +660,11 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                             <button
                               onClick={() => updateGroupStatus(g.id, "suspended")}
                               disabled={updatingGroupId === g.id}
-                              className="px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white disabled:opacity-50"
-                            >
-                              {updatingGroupId === g.id ? "..." : "Suspend"}
-                            </button>
-                            <button
-                              onClick={() => updateGroupStatus(g.id, "pending")}
-                              disabled={updatingGroupId === g.id}
                               className="px-2 py-1 rounded bg-yellow-500 hover:bg-yellow-600 text-white disabled:opacity-50"
                             >
                               {updatingGroupId === g.id ? "..." : "Pending"}
                             </button>
                           </td>
-
                         </tr>
                       ))}
                     </tbody>
@@ -1208,3 +1205,4 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
     </MainLayout>
   );
 }
+// -------------------------------------------------------------------------------------------------------------------------------  

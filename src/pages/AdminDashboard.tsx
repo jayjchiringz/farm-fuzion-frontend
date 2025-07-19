@@ -658,11 +658,11 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                               {updatingGroupId === g.id ? "..." : "Approve"}
                             </button>
                             <button
-                              onClick={() => updateGroupStatus(g.id, "suspended")}
+                              onClick={() => updateGroupStatus(g.id, "pending")}
                               disabled={updatingGroupId === g.id}
                               className="px-2 py-1 rounded bg-yellow-500 hover:bg-yellow-600 text-white disabled:opacity-50"
                             >
-                              {updatingGroupId === g.id ? "..." : "Pending"}
+                              {updatingGroupId === g.id ? "..." : "Suspend"}
                             </button>
                           </td>
                         </tr>

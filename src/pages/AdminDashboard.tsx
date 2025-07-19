@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from "uuid";
 import { storage } from "../lib/firebase";
 import { getRoles, createRole, updateRole, deleteRole } from "../services/roles";
 import { Users, UsersRound, Group, ShieldCheck, PlusSquare, Settings, Menu, Plus, LogOut, Settings2 } from "lucide-react"; // Optional: Use icon lib
-import { county } from "kenya-locations";
+import { constituencies, counties, county, wards } from "kenya-locations";
 
 const BASE_URL = import.meta.env.MODE === "development"
   ? "/api"
@@ -472,7 +472,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
 
           {/* Main Content */}
           <div className="flex-1 space-y-4">
-            {/* Manage Group */}
+            {/* Manage Groups */}
             <div>
               <button
                 onClick={() => setOpenGroupSub(!openGroupSub)}
@@ -546,7 +546,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
           <h1 className="text-3xl md:text-5xl font-bold font-ubuntu mb-6 text-brand-apple dark:text-brand-apple">Farm Fuzion's Admin</h1>
 
           {loading ? (
-            <p>Loading data...</p>
+            <p className="text-brand-apple dark:text-brand-apple">Loading data...</p>
           ) : (
             <>
               <section className="mb-12">
@@ -683,22 +683,60 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                 ))}
               </select>
 
-             <input
+              {/* 🗺️ County */}
+              <select
                 className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                placeholder="County"
+                value={groupForm.county}
+                onChange={(e) => {
+                  const county = e.target.value;
+                  setGroupForm({ ...groupForm, county, constituency: "", ward: "" });
+                }}
+              >
+                <option value="">Select County</option>
+                {counties.map((c) => (
+                  <option key={c.name} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+
+              {/* 🟨 Constituency */}
+              <select
+                className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
                 value={groupForm.constituency}
-                onChange={(e) => setGroupForm({ ...groupForm, constituency: e.target.value })}
-              />
+                onChange={(e) =>
+                  setGroupForm({ ...groupForm, constituency: e.target.value, ward: "" })
+                }
+                disabled={!groupForm.county}
+              >
+                <option value="">Select Constituency</option>
+                {constituencies
+                  .filter((c) => c.county === groupForm.county)
+                  .map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+              </select>
+
+              {/* 🟥 Ward */}
+              <select
+                className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                value={groupForm.ward}
+                onChange={(e) => setGroupForm({ ...groupForm, ward: e.target.value })}
+                disabled={!farmerForm.constituency}
+              >
+                <option value="">Select Ward</option>
+                {wards
+                  .filter((w) => w.constituency === groupForm.constituency)
+                  .map((w) => (
+                    <option key={w.name} value={w.name}>
+                      {w.name}
+                    </option>
+                  ))}
+              </select>
 
               <input
                 className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                placeholder="Ward"
-                value={groupForm.ward}
-                onChange={(e) => setGroupForm({ ...groupForm, ward: e.target.value })}              
-              />
-              <input
-                className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                placeholder="Location"
+                placeholder="Physical Location / Landmark"
                 value={groupForm.location}
                 onChange={(e) => setGroupForm({ ...groupForm, location: e.target.value })}
               />
@@ -803,7 +841,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
             <div className="flex items-center justify-center min-h-screen">
               <DialogPanel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
                 <DialogTitle className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-                  Register New Farmer
+                  Register Farmer
                 </DialogTitle>
 
                 {/* ✍️ Identity */}
@@ -838,23 +876,58 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                   value={farmerForm.id_passport_no}
                   onChange={(e) => setFarmerForm({ ...farmerForm, id_passport_no: e.target.value })}
                 />
-                <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                  placeholder="County"
+                {/* 🗺️ County */}
+                <select
+                  className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
                   value={farmerForm.county}
-                  onChange={(e) => setFarmerForm({ ...farmerForm, county: e.target.value })}
-                />
-                <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                  placeholder="Constituency"
+                  onChange={(e) => {
+                    const county = e.target.value;
+                    setFarmerForm({ ...farmerForm, county, constituency: "", ward: "" });
+                  }}
+                >
+                  <option value="">Select County</option>
+                  {counties.map((c) => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+
+                {/* 🟨 Constituency */}
+                <select
+                  className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
                   value={farmerForm.constituency}
-                  onChange={(e) => setFarmerForm({ ...farmerForm, constituency: e.target.value })}
-                />
-                <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                  placeholder="Ward"
+                  onChange={(e) =>
+                    setFarmerForm({ ...farmerForm, constituency: e.target.value, ward: "" })
+                  }
+                  disabled={!farmerForm.county}
+                >
+                  <option value="">Select Constituency</option>
+                  {constituencies
+                    .filter((c) => c.county === farmerForm.county)
+                    .map((c) => (
+                      <option key={c.name} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                </select>
+
+                {/* 🟥 Ward */}
+                <select
+                  className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
                   value={farmerForm.ward}
                   onChange={(e) => setFarmerForm({ ...farmerForm, ward: e.target.value })}
-                />                                
+                  disabled={!farmerForm.constituency}
+                >
+                  <option value="">Select Ward</option>
+                  {wards
+                    .filter((w) => w.constituency === farmerForm.constituency)
+                    .map((w) => (
+                      <option key={w.name} value={w.name}>
+                        {w.name}
+                      </option>
+                    ))}
+                </select>       
                 <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                  placeholder="Location"
+                  placeholder="Physical Location / Landmark"
                   value={farmerForm.location}
                   onChange={(e) => setFarmerForm({ ...farmerForm, location: e.target.value })}
                 />

@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from "uuid";
 import { storage } from "../lib/firebase";
 import { getRoles, createRole, updateRole, deleteRole } from "../services/roles";
 import { Users, UsersRound, PlusSquare, Settings, Menu, LogOut, } from "lucide-react"; // Optional: Use icon lib
+import { county } from "kenya-locations";
 
 const BASE_URL = import.meta.env.MODE === "development"
   ? "/api"
@@ -42,6 +43,9 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
   const [groupForm, setGroupForm] = useState({
     name: "",
     group_type_id: "",
+    county:"",
+    constituency:"",
+    ward:"",
     location: "",
     registration_number: "",
     description: "",
@@ -57,6 +61,9 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
     group_id: "",
     dob: "",
     id_passport_no: "",
+    county:"",
+    constituency:"",
+    ward:"",
     location: "",
     address: "",
     mobile: "",
@@ -183,6 +190,9 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
         body: JSON.stringify({
           name: groupForm.name,
           group_type_id: groupForm.group_type_id,
+          county: groupForm.county,
+          constituency: groupForm.constituency,
+          ward: groupForm.ward,
           location: groupForm.location,
           registration_number: groupForm.registration_number,
           description: groupForm.description || "",
@@ -214,6 +224,9 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
       setGroupForm({
         name: "",
         group_type_id: "",
+        county: "",
+        constituency: "",
+        ward: "",
         location: "",
         registration_number: "",
         description: "",
@@ -246,6 +259,9 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
           last_name: farmerForm.last_name,
           dob: farmerForm.dob,
           id_passport_no: farmerForm.id_passport_no,
+          county: farmerForm.county,
+          constituency: farmerForm.constituency,
+          ward: farmerForm.ward,
           location: farmerForm.location,
           address: farmerForm.address,
           mobile: farmerForm.mobile,
@@ -266,6 +282,9 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
         last_name: "",
         dob: "",
         id_passport_no: "",
+        county:"",
+        constituency:"",
+        ward:"",
         location: "",
         address: "",
         mobile: "",
@@ -563,11 +582,11 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                               {updatingGroupId === g.id ? "..." : "Approve"}
                             </button>
                             <button
-                              onClick={() => updateGroupStatus(g.id, "rejected")}
+                              onClick={() => updateGroupStatus(g.id, "suspended")}
                               disabled={updatingGroupId === g.id}
                               className="px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white disabled:opacity-50"
                             >
-                              {updatingGroupId === g.id ? "..." : "Reject"}
+                              {updatingGroupId === g.id ? "..." : "Suspend"}
                             </button>
                             <button
                               onClick={() => updateGroupStatus(g.id, "pending")}
@@ -660,6 +679,26 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                 ))}
               </select>
 
+              <input
+                className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="County"
+                value={groupForm.county}
+                onChange={(e) => setGroupForm({ ...groupForm, county: e.target.value })}
+              />
+
+              <input
+                className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="County"
+                value={groupForm.constituency}
+                onChange={(e) => setGroupForm({ ...groupForm, constituency: e.target.value })}
+              />
+
+              <input
+                className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="Ward"
+                value={groupForm.ward}
+                onChange={(e) => setGroupForm({ ...groupForm, ward: e.target.value })}              
+              />
               <input
                 className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
                 placeholder="Location"
@@ -802,6 +841,21 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                   value={farmerForm.id_passport_no}
                   onChange={(e) => setFarmerForm({ ...farmerForm, id_passport_no: e.target.value })}
                 />
+                <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                  placeholder="County"
+                  value={farmerForm.county}
+                  onChange={(e) => setFarmerForm({ ...farmerForm, county: e.target.value })}
+                />
+                <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                  placeholder="Constituency"
+                  value={farmerForm.constituency}
+                  onChange={(e) => setFarmerForm({ ...farmerForm, constituency: e.target.value })}
+                />
+                <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                  placeholder="Ward"
+                  value={farmerForm.ward}
+                  onChange={(e) => setFarmerForm({ ...farmerForm, ward: e.target.value })}
+                />                                
                 <input className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
                   placeholder="Location"
                   value={farmerForm.location}

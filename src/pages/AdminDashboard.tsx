@@ -103,6 +103,21 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
     setUserRoles(res);
   };
 
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("https://<YOUR_FUNCTION_URL>/stats/summary");
+        const json = await res.json();
+        setStats(json);
+      } catch (err) {
+        console.error("📉 Stats fetch failed:", err);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+
   const fetchData = async () => {
     try {
       const [groupsRes, farmersRes, typesRes, docsRes] = await Promise.all([
@@ -468,6 +483,13 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
     window.location.href = "/login";
   };
 
+  const [stats, setStats] = useState({
+    totalGroups: 0,
+    totalFarmers: 0,
+    statusCounts: {},
+    farmerByGroup: [],
+  });
+
   return (
     <MainLayout>
       <ThemeToggle />
@@ -564,7 +586,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
 
         {/* Main content */}
         <main className="flex-1 p-6 md:p-10 bg-gray-50 dark:bg-brand-dark text-gray-900 dark:text-white overflow-y-auto">
-          <h1 className="text-3xl md:text-5xl font-bold font-ubuntu mb-6 text-brand-apple dark:text-brand-apple">Farm Fuzion's Admin</h1>
+          <h1 className="text-3xl md:text-5xl font-bold font-ubuntu mb-6 text-brand-apple dark:text-brand-apple">Farm Fuzion's Admin</h1>          
           <div className="flex flex-wrap gap-6">
             <OverviewStats totalGroups={groups.length} totalFarmers={farmers.length} />
             <GroupStats statusCounts={{ active_groups: 12, pending_groups: 5, suspended_groups: 3 }} />

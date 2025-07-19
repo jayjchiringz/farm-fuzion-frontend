@@ -658,7 +658,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
             <div className="flex items-center justify-center min-h-screen">
             <DialogPanel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
               <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-                Manage Group Types
+                Manage Groups
               </h2>
 
               <input
@@ -683,14 +683,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                 ))}
               </select>
 
-              <input
-                className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
-                placeholder="County"
-                value={groupForm.county}
-                onChange={(e) => setGroupForm({ ...groupForm, county: e.target.value })}
-              />
-
-              <input
+             <input
                 className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
                 placeholder="County"
                 value={groupForm.constituency}

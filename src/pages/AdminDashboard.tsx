@@ -476,24 +476,26 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
             <div>
               <button
                 onClick={() => setOpenGroupSub(!openGroupSub)}
-                className="flex items-center w-full px-2 py-2 rounded hover:bg-white/20 transition"
+                className="flex items-center gap-2 w-full px-2 py-2 rounded hover:bg-white/20 transition"
               >
-                <Group className="w-5 h-5 mr-0 sm:mr-2" />
+                <Group className="w-5 h-5 shrink-0" />
                 {isSidebarOpen && <span className="font-semibold">Manage Group</span>}
               </button>
               {isSidebarOpen && openGroupSub && (
                 <div className="ml-6 mt-1 space-y-2">
                   <button
                     onClick={() => setGroupModalOpen(true)}
-                    className="w-full text-left text-sm hover:text-brand-apple flex items-center gap-2"
+                    className="w-full text-left text-sm hover:text-brand-apple"
                   >
-                    <Plus className="w-4 h-4" /> Register Group
+                    <Plus className="inline w-4 h-4 mr-1" />
+                    Register Group
                   </button>
                   <button
                     onClick={() => setGroupTypeModalOpen(true)}
-                    className="w-full text-left text-sm hover:text-brand-apple flex items-center gap-2"
+                    className="w-full text-left text-sm hover:text-brand-apple"
                   >
-                    <Settings2 className="w-4 h-4" /> Group Types
+                    <Settings className="inline w-4 h-4 mr-1" />
+                    Group Types
                   </button>
                 </div>
               )}
@@ -503,24 +505,26 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
             <div>
               <button
                 onClick={() => setOpenUserSub(!openUserSub)}
-                className="flex items-center w-full px-2 py-2 rounded hover:bg-white/20 transition"
+                className="flex items-center gap-2 w-full px-2 py-2 rounded hover:bg-white/20 transition"
               >
-                <UsersRound className="w-5 h-5 mr-0 sm:mr-2" />
+                <UsersRound className="w-5 h-5 shrink-0" />
                 {isSidebarOpen && <span className="font-semibold">Manage Users</span>}
               </button>
               {isSidebarOpen && openUserSub && (
                 <div className="ml-6 mt-1 space-y-2">
                   <button
                     onClick={() => setFarmerModalOpen(true)}
-                    className="w-full text-left text-sm hover:text-brand-apple flex items-center gap-2"
+                    className="w-full text-left text-sm hover:text-brand-apple"
                   >
-                    <Plus className="w-4 h-4" /> Register Farmer
+                    <Plus className="inline w-4 h-4 mr-1" />
+                    Register Farmer
                   </button>
                   <button
                     onClick={() => setUserRoleModalOpen(true)}
-                    className="w-full text-left text-sm hover:text-brand-apple flex items-center gap-2"
+                    className="w-full text-left text-sm hover:text-brand-apple"
                   >
-                    <ShieldCheck className="w-4 h-4" /> User Roles
+                    <ShieldCheck className="inline w-4 h-4 mr-1" />
+                    User Roles
                   </button>
                 </div>
               )}
@@ -530,11 +534,13 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="mt-6 px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white flex items-center justify-center gap-2"
+            className="mt-6 flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white justify-center"
           >
-            <LogOut className="w-4 h-4" /> {isSidebarOpen && "Logout"}
+            <LogOut className="w-4 h-4" />
+            {isSidebarOpen && <span>Logout</span>}
           </button>
         </aside>
+
         {/* Main content */}
         <main className="flex-1 p-6 md:p-10 bg-gray-50 dark:bg-brand-dark text-gray-900 dark:text-white overflow-y-auto">
           <h1 className="text-3xl md:text-5xl font-bold font-ubuntu mb-6">Admin Dashboard</h1>

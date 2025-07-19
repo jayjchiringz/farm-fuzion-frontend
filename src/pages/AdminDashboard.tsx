@@ -609,7 +609,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold font-ubuntu mb-4">Registered Farmers</h2>
+                <h2 className="text-2xl font-bold font-ubuntu mb-4 text-brand-apple dark:text-brand-apple">Registered Farmers</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full border dark:border-slate-700 text-sm">
                     <thead>

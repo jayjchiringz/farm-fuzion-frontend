@@ -689,7 +689,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                 value={groupForm.county}
                 onChange={(e) => {
                   const county = e.target.value;
-                  setGroupForm({ ...groupForm, county, constituency: "", ward: "" });
+                  setGroupForm({ ...groupForm, county: "", constituency: "", ward: "" });
                 }}
               >
                 <option value="">Select County</option>
@@ -722,7 +722,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                 className="w-full mb-2 p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
                 value={groupForm.ward}
                 onChange={(e) => setGroupForm({ ...groupForm, ward: e.target.value })}
-                disabled={!farmerForm.constituency}
+                disabled={!groupForm.constituency}
               >
                 <option value="">Select Ward</option>
                 {wards

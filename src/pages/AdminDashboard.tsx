@@ -472,14 +472,14 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
 
           {/* Main Content */}
           <div className="flex-1 space-y-4">
-            {/* Manage Groups */}
+            {/* Manage Group */}
             <div>
               <button
                 onClick={() => setOpenGroupSub(!openGroupSub)}
                 className="flex items-center gap-2 w-full px-2 py-2 rounded hover:bg-white/20 transition"
               >
                 <Group className="w-5 h-5 shrink-0" />
-                {isSidebarOpen && <span className="font-semibold text-brand-apple dark:text-brand-apple">Manage Group</span>}
+                {isSidebarOpen && <span className="font-semibold text-brand-apple dark:text-brand-apple">Manage Groups</span>}
               </button>
               {isSidebarOpen && openGroupSub && (
                 <div className="ml-6 mt-1 space-y-2">
@@ -689,7 +689,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                 value={groupForm.county}
                 onChange={(e) => {
                   const county = e.target.value;
-                  setGroupForm({ ...groupForm, county: "", constituency: "", ward: "" });
+                  setGroupForm({ ...groupForm, county, constituency: "", ward: "" });
                 }}
               >
                 <option value="">Select County</option>

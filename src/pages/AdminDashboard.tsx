@@ -464,7 +464,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
           <div className="mb-6">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="w-full px-2 text-left text-white hover:text-gray-300 transition"
+              className="w-full px-2 text-left text-brand-apple dark:text-brand-apple hover:text-gray-300 transition"
             >
               {isSidebarOpen ? "← Collapse" : "→"}
             </button>

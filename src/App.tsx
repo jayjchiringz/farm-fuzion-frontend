@@ -32,7 +32,7 @@ export default function App() {
           path="/admin-dashboard"
           element={
             <PrivateRoute>
-              <AdminDashboard />
+              <AdminDashboard children={undefined} />
             </PrivateRoute>
           }
         />
@@ -66,4 +66,3 @@ function RedirectBasedOnAuth() {
 
   return <Navigate to="/admin-dashboard" replace />;
 }
-

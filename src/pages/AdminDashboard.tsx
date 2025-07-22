@@ -651,7 +651,6 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                           }}
                           className="cursor-pointer hover:bg-slate-200 odd:bg-slate-100 dark:odd:bg-[#033127]"
                         >
-
                           <td className="p-2 font-medium">{g.name}</td>
                           <td className="p-2 text-center">{g.type}</td>
                           <td className="p-2 text-center">{g.location}</td>
@@ -694,7 +693,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
 
               {/* Trigger to view all farmers */}
               <section className="mt-10">
-                <h2 className="text-2xl font-bold font-ubuntu mb-4 text-brand-apple dark:text-brand-apple">Registered Farmers</h2>
+                {/*<h2 className="text-2xl font-bold font-ubuntu mb-4 text-brand-apple dark:text-brand-apple">Registered Farmers</h2>*/}
                 <button
                   onClick={() => {
                     setSelectedGroupForFarmers(null);

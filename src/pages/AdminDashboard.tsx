@@ -608,11 +608,11 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
             </h1>
           </div>
           <div className="flex flex-wrap gap-6">
-            {/*}
             <OverviewStats
               totalGroups={stats.totalGroups}
               totalFarmers={stats.totalFarmers}
             />
+            {/*}
             <GroupStats statusCounts={stats.statusCounts} />
             <FarmerStats farmerByGroup={stats.farmerByGroup} />
             */}

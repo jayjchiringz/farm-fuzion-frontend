@@ -1,6 +1,6 @@
 import React from "react";
 import { Users, UsersRound } from "lucide-react";
-import RingMeter from "./charts/RingMeter.tsx"; // 🆕 New chart we'll build
+import RingMeter from "../charts/RingMeter.tsx"; // 🆕 New chart we'll build
 
 interface StatusDataItem {
   label: string;

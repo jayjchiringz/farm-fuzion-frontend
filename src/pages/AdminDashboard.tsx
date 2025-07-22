@@ -494,6 +494,9 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
     farmerByGroup: [],
   });
 
+  const [isFarmerViewModalOpen, setFarmerViewModalOpen] = useState(false);
+  const [selectedGroupForFarmers, setSelectedGroupForFarmers] = useState<Group | null>(null);
+
   return (
     <MainLayout>
       <ThemeToggle />
@@ -640,7 +643,15 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                     </thead>
                     <tbody>
                       {paginatedGroups.map((g) => (
-                        <tr key={g.id} className="odd:bg-slate-100 dark:odd:bg-[#033127]">
+                        <tr
+                          key={g.id}
+                          onClick={() => {
+                            setSelectedGroupForFarmers(g);
+                            setFarmerViewModalOpen(true);
+                          }}
+                          className="cursor-pointer hover:bg-slate-200 odd:bg-slate-100 dark:odd:bg-[#033127]"
+                        >
+
                           <td className="p-2 font-medium">{g.name}</td>
                           <td className="p-2 text-center">{g.type}</td>
                           <td className="p-2 text-center">{g.location}</td>
@@ -681,6 +692,93 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                 </div>
               </section>
 
+              {/* Trigger to view all farmers */}
+              <section className="mt-10">
+                <h2 className="text-2xl font-bold font-ubuntu mb-4 text-brand-apple dark:text-brand-apple">Registered Farmers</h2>
+                <button
+                  onClick={() => {
+                    setSelectedGroupForFarmers(null);
+                    setFarmerViewModalOpen(true);
+                  }}
+                  className="px-4 py-2 bg-brand-green text-white rounded hover:bg-brand-apple"
+                >
+                  View All Farmers
+                </button>
+              </section>
+
+              {/* Modal with table */}
+              <Dialog open={isFarmerViewModalOpen} onClose={() => setFarmerViewModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
+                <div className="flex items-center justify-center min-h-screen px-4">
+                  <DialogPanel className="w-full max-w-6xl p-6 bg-white dark:bg-brand-dark rounded-xl shadow-xl max-h-[90vh] overflow-y-auto">
+                    <DialogTitle className="text-xl font-semibold text-brand-green dark:text-white mb-4">
+                      {selectedGroupForFarmers
+                        ? `Farmers in ${selectedGroupForFarmers.name}`
+                        : "All Registered Farmers"}
+                    </DialogTitle>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full border text-sm">
+                        <thead className="bg-brand-green text-white dark:bg-brand-apple dark:text-brand-dark">
+                          <tr>
+                            <th className="p-2 text-left">Name</th>
+                            <th className="p-2">Email</th>
+                            <th className="p-2">Group</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {farmers
+                            .filter((f) =>
+                              selectedGroupForFarmers ? f.group_id === selectedGroupForFarmers.id : true
+                            )
+                            .slice(
+                              (farmerPage - 1) * farmerPerPage,
+                              farmerPage * farmerPerPage
+                            )
+                            .map((f) => {
+                              const group = groups.find((g) => g.id === f.group_id);
+                              return (
+                                <tr key={f.id} className="odd:bg-slate-100 dark:odd:bg-[#033127]">
+                                  <td className="p-2 font-medium">
+                                    {f.first_name} {f.middle_name} {f.last_name}
+                                  </td>
+                                  <td className="p-2 text-center">{f.email}</td>
+                                  <td className="p-2 text-center">
+                                    {group ? (
+                                      group.name
+                                    ) : (
+                                      <select
+                                        className="p-1 border rounded text-sm dark:bg-brand-dark dark:border-gray-600"
+                                        onChange={(e) =>
+                                          handleAssignGroup(f.id, e.target.value)
+                                        }
+                                        defaultValue=""
+                                      >
+                                        <option value="" disabled>Select Group</option>
+                                        {groups.map((g) => (
+                                          <option key={g.id} value={g.id}>{g.name}</option>
+                                        ))}
+                                      </select>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <PaginationFooter
+                      page={farmerPage}
+                      maxPage={farmerMaxPage}
+                      perPage={farmerPerPage}
+                      setPage={setFarmerPage}
+                      setPerPage={setFarmerPerPage}
+                    />
+                  </DialogPanel>
+                </div>
+              </Dialog>
+
+              {/*}
               <section>
                 <h2 className="text-2xl font-bold font-ubuntu mb-4 text-brand-apple dark:text-brand-apple">Registered Farmers</h2>
                 <div className="flex flex-wrap gap-6">
@@ -733,6 +831,9 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                   </table>
                 </div>
               </section>
+              */}
+
+              {/* User Roles */}
             </>
           )}
 

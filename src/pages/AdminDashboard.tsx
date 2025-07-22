@@ -691,9 +691,8 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                 </div>
               </section>
 
-              {/* Trigger to view all farmers */}
+              {/* ✅ Trigger Button */}
               <section className="mt-10">
-                {/*<h2 className="text-2xl font-bold font-ubuntu mb-4 text-brand-apple dark:text-brand-apple">Registered Farmers</h2>*/}
                 <button
                   onClick={() => {
                     setSelectedGroupForFarmers(null);
@@ -705,7 +704,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                 </button>
               </section>
 
-              {/* Modal with table */}
+              {/* ✅ Modal Table */}
               <Dialog open={isFarmerViewModalOpen} onClose={() => setFarmerViewModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
                 <div className="flex items-center justify-center min-h-screen px-4">
                   <DialogPanel className="w-full max-w-6xl p-6 bg-white dark:bg-brand-dark rounded-xl shadow-xl max-h-[90vh] overflow-y-auto">
@@ -715,10 +714,11 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                         : "All Registered Farmers"}
                     </DialogTitle>
 
+                    {/* 🌗 Consistent table appearance */}
                     <div className="overflow-x-auto">
-                      <table className="w-full border text-sm">
-                        <thead className="bg-brand-green text-white dark:bg-brand-apple dark:text-brand-dark">
-                          <tr>
+                      <table className="w-full border dark:border-slate-700 text-sm">
+                        <thead>
+                          <tr className="bg-brand-green text-white dark:bg-brand-apple dark:text-brand-dark">
                             <th className="p-2 text-left">Name</th>
                             <th className="p-2">Email</th>
                             <th className="p-2">Group</th>
@@ -736,8 +736,8 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                             .map((f) => {
                               const group = groups.find((g) => g.id === f.group_id);
                               return (
-                                <tr key={f.id} className="odd:bg-slate-100 dark:odd:bg-[#033127]">
-                                  <td className="p-2 font-medium">
+                                <tr key={f.id} className="cursor-default hover:bg-slate-200 odd:bg-slate-100 dark:odd:bg-[#033127]">
+                                  <td className="p-2 font-medium text-left">
                                     {f.first_name} {f.middle_name} {f.last_name}
                                   </td>
                                   <td className="p-2 text-center">{f.email}</td>
@@ -747,9 +747,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                                     ) : (
                                       <select
                                         className="p-1 border rounded text-sm dark:bg-brand-dark dark:border-gray-600"
-                                        onChange={(e) =>
-                                          handleAssignGroup(f.id, e.target.value)
-                                        }
+                                        onChange={(e) => handleAssignGroup(f.id, e.target.value)}
                                         defaultValue=""
                                       >
                                         <option value="" disabled>Select Group</option>
@@ -776,6 +774,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                   </DialogPanel>
                 </div>
               </Dialog>
+
 
               {/*}
               <section>

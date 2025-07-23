@@ -649,28 +649,36 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                             setSelectedGroupForFarmers(g);
                             setFarmerViewModalOpen(true);
                           }}
-                          className="cursor-pointer hover:bg-slate-200 odd:bg-slate-100 dark:odd:bg-[#033127]"
+                          className="cursor-pointer odd:bg-slate-100 dark:odd:bg-[#033127] dark:hover:bg-brand-apple/10 hover:bg-slate-200 transition-colors duration-150"
                         >
-                          <td className="p-2 font-medium">{g.name}</td>
-                          <td className="p-2 text-center">{g.type}</td>
-                          <td className="p-2 text-center">{g.location}</td>
-                          <td className="p-2 text-center">{g.registration_number ?? "—"}</td>
-                          <td className="p-2 text-center">
-                            {g.documents?.length
-                              ? `${g.documents.length} uploaded`
-                              : <span className="text-red-500">None</span>}
-                          </td>                        
-                          <td className="p-2 text-center capitalize">{g.status}</td>
+                          <td className="p-2 font-medium dark:text-gray-100">{g.name}</td>
+                          <td className="p-2 text-center dark:text-gray-200">{g.type}</td>
+                          <td className="p-2 text-center dark:text-gray-200">{g.location}</td>
+                          <td className="p-2 text-center dark:text-gray-200">{g.registration_number ?? "—"}</td>
+                          <td className="p-2 text-center dark:text-gray-200">
+                            {g.documents?.length ? (
+                              `${g.documents.length} uploaded`
+                            ) : (
+                              <span className="text-red-500">None</span>
+                            )}
+                          </td>
+                          <td className="p-2 text-center capitalize dark:text-gray-200">{g.status}</td>
                           <td className="p-2 text-center space-x-2">
                             <button
-                              onClick={() => updateGroupStatus(g.id, "approved")}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateGroupStatus(g.id, "approved");
+                              }}
                               disabled={updatingGroupId === g.id}
                               className="px-2 py-1 rounded bg-green-500 hover:bg-green-600 text-white disabled:opacity-50"
                             >
                               {updatingGroupId === g.id ? "..." : "Approve"}
                             </button>
                             <button
-                              onClick={() => updateGroupStatus(g.id, "pending")}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateGroupStatus(g.id, "pending");
+                              }}
                               disabled={updatingGroupId === g.id}
                               className="px-2 py-1 rounded bg-yellow-500 hover:bg-yellow-600 text-white disabled:opacity-50"
                             >
@@ -678,6 +686,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                             </button>
                           </td>
                         </tr>
+
                       ))}
                     </tbody>
                     <PaginationFooter
@@ -705,23 +714,26 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
               </section>
 
               {/* ✅ Modal Table */}
-              <Dialog open={isFarmerViewModalOpen} onClose={() => setFarmerViewModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
+              <Dialog
+                open={isFarmerViewModalOpen}
+                onClose={() => setFarmerViewModalOpen(false)}
+                className="fixed z-50 inset-0 overflow-y-auto"
+              >
                 <div className="flex items-center justify-center min-h-screen px-4">
-                  <DialogPanel className="w-full max-w-6xl p-6 bg-white dark:bg-brand-dark rounded-xl shadow-xl max-h-[90vh] overflow-y-auto">
-                    <DialogTitle className="text-xl font-semibold text-brand-green dark:text-white mb-4">
+                  <DialogPanel className="w-full max-w-6xl p-6 bg-white dark:bg-brand-dark rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto transition-all duration-200">
+                    <DialogTitle className="text-2xl font-bold text-brand-green dark:text-brand-apple mb-6 font-ubuntu tracking-tight">
                       {selectedGroupForFarmers
                         ? `Farmers in ${selectedGroupForFarmers.name}`
                         : "All Registered Farmers"}
                     </DialogTitle>
 
-                    {/* 🌗 Consistent table appearance */}
-                    <div className="overflow-x-auto">
-                      <table className="w-full border dark:border-slate-700 text-sm">
-                        <thead>
-                          <tr className="bg-brand-green text-white dark:bg-brand-apple dark:text-brand-dark">
-                            <th className="p-2 text-left">Name</th>
-                            <th className="p-2">Email</th>
-                            <th className="p-2">Group</th>
+                    <div className="overflow-x-auto rounded-xl border dark:border-slate-700 shadow-sm">
+                      <table className="w-full text-sm text-left">
+                        <thead className="bg-brand-green text-white dark:bg-brand-apple dark:text-brand-dark">
+                          <tr>
+                            <th className="px-4 py-2">Name</th>
+                            <th className="px-4 py-2 text-center">Email</th>
+                            <th className="px-4 py-2 text-center">Group</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -736,17 +748,20 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                             .map((f) => {
                               const group = groups.find((g) => g.id === f.group_id);
                               return (
-                                <tr key={f.id} className="cursor-default hover:bg-slate-200 odd:bg-slate-100 dark:odd:bg-[#033127]">
-                                  <td className="p-2 font-medium text-left">
+                                <tr
+                                  key={f.id}
+                                  className="odd:bg-slate-100 dark:odd:bg-[#033127] dark:hover:bg-brand-apple/10 transition-colors duration-150"
+                                >
+                                  <td className="px-4 py-2 font-medium dark:text-gray-100">
                                     {f.first_name} {f.middle_name} {f.last_name}
                                   </td>
-                                  <td className="p-2 text-center">{f.email}</td>
-                                  <td className="p-2 text-center">
+                                  <td className="px-4 py-2 text-center dark:text-gray-200">{f.email}</td>
+                                  <td className="px-4 py-2 text-center dark:text-gray-200">
                                     {group ? (
                                       group.name
                                     ) : (
                                       <select
-                                        className="p-1 border rounded text-sm dark:bg-brand-dark dark:border-gray-600"
+                                        className="p-1 border rounded text-sm dark:bg-brand-dark dark:border-gray-600 dark:text-gray-200"
                                         onChange={(e) => handleAssignGroup(f.id, e.target.value)}
                                         defaultValue=""
                                       >
@@ -774,7 +789,6 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                   </DialogPanel>
                 </div>
               </Dialog>
-
 
               {/*}
               <section>

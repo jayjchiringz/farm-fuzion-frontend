@@ -119,7 +119,7 @@ export default function Dashboard() {
               <StatCard label="Institutions Onboarded" value="18" />
             </div>
           </div>
-
+          <br></br>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Card
               title="My Wallet"

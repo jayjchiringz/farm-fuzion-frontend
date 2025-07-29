@@ -102,16 +102,15 @@ export default function Dashboard() {
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-brand-dark text-brand-dark dark:text-brand-apple p-6 md:p-8 transition-colors duration-300">
           <h1 className="text-[46px] leading-[64px] font-bold mb-4 font-ubuntu">
-            Welcome, {fullName}
+            Welcome {fullName} to sustained Agribusiness!
           </h1>
-          <p className="text-lg text-brand-green font-baloo mb-8">
-            Sustained Agri-Business
-          </p>
 
           <div className="mt-10">
+            {/* Platform Snapshot Section *
             <h2 className="text-[46px] leading-[64px] font-bold mb-3 font-ubuntu">
               Platform Snapshot
             </h2>
+            */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard label="Registered Farmers" value="1,280+" />
               <StatCard label="Farm Products" value="6,742" />

@@ -108,6 +108,18 @@ export default function Dashboard() {
             Sustained Agri-Business
           </p>
 
+          <div className="mt-10">
+            <h2 className="text-[46px] leading-[64px] font-bold mb-3 font-ubuntu">
+              Platform Snapshot
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard label="Registered Farmers" value="1,280+" />
+              <StatCard label="Farm Products" value="6,742" />
+              <StatCard label="Deliveries" value="1,205" />
+              <StatCard label="Institutions Onboarded" value="18" />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Card
               title="My Wallet"
@@ -180,18 +192,6 @@ export default function Dashboard() {
               link="/veterinary"
               linkText="Vet Support →"
             />
-          </div>
-
-          <div className="mt-10">
-            <h2 className="text-[46px] leading-[64px] font-bold mb-3 font-ubuntu">
-              Platform Snapshot
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard label="Registered Farmers" value="1,280+" />
-              <StatCard label="Farm Products" value="6,742" />
-              <StatCard label="Deliveries" value="1,205" />
-              <StatCard label="Institutions Onboarded" value="18" />
-            </div>
           </div>
 
           <div className="mt-10">

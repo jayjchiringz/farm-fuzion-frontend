@@ -7,8 +7,12 @@ export default function TransactionTable({ farmerId }: { farmerId: string }) {
 
   useEffect(() => {
     const load = async () => {
-      const res = await api.get(`/wallet/${farmerId}/transactions`);
-      setTransactions(res.data || []);
+      try {
+        const res = await api.get(`/wallet/${farmerId}/transactions`);
+        setTransactions(res.data || []);
+      } catch (err) {
+        console.error("Failed to fetch transactions", err);
+      }
     };
     load();
   }, []);

@@ -12,6 +12,8 @@ export default function WalletModal({ farmerId, onClose }: {
   const [method, setMethod] = useState<"mpesa" | "Visa">("mpesa");
   const [otpPhase, setOtpPhase] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [action, setAction] = useState<"deposit" | "withdraw" | "transfer" | "pay">("deposit");
+  const [destination, setDestination] = useState("");
 
   const fetchBalance = async () => {
     const res = await api.get(`/wallet/${farmerId}/balance`);
@@ -22,60 +24,86 @@ export default function WalletModal({ farmerId, onClose }: {
     fetchBalance();
   }, []);
 
-  const requestTopUp = async () => {
+  const requestOTP = async () => {
     setLoading(true);
     const user = JSON.parse(localStorage.getItem("user") || "{}");
 
     try {
       await api.post(`/otp/request`, { phone: user.mobile });
       setOtpPhase(true);
-    } catch (err) {
+    } catch {
       alert("OTP request failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const confirmTopUp = async (otp: string) => {
+  const confirmOTPAndSubmit = async (otp: string) => {
     setLoading(true);
     const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const payload: any = {
+      farmer_id: farmerId,
+      amount: Number(amount),
+      phone: user.mobile,
+      destination,
+    };
 
     try {
       await api.post(`/otp/verify`, { phone: user.mobile, otp });
 
-      await api.post(`/wallet/topup/${method}`, {
-        farmer_id: farmerId,
-        phone: user.mobile,
-        amount: Number(amount),
-      });
+      if (action === "deposit") {
+        await api.post(`/wallet/topup/${method}`, payload);
+        alert("Top-up successful!");
+      } else if (action === "withdraw") {
+        await api.post(`/wallet/withdraw/${method}`, payload);
+        alert("Withdrawal successful!");
+      }
 
-      alert("Top-up successful!");
       fetchBalance();
       setOtpPhase(false);
-    } catch (err) {
-      alert("Top-up failed or OTP invalid");
+    } catch {
+      alert("Transaction failed or OTP invalid");
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      <div className="bg-white dark:bg-brand-dark rounded-lg p-6 w-[95%] max-w-xl shadow-xl">
-        <h2 className="text-2xl font-bold text-brand-green dark:text-brand-apple mb-4">
-          💰 Wallet
-        </h2>
+  const handleSubmit = () => {
+    if (action === "deposit" || action === "withdraw") {
+      requestOTP(); // secure
+    } else if (action === "transfer") {
+      api.post("/wallet/transfer", {
+        farmer_id: farmerId,
+        amount: Number(amount),
+        destination,
+      }).then(() => {
+        alert("Transfer successful");
+        fetchBalance();
+      }).catch(() => alert("Transfer failed"));
+    } else if (action === "pay") {
+      api.post("/wallet/paybill", {
+        farmer_id: farmerId,
+        amount: Number(amount),
+        destination,
+      }).then(() => {
+        alert("Payment sent");
+        fetchBalance();
+      }).catch(() => alert("Payment failed"));
+    }
+  };
 
-        <p className="text-lg mb-2">Current Balance: <span className="font-bold">{balance.toFixed(2)} KES</span></p>
+  const renderActionForm = () => (
+    <>
+      <div className="flex gap-3 mb-4">
+        <input
+          type="number"
+          placeholder="Enter amount"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className="border p-2 rounded w-full"
+        />
 
-        <div className="flex gap-3 mb-4">
-          <input
-            type="number"
-            placeholder="Enter amount"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="border p-2 rounded w-full"
-          />
+        {(action === "deposit" || action === "withdraw") && (
           <select
             value={method}
             onChange={(e) => setMethod(e.target.value as "mpesa" | "Visa")}
@@ -84,12 +112,53 @@ export default function WalletModal({ farmerId, onClose }: {
             <option value="mpesa">MPESA</option>
             <option value="Visa">Visa</option>
           </select>
+        )}
+      </div>
+
+      {(action === "transfer" || action === "pay" || action === "withdraw") && (
+        <input
+          type="text"
+          placeholder={action === "pay" ? "Merchant ID / Paybill No" : "Destination Phone/ID"}
+          value={destination}
+          onChange={(e) => setDestination(e.target.value)}
+          className="border p-2 rounded w-full mb-4"
+        />
+      )}
+    </>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+      <div className="bg-white dark:bg-brand-dark rounded-lg p-6 w-[95%] max-w-xl shadow-xl">
+        <h2 className="text-2xl font-bold text-brand-green dark:text-brand-apple mb-4">
+          💰 Wallet
+        </h2>
+
+        <p className="text-lg mb-2">
+          Current Balance: <span className="font-bold">{balance.toFixed(2)} KES</span>
+        </p>
+
+        {/* Tab Switch */}
+        <div className="flex gap-2 mb-4">
+          {["deposit", "withdraw", "transfer", "pay"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setAction(tab as any)}
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                action === tab ? "bg-brand-green text-white" : "bg-gray-100 text-gray-700"
+              }`}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
         </div>
+
+        {renderActionForm()}
 
         <div className="flex justify-end gap-4">
           <button onClick={onClose} className="text-gray-500 hover:underline">Cancel</button>
           <button
-            onClick={requestTopUp}
+            onClick={handleSubmit}
             className="bg-brand-green text-white px-4 py-2 rounded"
             disabled={loading}
           >
@@ -101,7 +170,7 @@ export default function WalletModal({ farmerId, onClose }: {
 
         <TransactionTable farmerId={farmerId} />
 
-        {otpPhase && <OtpModal onSubmit={confirmTopUp} onClose={() => setOtpPhase(false)} />}
+        {otpPhase && <OtpModal onSubmit={confirmOTPAndSubmit} onClose={() => setOtpPhase(false)} />}
       </div>
     </div>
   );

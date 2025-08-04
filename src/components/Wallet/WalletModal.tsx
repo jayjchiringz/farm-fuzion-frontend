@@ -9,7 +9,7 @@ export default function WalletModal({ farmerId, onClose }: {
 }) {
   const [balance, setBalance] = useState(0);
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState<"mpesa" | "bonga">("mpesa");
+  const [method, setMethod] = useState<"mpesa" | "Visa">("mpesa");
   const [otpPhase, setOtpPhase] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -78,11 +78,11 @@ export default function WalletModal({ farmerId, onClose }: {
           />
           <select
             value={method}
-            onChange={(e) => setMethod(e.target.value as "mpesa" | "bonga")}
+            onChange={(e) => setMethod(e.target.value as "mpesa" | "Visa")}
             className="border p-2 rounded"
           >
             <option value="mpesa">MPESA</option>
-            <option value="bonga">Bonga</option>
+            <option value="Visa">Visa</option>
           </select>
         </div>
 

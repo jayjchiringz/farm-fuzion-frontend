@@ -9,7 +9,7 @@ export default function WalletModal({ farmerId, onClose }: {
 }) {
   const [balance, setBalance] = useState(0);
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState<"mpesa" | "Visa">("mpesa");
+  const [method, setMethod] = useState<"mpesa" | "airtel">("mpesa"); // Visa removed
   const [otpPhase, setOtpPhase] = useState(false);
   const [loading, setLoading] = useState(false);
   const [action, setAction] = useState<"deposit" | "withdraw" | "transfer" | "pay">("deposit");
@@ -41,12 +41,19 @@ export default function WalletModal({ farmerId, onClose }: {
   const confirmOTPAndSubmit = async (otp: string) => {
     setLoading(true);
     const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+    // payload now adapts to action
     const payload: any = {
       farmer_id: farmerId,
       amount: Number(amount),
-      phone: user.mobile,
-      destination,
     };
+
+    if (action === "deposit") {
+      payload.phone_number = user.mobile; // ✅ backend expects phone_number
+    }
+    if (action === "withdraw") {
+      payload.destination = destination; // ✅ backend expects destination
+    }
 
     try {
       await api.post(`/otp/verify`, { phone: user.mobile, otp });
@@ -106,11 +113,11 @@ export default function WalletModal({ farmerId, onClose }: {
         {(action === "deposit" || action === "withdraw") && (
           <select
             value={method}
-            onChange={(e) => setMethod(e.target.value as "mpesa" | "Visa")}
+            onChange={(e) => setMethod(e.target.value as "mpesa" | "airtel")}
             className="border p-2 rounded"
           >
             <option value="mpesa">MPESA</option>
-            <option value="Visa">Visa</option>
+            <option value="airtel">Airtel</option>
           </select>
         )}
       </div>

@@ -29,7 +29,7 @@ export default function WalletModal({ farmerId, onClose }: {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
 
     try {
-      await api.post(`/otp/request`, { phone: user.mobile });
+      await api.post(`/otp/request`, { phone_number: user.mobile });
       setOtpPhase(true);
     } catch {
       alert("OTP request failed");
@@ -56,7 +56,7 @@ export default function WalletModal({ farmerId, onClose }: {
     }
 
     try {
-      await api.post(`/otp/verify`, { phone: user.mobile, otp });
+      await api.post(`/otp/verify`, { phone_number: user.mobile, otp });
 
       if (action === "deposit") {
         await api.post(`/wallet/topup/${method}`, payload);

@@ -24,6 +24,7 @@ export default function WalletModal({ farmerId, onClose }: {
     fetchBalance();
   }, []);
 
+  /*
   const requestOTP = async () => {
     setLoading(true);
     const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -37,6 +38,7 @@ export default function WalletModal({ farmerId, onClose }: {
       setLoading(false);
     }
   };
+  
 
   const confirmOTPAndSubmit = async (otp: string) => {
     setLoading(true);
@@ -74,28 +76,61 @@ export default function WalletModal({ farmerId, onClose }: {
       setLoading(false);
     }
   };
+  */
 
+  // ✅ Replace handleSubmit with direct calls
   const handleSubmit = () => {
-    if (action === "deposit" || action === "withdraw") {
-      requestOTP(); // secure
-    } else if (action === "transfer") {
+    if (action === "deposit") {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      api.post(`/wallet/topup/${method}`, {
+        farmer_id: farmerId,
+        amount: Number(amount),
+        phone_number: user.mobile, // backend expects this
+      })
+      .then(() => {
+        alert("Top-up successful!");
+        fetchBalance();
+      })
+      .catch(() => alert("Top-up failed"));
+    } 
+    
+    else if (action === "withdraw") {
+      api.post(`/wallet/withdraw/${method}`, {
+        farmer_id: farmerId,
+        amount: Number(amount),
+        destination,
+      })
+      .then(() => {
+        alert("Withdrawal successful!");
+        fetchBalance();
+      })
+      .catch(() => alert("Withdrawal failed"));
+    } 
+    
+    else if (action === "transfer") {
       api.post("/wallet/transfer", {
         farmer_id: farmerId,
         amount: Number(amount),
         destination,
-      }).then(() => {
+      })
+      .then(() => {
         alert("Transfer successful");
         fetchBalance();
-      }).catch(() => alert("Transfer failed"));
-    } else if (action === "pay") {
+      })
+      .catch(() => alert("Transfer failed"));
+    } 
+    
+    else if (action === "pay") {
       api.post("/wallet/paybill", {
         farmer_id: farmerId,
         amount: Number(amount),
         destination,
-      }).then(() => {
+      })
+      .then(() => {
         alert("Payment sent");
         fetchBalance();
-      }).catch(() => alert("Payment failed"));
+      })
+      .catch(() => alert("Payment failed"));
     }
   };
 
@@ -176,8 +211,8 @@ export default function WalletModal({ farmerId, onClose }: {
         <hr className="my-6" />
 
         <TransactionTable farmerId={farmerId} />
-
-        {otpPhase && <OtpModal onSubmit={confirmOTPAndSubmit} onClose={() => setOtpPhase(false)} />}
+        
+        {/*otpPhase && <OtpModal onSubmit={confirmOTPAndSubmit} onClose={() => setOtpPhase(false)} />*/}
       </div>
     </div>
   );

@@ -24,60 +24,6 @@ export default function WalletModal({ farmerId, onClose }: {
     fetchBalance();
   }, []);
 
-  /*
-  const requestOTP = async () => {
-    setLoading(true);
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-
-    try {
-      await api.post(`/otp/request`, { phone_number: user.mobile });
-      setOtpPhase(true);
-    } catch {
-      alert("OTP request failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-
-  const confirmOTPAndSubmit = async (otp: string) => {
-    setLoading(true);
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-
-    // payload now adapts to action
-    const payload: any = {
-      farmer_id: farmerId,
-      amount: Number(amount),
-    };
-
-    if (action === "deposit") {
-      payload.phone_number = user.mobile; // ✅ backend expects phone_number
-    }
-    if (action === "withdraw") {
-      payload.destination = destination; // ✅ backend expects destination
-    }
-
-    try {
-      await api.post(`/otp/verify`, { phone_number: user.mobile, otp });
-
-      if (action === "deposit") {
-        await api.post(`/wallet/topup/${method}`, payload);
-        alert("Top-up successful!");
-      } else if (action === "withdraw") {
-        await api.post(`/wallet/withdraw/${method}`, payload);
-        alert("Withdrawal successful!");
-      }
-
-      fetchBalance();
-      setOtpPhase(false);
-    } catch {
-      alert("Transaction failed or OTP invalid");
-    } finally {
-      setLoading(false);
-    }
-  };
-  */
-
   // ✅ Replace handleSubmit with direct calls
   const handleSubmit = () => {
     if (action === "deposit") {
@@ -85,7 +31,6 @@ export default function WalletModal({ farmerId, onClose }: {
       api.post(`/wallet/topup/${method}`, {
         farmer_id: farmerId,
         amount: Number(amount),
-        phone_number: user.mobile, // backend expects this
       })
       .then(() => {
         alert("Top-up successful!");

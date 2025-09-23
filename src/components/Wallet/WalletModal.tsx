@@ -18,12 +18,34 @@ export default function WalletModal({
   const [action, setAction] = useState<
     "deposit" | "withdraw" | "transfer" | "pay"
   >("deposit");
-  const [destination, setDestination] = useState("");
+  const [destination, setDestination] = useState(""); // will hold farmer id for transfer
   const [transferPreview, setTransferPreview] = useState<any | null>(null);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
 
   const fetchBalance = async () => {
     const res = await api.get(`/wallet/${farmerId}/balance`);
     setBalance(res.data.balance);
+  };
+
+  // 🔍 search farmers
+  const searchFarmers = async (q: string) => {
+    if (!q.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    setSearching(true);
+    try {
+      const res = await api.get(`/wallet/search-farmers?q=${q}`);
+      setSearchResults(res.data || []);
+    } catch (err) {
+      console.error("Farmer search failed", err);
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
   };
 
   useEffect(() => {
@@ -61,7 +83,7 @@ export default function WalletModal({
           .post("/wallet/transfer", {
             farmer_id: farmerId,
             amount: Number(amount),
-            destination,
+            destination, // destination is already a farmer id
           })
           .then((res) => {
             if (res.data.preview) {
@@ -86,6 +108,7 @@ export default function WalletModal({
             setTransferPreview(null);
             setAmount("");
             setDestination("");
+            setSearchQuery("");
           })
           .catch(() => alert("Transfer failed"));
       }
@@ -127,7 +150,46 @@ export default function WalletModal({
         )}
       </div>
 
-      {(action === "transfer" || action === "pay" || action === "withdraw") && (
+      {/* Transfer: searchable farmer select */}
+      {action === "transfer" && (
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Search farmer by name or phone"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              searchFarmers(e.target.value);
+            }}
+            className="border p-2 rounded w-full mb-2"
+          />
+
+          {searching && <p className="text-sm text-gray-500">Searching...</p>}
+
+          {searchResults.length > 0 && (
+            <ul className="border rounded max-h-40 overflow-y-auto bg-white">
+              {searchResults.map((farmer) => (
+                <li
+                  key={farmer.id}
+                  onClick={() => {
+                    setDestination(farmer.id); // store farmer id
+                    setSearchQuery(
+                      `${farmer.first_name} ${farmer.last_name} (${farmer.mobile})`
+                    );
+                    setSearchResults([]);
+                  }}
+                  className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                >
+                  {farmer.first_name} {farmer.last_name} — {farmer.mobile}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Pay & Withdraw keep text input */}
+      {(action === "pay" || action === "withdraw") && (
         <input
           type="text"
           placeholder={
@@ -140,6 +202,13 @@ export default function WalletModal({
       )}
     </>
   );
+
+  // 🚨 Button lock logic
+  const isContinueDisabled =
+    loading ||
+    !amount ||
+    Number(amount) <= 0 ||
+    (action === "transfer" && !destination); // destination must be chosen
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
@@ -169,6 +238,8 @@ export default function WalletModal({
                 onClick={() => {
                   setAction(tab as any);
                   setTransferPreview(null); // reset preview when switching tabs
+                  setDestination("");
+                  setSearchQuery("");
                 }}
                 className={`px-3 py-1 rounded-full text-sm font-medium ${
                   action === tab
@@ -220,7 +291,7 @@ export default function WalletModal({
             <button
               onClick={handleSubmit}
               className="bg-brand-green text-white px-4 py-2 rounded"
-              disabled={loading}
+              disabled={isContinueDisabled}
             >
               {loading ? "Processing..." : "Continue"}
             </button>

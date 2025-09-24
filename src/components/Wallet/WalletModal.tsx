@@ -25,6 +25,10 @@ export default function WalletModal({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
 
+  // 👇 NEW refreshKey state
+  const [refreshKey, setRefreshKey] = useState(0);
+  const triggerRefresh = () => setRefreshKey((k) => k + 1);
+
   const fetchBalance = async () => {
     const res = await api.get(`/wallet/${farmerId}/balance`);
     setBalance(res.data.balance);
@@ -62,6 +66,7 @@ export default function WalletModal({
         .then(() => {
           alert("Top-up successful!");
           fetchBalance();
+          triggerRefresh(); // 👈 refresh ledger
         })
         .catch(() => alert("Top-up failed"));
     } else if (action === "withdraw") {
@@ -74,6 +79,7 @@ export default function WalletModal({
         .then(() => {
           alert("Withdrawal successful!");
           fetchBalance();
+          triggerRefresh(); // 👈 refresh ledger
         })
         .catch(() => alert("Withdrawal failed"));
     } else if (action === "transfer") {
@@ -105,6 +111,7 @@ export default function WalletModal({
           .then(() => {
             alert("Transfer successful");
             fetchBalance();
+            triggerRefresh(); // 👈 refresh ledger
             setTransferPreview(null);
             setAmount("");
             setDestination("");
@@ -124,6 +131,7 @@ export default function WalletModal({
         .then(() => {
           alert("Payment successful!");
           fetchBalance();
+          triggerRefresh(); // 👈 refresh ledger
           setAmount("");
           setDestination("");
         })
@@ -283,7 +291,7 @@ export default function WalletModal({
 
           <hr className="my-6" />
 
-          <TransactionTable farmerId={farmerId} />
+          <TransactionTable farmerId={farmerId} refreshkey={refreshKey} />
         </div>
 
         {/* Footer */}

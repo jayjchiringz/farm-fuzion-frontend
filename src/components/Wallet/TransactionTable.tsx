@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../../services/api";
 
-export default function TransactionTable({ farmerId }: { farmerId: string }) {
+export default function TransactionTable({ farmerId, refreshkey }: { farmerId: string; refreshkey: number }) {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [filters, setFilters] = useState({
     type: "",

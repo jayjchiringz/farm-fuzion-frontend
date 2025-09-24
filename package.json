@@ -2,6 +2,7 @@
   "name": "farm-fuzion-frontend",
   "version": "1.0.0",
   "scripts": {
+    "generate:types": "openapi-typescript https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/docs-json --output ./types/api.d.ts",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
@@ -30,6 +31,7 @@
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.5.0",
     "autoprefixer": "^10.4.21",
+    "openapi-typescript": "^7.9.1",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.0.0",

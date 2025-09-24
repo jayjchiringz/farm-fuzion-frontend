@@ -62,7 +62,7 @@ export default function Dashboard() {
 
           <nav className="flex-1 px-4 py-6 space-y-3">
             <SidebarLink to="/dashboard" label="Dashboard" icon="🏠" />
-            <SidebarLink to="/products" label="Farm Products" icon="🚜" />
+            <SidebarLink to="/products" label="Products & Services" icon="🚜" />
             <SidebarLink to="/logistics" label="Logistics" icon="🚚" />
             <SidebarLink to="/knowledge-hub" label="Knowledge Hub" icon="📚" />
             <SidebarLink to="/insurance" label="Insurance" icon="🛡️" />
@@ -102,7 +102,7 @@ export default function Dashboard() {
           <div className="mt-10">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard label="Registered Farmers" value="1,280+" />
-              <StatCard label="Farm Products" value="6,742" />
+              <StatCard label="Products & Services" value="6,742" />
               <StatCard label="Deliveries" value="1,205" />
               <StatCard label="Institutions Onboarded" value="18" />
             </div>
@@ -121,7 +121,7 @@ export default function Dashboard() {
             )}
 
             <Card
-              title="Farm Products"
+              title="Products & Services"
               desc="Track harvested items, units, storage, and status."
               link="/products"
               linkText="Manage Products →"

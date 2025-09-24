@@ -18,14 +18,19 @@ export default function WalletModal({
   const [action, setAction] = useState<
     "deposit" | "withdraw" | "transfer" | "pay"
   >("deposit");
-  const [destination, setDestination] = useState(""); // will hold farmer id for transfer
+  const [destination, setDestination] = useState(""); // for transfers or till numbers
   const [transferPreview, setTransferPreview] = useState<any | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
 
-  // 👇 NEW refreshKey state
+  // 👇 NEW pay type states
+  const [payType, setPayType] = useState<"till" | "paybill">("till");
+  const [paybillNo, setPaybillNo] = useState("");
+  const [accNo, setAccNo] = useState("");
+
+  // 👇 refreshKey state for ledger refresh
   const [refreshKey, setRefreshKey] = useState(0);
   const triggerRefresh = () => setRefreshKey((k) => k + 1);
 
@@ -66,7 +71,7 @@ export default function WalletModal({
         .then(() => {
           alert("Top-up successful!");
           fetchBalance();
-          triggerRefresh(); // 👈 refresh ledger
+          triggerRefresh();
         })
         .catch(() => alert("Top-up failed"));
     } else if (action === "withdraw") {
@@ -79,17 +84,16 @@ export default function WalletModal({
         .then(() => {
           alert("Withdrawal successful!");
           fetchBalance();
-          triggerRefresh(); // 👈 refresh ledger
+          triggerRefresh();
         })
         .catch(() => alert("Withdrawal failed"));
     } else if (action === "transfer") {
       if (!transferPreview) {
-        // Step 1: Preview transfer
         api
           .post("/wallet/transfer", {
             farmer_id: farmerId,
             amount: Number(amount),
-            destination, // destination is already a farmer id
+            destination,
           })
           .then((res) => {
             if (res.data.preview) {
@@ -100,7 +104,6 @@ export default function WalletModal({
           })
           .catch(() => alert("Transfer preview failed"));
       } else {
-        // Step 2: Confirm transfer
         api
           .post("/wallet/transfer", {
             farmer_id: farmerId,
@@ -111,7 +114,7 @@ export default function WalletModal({
           .then(() => {
             alert("Transfer successful");
             fetchBalance();
-            triggerRefresh(); // 👈 refresh ledger
+            triggerRefresh();
             setTransferPreview(null);
             setAmount("");
             setDestination("");
@@ -120,20 +123,29 @@ export default function WalletModal({
           .catch(() => alert("Transfer failed"));
       }
     } else if (action === "pay") {
+      let finalDestination = "";
+      if (payType === "till") {
+        finalDestination = `TILL:${destination}`;
+      } else if (payType === "paybill") {
+        finalDestination = `PAYBILL:${paybillNo}|ACC:${accNo}`;
+      }
+
       api
         .post("/wallet/payment", {
           farmer_id: farmerId,
           amount: Number(amount),
-          destination, // merchant id / service code
-          merchant: destination, // for clarity
-          mock: true, // for now simulate success
+          destination: finalDestination,
+          merchant: finalDestination,
+          mock: true,
         })
         .then(() => {
           alert("Payment successful!");
           fetchBalance();
-          triggerRefresh(); // 👈 refresh ledger
+          triggerRefresh();
           setAmount("");
           setDestination("");
+          setPaybillNo("");
+          setAccNo("");
         })
         .catch(() => alert("Payment failed"));
     }
@@ -184,7 +196,7 @@ export default function WalletModal({
                 <li
                   key={farmer.id}
                   onClick={() => {
-                    setDestination(farmer.id); // store farmer id
+                    setDestination(farmer.id);
                     setSearchQuery(
                       `${farmer.first_name} ${farmer.last_name} (${farmer.mobile})`
                     );
@@ -200,13 +212,67 @@ export default function WalletModal({
         </div>
       )}
 
-      {/* Pay & Withdraw keep text input */}
-      {(action === "pay" || action === "withdraw") && (
+      {/* Pay: Till vs PayBill */}
+      {action === "pay" && (
+        <div className="mb-4">
+          <div className="flex gap-4 mb-2">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                value="till"
+                checked={payType === "till"}
+                onChange={() => setPayType("till")}
+              />
+              Till Number
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                value="paybill"
+                checked={payType === "paybill"}
+                onChange={() => setPayType("paybill")}
+              />
+              PayBill
+            </label>
+          </div>
+
+          {payType === "till" && (
+            <input
+              type="text"
+              placeholder="Till Number"
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              className="border p-2 rounded w-full"
+            />
+          )}
+
+          {payType === "paybill" && (
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                placeholder="PayBill Number"
+                value={paybillNo}
+                onChange={(e) => setPaybillNo(e.target.value)}
+                className="border p-2 rounded w-full"
+              />
+              <input
+                type="text"
+                placeholder="Account Number"
+                value={accNo}
+                onChange={(e) => setAccNo(e.target.value)}
+                className="border p-2 rounded w-full"
+                pattern="[A-Za-z0-9]+"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Withdraw destination input */}
+      {action === "withdraw" && (
         <input
           type="text"
-          placeholder={
-            action === "pay" ? "Merchant ID / Service Code" : "Destination Phone/ID"
-          }
+          placeholder="Destination Phone/ID"
           value={destination}
           onChange={(e) => setDestination(e.target.value)}
           className="border p-2 rounded w-full mb-4"
@@ -215,12 +281,11 @@ export default function WalletModal({
     </>
   );
 
-  // 🚨 Button lock logic
   const isContinueDisabled =
     loading ||
     !amount ||
     Number(amount) <= 0 ||
-    (action === "transfer" && !destination); // destination must be chosen
+    (action === "transfer" && !destination);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
@@ -249,9 +314,12 @@ export default function WalletModal({
                 key={tab}
                 onClick={() => {
                   setAction(tab as any);
-                  setTransferPreview(null); // reset preview when switching tabs
+                  setTransferPreview(null);
                   setDestination("");
                   setSearchQuery("");
+                  setPaybillNo("");
+                  setAccNo("");
+                  setPayType("till");
                 }}
                 className={`px-3 py-1 rounded-full text-sm font-medium ${
                   action === tab
@@ -266,7 +334,7 @@ export default function WalletModal({
 
           {renderActionForm()}
 
-          {/* Transfer confirmation preview */}
+          {/* Transfer confirmation */}
           {transferPreview && (
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded mb-4">
               <p className="text-yellow-800 font-medium mb-2">

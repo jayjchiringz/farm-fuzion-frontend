@@ -31,7 +31,7 @@ export default function TransactionTable({ farmerId, refreshkey }: { farmerId: s
   useEffect(() => {
     fetchTransactions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, [filters, refreshkey]);
 
   const totalPages = Math.ceil(transactions.length / pageSize);
   const startIndex = (page - 1) * pageSize;

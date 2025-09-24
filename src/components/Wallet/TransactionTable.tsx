@@ -1,7 +1,14 @@
+// farm-fuzion-frontend\src\components\Wallet\TransactionTable.tsx
 import React, { useEffect, useState } from "react";
 import { api } from "../../services/api";
 
-export default function TransactionTable({ farmerId, refreshkey }: { farmerId: string; refreshkey: number }) {
+export default function TransactionTable({
+  farmerId,
+  refreshkey,
+}: {
+  farmerId: string;
+  refreshkey: number;
+}) {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [filters, setFilters] = useState({
     type: "",
@@ -10,8 +17,10 @@ export default function TransactionTable({ farmerId, refreshkey }: { farmerId: s
   });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [loading, setLoading] = useState(false); // 👈 NEW
 
   const fetchTransactions = async () => {
+    setLoading(true); // 👈 start loading
     try {
       const params = new URLSearchParams();
       if (filters.type) params.append("type", filters.type);
@@ -25,13 +34,15 @@ export default function TransactionTable({ farmerId, refreshkey }: { farmerId: s
       setPage(1);
     } catch (err) {
       console.error("Failed to fetch transactions", err);
+    } finally {
+      setLoading(false); // 👈 stop loading
     }
   };
 
   useEffect(() => {
     fetchTransactions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, refreshkey]);
+  }, [filters, refreshkey]); // 👈 include refreshkey
 
   const totalPages = Math.ceil(transactions.length / pageSize);
   const startIndex = (page - 1) * pageSize;
@@ -98,58 +109,87 @@ export default function TransactionTable({ farmerId, refreshkey }: { farmerId: s
         </div>
       </div>
 
-      {/* Responsive Scrollable Table */}
-      <div className="overflow-y-auto border rounded max-h-64 md:max-h-80 lg:max-h-96">
-        <table className="w-full text-sm border">
-          <thead className="sticky top-0 bg-gray-100">
-            <tr>
-              <th className="p-2 border">Type</th>
-              <th className="p-2 border">Amount</th>
-              <th className="p-2 border">Source</th>
-              <th className="p-2 border">Destination</th>
-              <th className="p-2 border">Direction</th>
-              <th className="p-2 border">Status</th>
-              <th className="p-2 border">Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleTx.map((tx: any) => (
-              <tr key={tx.id}>
-                <td className="p-2 border">{tx.type}</td>
-                <td className="p-2 border">{tx.amount}</td>
-                <td className="p-2 border">{tx.source || "-"}</td>
-                <td className="p-2 border">{tx.destination || "-"}</td>
-                <td className="p-2 border">{tx.direction}</td>
-                <td className="p-2 border">{tx.status}</td>
-                <td className="p-2 border">
-                  {new Date(tx.timestamp).toLocaleString()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Loader */}
+      {loading ? (
+        <div className="flex justify-center items-center py-10 text-gray-500">
+          <svg
+            className="animate-spin h-6 w-6 mr-2 text-brand-green"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            />
+          </svg>
+          Refreshing transactions…
+        </div>
+      ) : (
+        <>
+          {/* Responsive Scrollable Table */}
+          <div className="overflow-y-auto border rounded max-h-64 md:max-h-80 lg:max-h-96">
+            <table className="w-full text-sm border">
+              <thead className="sticky top-0 bg-gray-100">
+                <tr>
+                  <th className="p-2 border">Type</th>
+                  <th className="p-2 border">Amount</th>
+                  <th className="p-2 border">Source</th>
+                  <th className="p-2 border">Destination</th>
+                  <th className="p-2 border">Direction</th>
+                  <th className="p-2 border">Status</th>
+                  <th className="p-2 border">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleTx.map((tx: any) => (
+                  <tr key={tx.id}>
+                    <td className="p-2 border">{tx.type}</td>
+                    <td className="p-2 border">{tx.amount}</td>
+                    <td className="p-2 border">{tx.source || "-"}</td>
+                    <td className="p-2 border">{tx.destination || "-"}</td>
+                    <td className="p-2 border">{tx.direction}</td>
+                    <td className="p-2 border">{tx.status}</td>
+                    <td className="p-2 border">
+                      {new Date(tx.timestamp).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-      {/* Pagination Controls */}
-      <div className="flex justify-between items-center mt-3 text-sm">
-        <button
-          disabled={page === 1}
-          onClick={() => setPage((p) => p - 1)}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-        >
-          ⬅ Prev
-        </button>
-        <span>
-          Page {page} of {totalPages || 1}
-        </span>
-        <button
-          disabled={page === totalPages}
-          onClick={() => setPage((p) => p + 1)}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-        >
-          Next ➡
-        </button>
-      </div>
+          {/* Pagination Controls */}
+          <div className="flex justify-between items-center mt-3 text-sm">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+              className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+            >
+              ⬅ Prev
+            </button>
+            <span>
+              Page {page} of {totalPages || 1}
+            </span>
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => p + 1)}
+              className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+            >
+              Next ➡
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -114,14 +114,18 @@ export default function WalletModal({
       }
     } else if (action === "pay") {
       api
-        .post("/wallet/paybill", {
+        .post("/wallet/payment", {
           farmer_id: farmerId,
           amount: Number(amount),
-          destination,
+          destination, // merchant id / service code
+          merchant: destination, // for clarity
+          mock: true, // for now simulate success
         })
         .then(() => {
-          alert("Payment sent");
+          alert("Payment successful!");
           fetchBalance();
+          setAmount("");
+          setDestination("");
         })
         .catch(() => alert("Payment failed"));
     }
@@ -193,7 +197,7 @@ export default function WalletModal({
         <input
           type="text"
           placeholder={
-            action === "pay" ? "Merchant ID / Paybill No" : "Destination Phone/ID"
+            action === "pay" ? "Merchant ID / Service Code" : "Destination Phone/ID"
           }
           value={destination}
           onChange={(e) => setDestination(e.target.value)}

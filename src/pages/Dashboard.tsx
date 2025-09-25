@@ -6,6 +6,7 @@ import {
 import ThemeToggle from "../components/ThemeToggle";
 import React, { useState } from "react";
 import WalletModal from "../components/Wallet/WalletModal";
+import ProductsModal from "../components/Products/ProductsModal";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -28,7 +29,8 @@ export default function Dashboard() {
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   const [walletOpen, setWalletOpen] = useState(false);
-
+  const [productsOpen, setProductsOpen] = useState(false);
+  
   return (
     <>
       <ThemeToggle />
@@ -127,8 +129,17 @@ export default function Dashboard() {
               title="Products & Services"
               desc="Track harvested items, units, storage, and status."
               link="/products"
-              linkText="Manage Products →"
+              linkText="Products & Services →"
+              onClick={() => setProductsOpen(true)}
             />
+            {productsOpen && (
+              <ProductsModal
+                farmerId={farmer?.id}
+                onClose={() => setProductsOpen(false)}
+                onProductAdded={() => {}} // optional, no refresh needed on dashboard
+              />
+            )}
+
             <Card
               title="Logistics"
               desc="Schedule delivery of produce and monitor transport."

@@ -1,3 +1,4 @@
+// farm-fuzion-frontend/src/pages/Dashboard.tsx
 import { Link, useNavigate } from "react-router-dom";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
@@ -107,12 +108,13 @@ export default function Dashboard() {
               <StatCard label="Institutions Onboarded" value="18" />
             </div>
           </div>
-          <br></br>
+          <br />
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Wallet → stays modal */}
             <Card
               title="My Wallet"
               desc="Top-up, view balance & track transactions"
-              link="#"
               linkText="Open Wallet →"
               onClick={() => setWalletOpen(true)}
             />
@@ -120,6 +122,7 @@ export default function Dashboard() {
               <WalletModal farmerId={farmer?.id} onClose={() => setWalletOpen(false)} />
             )}
 
+            {/* All other cards → navigate */}
             <Card
               title="Products & Services"
               desc="Track harvested items, units, storage, and status."
@@ -213,25 +216,43 @@ function SidebarLink({ to, label, icon }: { to: string; label: string; icon: str
   );
 }
 
-function Card({ title, desc, link, linkText, onClick }: {
+function Card({
+  title,
+  desc,
+  link,
+  linkText,
+  onClick,
+}: {
   title: string;
   desc: string;
-  link: string;
+  link?: string;
   linkText: string;
   onClick?: () => void;
 }) {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick(); // Wallet modal
+    } else if (link) {
+      navigate(link); // Navigate
+    }
+  };
+
   return (
-    <div onClick={onClick} className="bg-white dark:bg-[#0a3d32] p-6 rounded-lg shadow-md border border-slate-200 dark:border-slate-700 transition-colors duration-300 cursor-pointer">
+    <div
+      onClick={handleClick}
+      className="bg-white dark:bg-[#0a3d32] p-6 rounded-lg shadow-md 
+                 border border-slate-200 dark:border-slate-700 
+                 transition-colors duration-300 cursor-pointer"
+    >
       <h2 className="text-lg font-semibold mb-2 text-brand-dark dark:text-brand-apple">
         {title}
       </h2>
       <p className="text-sm text-brand-dark/70 dark:text-gray-300">{desc}</p>
-      <Link
-        to={link}
-        className="text-brand-green dark:text-brand-apple font-medium hover:underline mt-3 inline-block"
-      >
+      <span className="text-brand-green dark:text-brand-apple font-medium hover:underline mt-3 inline-block">
         {linkText}
-      </Link>
+      </span>
     </div>
   );
 }

@@ -126,10 +126,10 @@ export default function Dashboard() {
 
             {/* All other cards → navigate */}
             <Card
-              title="Products & Services"
+              title="Farm Products"
               desc="Track harvested items, units, storage, and status."
               link="/products"
-              linkText="Products & Services →"
+              linkText="Add Product →"
               onClick={() => setProductsOpen(true)}
             />
             {productsOpen && (

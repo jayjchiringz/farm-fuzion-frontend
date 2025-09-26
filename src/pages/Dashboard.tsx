@@ -124,7 +124,6 @@ export default function Dashboard() {
               <WalletModal farmerId={farmer?.id} onClose={() => setWalletOpen(false)} />
             )}
 
-            {/* All other cards → navigate */}
             <Card
               title="Farm Products"
               desc="Track harvested items, units, storage, and status."

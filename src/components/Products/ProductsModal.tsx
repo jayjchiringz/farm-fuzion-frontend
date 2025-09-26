@@ -1,9 +1,11 @@
 // src/components/Products/ProductsModal.tsx
 import React, { useState } from "react";
-import { farmProductsApi } from "../../services/farmProductsApi";
-import { components } from "../../../types/api";
+import { farmProductsApi, FarmProduct as ApiFarmProduct } from "../../services/farmProductsApi";
 
-type FarmProduct = components["schemas"]["FarmProduct"];
+// ✅ Extend FarmProduct with spoilage_reason
+export type FarmProduct = ApiFarmProduct & {
+  spoilage_reason?: string;
+};
 
 interface ProductsModalProps {
   farmerId: string;
@@ -22,6 +24,8 @@ export default function ProductsModal({
     unit: "",
     category: "produce",
     price: 0,
+    status: "available",
+    spoilage_reason: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -32,7 +36,6 @@ export default function ProductsModal({
       await farmProductsApi.add({
         ...form,
         farmer_id: farmerId,
-        status: "available",
       } as FarmProduct);
 
       onProductAdded(); // refresh parent list

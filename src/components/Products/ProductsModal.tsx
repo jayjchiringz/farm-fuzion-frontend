@@ -1,9 +1,10 @@
 // src/components/Products/ProductsModal.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { farmProductsApi, FarmProduct as ApiFarmProduct } from "../../services/farmProductsApi";
 
 // ✅ Extend FarmProduct with spoilage_reason
 export type FarmProduct = ApiFarmProduct & {
+  id?: string | number; // Add id property for editing
   spoilage_reason?: string;
 };
 
@@ -11,12 +12,14 @@ interface ProductsModalProps {
   farmerId: string;
   onClose: () => void;
   onProductAdded: () => void;
+  product?: FarmProduct; // ✅ optional, for editing
 }
 
 export default function ProductsModal({
   farmerId,
   onClose,
   onProductAdded,
+  product,
 }: ProductsModalProps) {
   const [form, setForm] = useState<Partial<FarmProduct>>({
     product_name: "",
@@ -30,19 +33,33 @@ export default function ProductsModal({
 
   const [loading, setLoading] = useState(false);
 
-  const handleAddProduct = async () => {
+  // ✅ Pre-fill form if editing
+  useEffect(() => {
+    if (product) {
+      setForm(product);
+    }
+  }, [product]);
+
+  const handleSave = async () => {
     try {
       setLoading(true);
-      await farmProductsApi.add({
-        ...form,
-        farmer_id: farmerId,
-      } as FarmProduct);
+
+      if (product?.id) {
+        // ✅ Update existing product
+        await farmProductsApi.update(String(product.id), form as FarmProduct);
+      } else {
+        // ✅ Add new product
+        await farmProductsApi.add({
+          ...form,
+          farmer_id: farmerId,
+        } as FarmProduct);
+      }
 
       onProductAdded(); // refresh parent list
       onClose(); // close modal
     } catch (err) {
-      console.error("Error adding product:", err);
-      alert("⚠️ Failed to add product. Try again.");
+      console.error("Error saving product:", err);
+      alert("⚠️ Failed to save product. Try again.");
     } finally {
       setLoading(false);
     }
@@ -52,7 +69,7 @@ export default function ProductsModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow-lg max-w-md w-full">
         <h2 className="text-xl font-bold mb-4 text-brand-dark dark:text-brand-apple">
-          Add New Product
+          {product ? "Edit Product" : "Add New Product"}
         </h2>
 
         <div className="space-y-3">
@@ -97,6 +114,35 @@ export default function ProductsModal({
               setForm({ ...form, price: Number(e.target.value) })
             }
           />
+
+          {/* ✅ Status dropdown */}
+          <select
+            className="w-full p-2 border rounded"
+            value={form.status}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                status: e.target.value as FarmProduct["status"],
+              })
+            }
+          >
+            <option value="available">Available</option>
+            <option value="sold">Sold</option>
+            <option value="hidden">Hidden</option>
+          </select>
+
+          {/* ✅ Spoilage reason (only if hidden) */}
+          {form.status === "hidden" && (
+            <input
+              type="text"
+              placeholder="Reason for spoilage"
+              className="w-full p-2 border rounded"
+              value={form.spoilage_reason}
+              onChange={(e) =>
+                setForm({ ...form, spoilage_reason: e.target.value })
+              }
+            />
+          )}
         </div>
 
         <div className="flex justify-end gap-3 mt-4">
@@ -107,11 +153,11 @@ export default function ProductsModal({
             Cancel
           </button>
           <button
-            onClick={handleAddProduct}
+            onClick={handleSave}
             disabled={loading}
             className="px-4 py-2 rounded bg-brand-green text-white disabled:opacity-50"
           >
-            {loading ? "Saving..." : "Save"}
+            {loading ? "Saving..." : product ? "Update" : "Save"}
           </button>
         </div>
       </div>

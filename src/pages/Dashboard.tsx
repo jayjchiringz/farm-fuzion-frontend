@@ -65,7 +65,7 @@ export default function Dashboard() {
 
           <nav className="flex-1 px-4 py-6 space-y-3">
             <SidebarLink to="/dashboard" label="Dashboard" icon="🏠" />
-            <SidebarLink to="/products" label="Products & Services" icon="🚜" />
+            <SidebarLink to="/products" label="Inventory" icon="🚜" />
             <SidebarLink to="/logistics" label="Logistics" icon="🚚" />
             <SidebarLink to="/knowledge-hub" label="Knowledge Hub" icon="📚" />
             <SidebarLink to="/insurance" label="Insurance" icon="🛡️" />
@@ -125,10 +125,10 @@ export default function Dashboard() {
             )}
 
             <Card
-              title="Farm Products"
+              title="Farm Inventory"
               desc="Track harvested items, units, storage, and status."
               link="/products"
-              linkText="Add Product →"
+              linkText="Product Management →"
               onClick={() => setProductsOpen(true)}
             />
             {productsOpen && (

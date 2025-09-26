@@ -65,7 +65,7 @@ export default function ProductsModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow-lg max-w-md w-full">
         <h2 className="text-xl font-bold mb-4 text-brand-dark dark:text-brand-apple">
-          {product ? "Edit Product" : "Add New Product"}
+          {product ? "Edit Product" : "Inventory"}
         </h2>
 
         <div className="space-y-3">

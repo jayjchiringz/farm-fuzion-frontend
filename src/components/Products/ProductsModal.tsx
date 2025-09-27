@@ -1,7 +1,7 @@
 // src/components/Products/ProductsModal.tsx
 import React, { useState, useEffect } from "react";
 import { farmProductsApi, FarmProduct as ApiFarmProduct } from "../../services/farmProductsApi";
-import { Edit } from "lucide-react";
+import { Edit, Plus } from "lucide-react";
 
 // ✅ Extend FarmProduct with spoilage_reason
 export type FarmProduct = ApiFarmProduct & {
@@ -13,7 +13,8 @@ interface ProductsModalProps {
   farmerId: string;
   onClose: () => void;
   onProductAdded: () => void;
-  product?: FarmProduct; // ✅ optional, for editing
+  product?: FarmProduct; // optional, for editing
+  mode?: "add" | "edit" | "inventory"; // ✅ control modal mode
 }
 
 export default function ProductsModal({
@@ -21,26 +22,33 @@ export default function ProductsModal({
   onClose,
   onProductAdded,
   product,
+  mode = "inventory", // ✅ default is inventory hub
 }: ProductsModalProps) {
   const [form, setForm] = useState<Partial<FarmProduct>>({
     product_name: "",
     quantity: 0,
     unit: "",
     category: "produce",
-    price: 0,
+    price: 0, // stored as total price
     status: "available",
     spoilage_reason: "",
   });
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "pricing" | "status" | "inventory">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "pricing" | "status" | "inventory">(
+    mode === "add" || mode === "edit" ? "details" : "inventory"
+  );
   const [inventory, setInventory] = useState<FarmProduct[]>([]);
+
+  // ✅ Derived unit price
+  const unitPrice =
+    form.quantity && form.quantity > 0 ? (form.price ?? 0) / form.quantity : 0;
 
   // ✅ Pre-fill form if editing
   useEffect(() => {
     if (product) setForm(product);
   }, [product]);
 
-  // ✅ Load inventory records
+  // ✅ Load inventory
   const loadInventory = async () => {
     try {
       const data = await farmProductsApi.getFarmerProducts(farmerId);
@@ -59,13 +67,19 @@ export default function ProductsModal({
   const handleSave = async () => {
     try {
       setLoading(true);
+      const payload = {
+        ...form,
+        price: unitPrice * (form.quantity ?? 0), // ✅ always save total price
+      } as FarmProduct;
+
       if (product?.id || form.id) {
-        await farmProductsApi.update(String(product?.id || form.id), form as FarmProduct);
+        await farmProductsApi.update(String(product?.id || form.id), payload);
       } else {
-        await farmProductsApi.add({ ...form, farmer_id: farmerId } as FarmProduct);
+        await farmProductsApi.add({ ...payload, farmer_id: farmerId } as FarmProduct);
       }
+
       onProductAdded();
-      loadInventory(); // refresh inventory after save
+      loadInventory();
       setActiveTab("inventory");
     } catch (err) {
       console.error("Error saving product:", err);
@@ -77,34 +91,67 @@ export default function ProductsModal({
 
   const handleEditFromInventory = (p: FarmProduct) => {
     setForm(p);
-    setActiveTab("details"); // jump to editing form
+    setActiveTab("details");
   };
+
+  const handleAddNew = () => {
+    setForm({
+      product_name: "",
+      quantity: 0,
+      unit: "",
+      category: "produce",
+      price: 0,
+      status: "available",
+      spoilage_reason: "",
+    });
+    setActiveTab("details");
+  };
+
+  // ✅ Determine modal title
+  const modalTitle =
+    activeTab === "inventory"
+      ? "Inventory"
+      : form.id || product?.id
+      ? "Edit Product"
+      : "Add New Product";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow-lg max-w-3xl w-full">
-        <h2 className="text-xl font-bold mb-4 text-brand-dark dark:text-brand-apple">
-          {product ? "Edit Product" : "Manage Products"}
-        </h2>
-
-        {/* ✅ Tab Navigation */}
-        <div className="flex border-b mb-4">
-          {["details", "pricing", "status", "inventory"].map((tab) => (
+      <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow-lg max-w-4xl w-full">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-brand-dark dark:text-brand-apple">
+            {modalTitle}
+          </h2>
+          {activeTab === "inventory" && (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab as any)}
-              className={`flex-1 px-3 py-2 text-sm font-medium capitalize ${
-                activeTab === tab
-                  ? "border-b-2 border-brand-green text-brand-green"
-                  : "text-gray-500 hover:text-brand-green"
-              }`}
+              onClick={handleAddNew}
+              className="flex items-center gap-2 bg-brand-green text-white px-3 py-1 rounded hover:bg-green-700"
             >
-              {tab}
+              <Plus size={16} /> Add Product
             </button>
-          ))}
+          )}
         </div>
 
-        {/* ✅ Tab Content */}
+        {/* ✅ Tabs */}
+        {activeTab !== "inventory" && (
+          <div className="flex border-b mb-4">
+            {["details", "pricing", "status"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab as any)}
+                className={`flex-1 px-3 py-2 text-sm font-medium capitalize ${
+                  activeTab === tab
+                    ? "border-b-2 border-brand-green text-brand-green"
+                    : "text-gray-500 hover:text-brand-green"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ✅ Content */}
         <div className="space-y-3 max-h-[60vh] overflow-y-auto">
           {activeTab === "details" && (
             <>
@@ -139,14 +186,34 @@ export default function ProductsModal({
                 placeholder="Quantity"
                 className="w-full p-2 border rounded"
                 value={form.quantity}
-                onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
+                onChange={(e) => {
+                  const qty = Number(e.target.value);
+                  setForm({
+                    ...form,
+                    quantity: qty,
+                    price: unitPrice * qty, // recalc total
+                  });
+                }}
               />
               <input
                 type="number"
-                placeholder="Price (Ksh)"
+                placeholder="Unit Price (Ksh)"
                 className="w-full p-2 border rounded"
+                value={unitPrice}
+                onChange={(e) => {
+                  const uPrice = Number(e.target.value);
+                  setForm({
+                    ...form,
+                    price: uPrice * (form.quantity ?? 0),
+                  });
+                }}
+              />
+              <input
+                type="number"
+                placeholder="Total Price (auto)"
+                className="w-full p-2 border rounded bg-gray-100"
                 value={form.price}
-                onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+                readOnly
               />
             </>
           )}
@@ -177,7 +244,6 @@ export default function ProductsModal({
             </>
           )}
 
-          {/* ✅ Inventory Tab */}
           {activeTab === "inventory" && (
             <div className="overflow-x-auto">
               {inventory.length === 0 ? (
@@ -189,7 +255,7 @@ export default function ProductsModal({
                       <th className="px-3 py-2">Product</th>
                       <th className="px-3 py-2">Qty</th>
                       <th className="px-3 py-2">Unit</th>
-                      <th className="px-3 py-2">Price</th>
+                      <th className="px-3 py-2">Price (Total)</th>
                       <th className="px-3 py-2">Status</th>
                       <th className="px-3 py-2">Actions</th>
                     </tr>
@@ -206,8 +272,8 @@ export default function ProductsModal({
                           <button
                             className="text-blue-600 hover:text-blue-800"
                             onClick={() => handleEditFromInventory(p)}
-                            title="Edit product"
-                            aria-label="Edit product"
+                            title="Edit Product"
+                            aria-label="Edit Product"
                           >
                             <Edit size={16} />
                           </button>
@@ -221,7 +287,7 @@ export default function ProductsModal({
           )}
         </div>
 
-        {/* ✅ Footer Actions */}
+        {/* ✅ Footer */}
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}

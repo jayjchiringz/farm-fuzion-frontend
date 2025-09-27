@@ -33,11 +33,20 @@ export default function ProductsModal({
     status: "available",
     spoilage_reason: "",
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // save loader
+  const [loadingInventory, setLoadingInventory] = useState(false); // inventory loader
   const [activeTab, setActiveTab] = useState<"details" | "pricing" | "status" | "inventory">(
     mode === "add" || mode === "edit" ? "details" : "inventory"
   );
   const [inventory, setInventory] = useState<FarmProduct[]>([]);
+
+  // ✅ Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // ✅ Refresh key
+  const [refreshKey, setRefreshKey] = useState(0);
+  const triggerRefresh = () => setRefreshKey((k) => k + 1);
 
   // ✅ Derived unit price
   const unitPrice =
@@ -50,11 +59,14 @@ export default function ProductsModal({
 
   // ✅ Load inventory
   const loadInventory = async () => {
+    setLoadingInventory(true);
     try {
       const data = await farmProductsApi.getFarmerProducts(farmerId);
       setInventory(data as FarmProduct[]);
     } catch (err) {
       console.error("Error loading inventory:", err);
+    } finally {
+      setLoadingInventory(false);
     }
   };
 
@@ -62,7 +74,7 @@ export default function ProductsModal({
     if (activeTab === "inventory") {
       loadInventory();
     }
-  }, [activeTab]);
+  }, [activeTab, refreshKey]);
 
   const handleSave = async () => {
     try {
@@ -79,7 +91,7 @@ export default function ProductsModal({
       }
 
       onProductAdded();
-      loadInventory();
+      triggerRefresh(); // ✅ refresh inventory
       setActiveTab("inventory");
     } catch (err) {
       console.error("Error saving product:", err);
@@ -114,6 +126,13 @@ export default function ProductsModal({
       : form.id || product?.id
       ? "Edit Product"
       : "Add New Product";
+
+  // ✅ Paginated slice
+  const totalPages = Math.ceil(inventory.length / itemsPerPage);
+  const paginatedInventory = inventory.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -246,47 +265,97 @@ export default function ProductsModal({
 
           {activeTab === "inventory" && (
             <div className="overflow-x-auto">
-              {inventory.length === 0 ? (
+              {loadingInventory ? (
+                <div className="flex justify-center items-center py-10 text-gray-500">
+                  <svg
+                    className="animate-spin h-6 w-6 mr-2 text-brand-green"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    />
+                  </svg>
+                  Refreshing inventory…
+                </div>
+              ) : inventory.length === 0 ? (
                 <p className="text-gray-500 text-sm">No products in inventory yet.</p>
               ) : (
-                <table className="w-full text-left border">
-                  <thead className="bg-slate-100 dark:bg-[#0a3d32]">
-                    <tr>
-                      <th className="px-3 py-2">Product</th>
-                      <th className="px-3 py-2">Qty</th>
-                      <th className="px-3 py-2">Unit</th>
-                      <th className="px-3 py-2">Unit Price</th> {/* ✅ Added */}
-                      <th className="px-3 py-2">Price (Total)</th>
-                      <th className="px-3 py-2">Status</th>
-                      <th className="px-3 py-2">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {inventory.map((p) => {
-                      const unitPrice = p.quantity && p.quantity > 0 ? (p.price ?? 0) / p.quantity : 0;
-                      return (
-                        <tr key={p.id} className="border-t">
-                          <td className="px-3 py-2">{p.product_name}</td>
-                          <td className="px-3 py-2">{p.quantity}</td>
-                          <td className="px-3 py-2">{p.unit}</td>
-                          <td className="px-3 py-2">Ksh {unitPrice.toFixed(2)}</td> {/* ✅ Show unit price */}
-                          <td className="px-3 py-2">Ksh {p.price}</td>
-                          <td className="px-3 py-2 capitalize">{p.status}</td>
-                          <td className="px-3 py-2">
-                            <button
-                              className="text-blue-600 hover:text-blue-800"
-                              onClick={() => handleEditFromInventory(p)}
-                              title="Edit Product"
-                              aria-label="Edit Product"
-                            >
-                              <Edit size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <>
+                  <table className="w-full text-left border">
+                    <thead className="bg-slate-100 dark:bg-[#0a3d32]">
+                      <tr>
+                        <th className="px-3 py-2">Product</th>
+                        <th className="px-3 py-2">Qty</th>
+                        <th className="px-3 py-2">Unit</th>
+                        <th className="px-3 py-2">Unit Price</th>
+                        <th className="px-3 py-2">Price (Total)</th>
+                        <th className="px-3 py-2">Status</th>
+                        <th className="px-3 py-2">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedInventory.map((p) => {
+                        const unitPrice =
+                          p.quantity && p.quantity > 0 ? (p.price ?? 0) / p.quantity : 0;
+                        return (
+                          <tr key={p.id} className="border-t">
+                            <td className="px-3 py-2">{p.product_name}</td>
+                            <td className="px-3 py-2">{p.quantity}</td>
+                            <td className="px-3 py-2">{p.unit}</td>
+                            <td className="px-3 py-2">Ksh {unitPrice.toFixed(2)}</td>
+                            <td className="px-3 py-2">Ksh {p.price}</td>
+                            <td className="px-3 py-2 capitalize">{p.status}</td>
+                            <td className="px-3 py-2">
+                              <button
+                                className="text-blue-600 hover:text-blue-800"
+                                onClick={() => handleEditFromInventory(p)}
+                                title="Edit Product"
+                                aria-label="Edit Product"
+                              >
+                                <Edit size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+
+                  {/* ✅ Pagination Controls */}
+                  <div className="flex justify-between items-center mt-3 text-sm">
+                    <span>
+                      Page {currentPage} of {totalPages || 1}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage((p) => p - 1)}
+                        className="px-2 py-1 border rounded disabled:opacity-50"
+                      >
+                        Prev
+                      </button>
+                      <button
+                        disabled={currentPage === totalPages || totalPages === 0}
+                        onClick={() => setCurrentPage((p) => p + 1)}
+                        className="px-2 py-1 border rounded disabled:opacity-50"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           )}

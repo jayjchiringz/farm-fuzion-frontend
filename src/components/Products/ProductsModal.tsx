@@ -1,7 +1,7 @@
 // src/components/Products/ProductsModal.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { farmProductsApi, FarmProduct as ApiFarmProduct } from "../../services/farmProductsApi";
-import { Edit, Plus } from "lucide-react";
+import { Edit, Plus, Info } from "lucide-react";
 
 // ✅ Extend FarmProduct with spoilage_reason
 export type FarmProduct = ApiFarmProduct & {
@@ -47,6 +47,11 @@ export default function ProductsModal({
   // ✅ Refresh key
   const [refreshKey, setRefreshKey] = useState(0);
   const triggerRefresh = () => setRefreshKey((k) => k + 1);
+
+  // ✅ Filters
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
 
   // ✅ Derived unit price
   const unitPrice =
@@ -127,16 +132,31 @@ export default function ProductsModal({
       ? "Edit Product"
       : "Add New Product";
 
-  // ✅ Paginated slice
-  const totalPages = Math.ceil(inventory.length / itemsPerPage);
-  const paginatedInventory = inventory.slice(
+  // ✅ Filtered + paginated data
+  const filteredInventory = useMemo(() => {
+    return inventory.filter((p) => {
+      const matchesSearch = p.product_name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesCategory = filterCategory ? p.category === filterCategory : true;
+      const matchesStatus = filterStatus ? p.status === filterStatus : true;
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+  }, [inventory, searchTerm, filterCategory, filterStatus]);
+
+  const totalPages = Math.ceil(filteredInventory.length / itemsPerPage);
+  const paginatedInventory = filteredInventory.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
+  // ✅ Dynamic filter values
+  const categories = Array.from(new Set(inventory.map((p) => p.category))).filter(Boolean);
+  const statuses = Array.from(new Set(inventory.map((p) => p.status))).filter(Boolean);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow-lg max-w-4xl w-full">
+      <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow-lg max-w-5xl w-full">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-brand-dark dark:text-brand-apple">
             {modalTitle}
@@ -174,23 +194,50 @@ export default function ProductsModal({
         <div className="space-y-3 max-h-[60vh] overflow-y-auto">
           {activeTab === "details" && (
             <>
+              {/* ✅ Product Name */}
+              <label className="flex items-center gap-2 text-sm font-medium">
+                Product Name
+                <Info size={14} className="text-gray-400" aria-label="Info" />
+                <span className="sr-only">
+                  Enter the name of your product (e.g. Maize, Tomatoes)
+                </span>
+              </label>
               <input
                 type="text"
-                placeholder="Product Name"
+                placeholder="e.g. Maize, Tomatoes"
                 className="w-full p-2 border rounded"
                 value={form.product_name}
                 onChange={(e) => setForm({ ...form, product_name: e.target.value })}
               />
+
+              {/* ✅ Unit */}
+              <label className="flex items-center gap-2 text-sm font-medium">
+                Unit
+                <Info size={14} className="text-gray-400" aria-label="Info" />
+                <span className="sr-only">
+                  Specify the unit of measurement (e.g. kg, bag, litre)
+                </span>
+              </label>
               <input
                 type="text"
-                placeholder="Unit (e.g. kg, bag, litre)"
+                placeholder="e.g. kg, bag, litre"
                 className="w-full p-2 border rounded"
                 value={form.unit}
                 onChange={(e) => setForm({ ...form, unit: e.target.value })}
               />
+
+              {/* ✅ Category */}
+              <label className="flex items-center gap-2 text-sm font-medium">
+                Category
+                <Info size={14} className="text-gray-400" aria-label="Info" />
+                <span className="sr-only">
+                  Choose product type: produce (e.g. maize), input (e.g. fertilizer), or
+                  service (e.g. transport)
+                </span>
+              </label>
               <input
                 type="text"
-                placeholder="Category (produce/input/service)"
+                placeholder="produce / input / service"
                 className="w-full p-2 border rounded"
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
@@ -200,9 +247,17 @@ export default function ProductsModal({
 
           {activeTab === "pricing" && (
             <>
+              {/* ✅ Quantity */}
+              <label className="flex items-center gap-2 text-sm font-medium">
+                Quantity
+                <Info size={14} className="text-gray-400" aria-label="Info" />
+                <span className="sr-only">
+                  Enter the total amount available (e.g. 50 for 50 kg)
+                </span>
+              </label>
               <input
                 type="number"
-                placeholder="Quantity"
+                placeholder="e.g. 50"
                 className="w-full p-2 border rounded"
                 value={form.quantity}
                 onChange={(e) => {
@@ -214,9 +269,18 @@ export default function ProductsModal({
                   });
                 }}
               />
+
+              {/* ✅ Unit Price */}
+              <label className="flex items-center gap-2 text-sm font-medium">
+                Unit Price (Ksh)
+                <Info size={14} className="text-gray-400" aria-label="Info" />
+                <span className="sr-only">
+                  Price for a single unit (e.g. per kg, per bag)
+                </span>
+              </label>
               <input
                 type="number"
-                placeholder="Unit Price (Ksh)"
+                placeholder="e.g. 100"
                 className="w-full p-2 border rounded"
                 value={unitPrice}
                 onChange={(e) => {
@@ -227,9 +291,18 @@ export default function ProductsModal({
                   });
                 }}
               />
+
+              {/* ✅ Total Price */}
+              <label className="flex items-center gap-2 text-sm font-medium">
+                Total Price
+                <Info size={14} className="text-gray-400" aria-label="Info" />
+                <span className="sr-only">
+                  Auto-calculated as Quantity × Unit Price
+                </span>
+              </label>
               <input
                 type="number"
-                placeholder="Total Price (auto)"
+                placeholder="Auto calculated"
                 className="w-full p-2 border rounded bg-gray-100"
                 value={form.price}
                 readOnly
@@ -239,6 +312,14 @@ export default function ProductsModal({
 
           {activeTab === "status" && (
             <>
+              {/* ✅ Status */}
+              <label className="flex items-center gap-2 text-sm font-medium">
+                Product Status
+                <Info size={14} className="text-gray-400" aria-label="Info" />
+                <span className="sr-only">
+                  Select whether the product is available, already sold, or hidden
+                </span>
+              </label>
               <select
                 className="w-full p-2 border rounded"
                 value={form.status}
@@ -251,20 +332,77 @@ export default function ProductsModal({
                 <option value="hidden">Hidden</option>
               </select>
 
+              {/* ✅ Spoilage Reason */}
               {form.status === "hidden" && (
-                <input
-                  type="text"
-                  placeholder="Reason for spoilage"
-                  className="w-full p-2 border rounded"
-                  value={form.spoilage_reason}
-                  onChange={(e) => setForm({ ...form, spoilage_reason: e.target.value })}
-                />
+                <>
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    Reason for spoilage
+                    <Info size={14} className="text-gray-400" aria-label="Info" />
+                    <span className="sr-only">
+                      Provide a reason why this product was hidden (e.g. spoiled,
+                      damaged, unavailable)
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. spoiled, damaged, unavailable"
+                    className="w-full p-2 border rounded"
+                    value={form.spoilage_reason}
+                    onChange={(e) =>
+                      setForm({ ...form, spoilage_reason: e.target.value })
+                    }
+                  />
+                </>
               )}
             </>
           )}
 
           {activeTab === "inventory" && (
             <div className="overflow-x-auto">
+              {/* ✅ Filter Bar */}
+              <div className="flex flex-wrap gap-3 mb-3">
+                <input
+                  type="text"
+                  placeholder="Search by name..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="p-2 border rounded flex-1 min-w-[180px]"
+                />
+                <select
+                  value={filterCategory}
+                  onChange={(e) => {
+                    setFilterCategory(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="p-2 border rounded min-w-[160px]"
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => {
+                    setFilterStatus(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="p-2 border rounded min-w-[140px]"
+                >
+                  <option value="">All Status</option>
+                  {statuses.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {loadingInventory ? (
                 <div className="flex justify-center items-center py-10 text-gray-500">
                   <svg
@@ -289,8 +427,8 @@ export default function ProductsModal({
                   </svg>
                   Refreshing inventory…
                 </div>
-              ) : inventory.length === 0 ? (
-                <p className="text-gray-500 text-sm">No products in inventory yet.</p>
+              ) : filteredInventory.length === 0 ? (
+                <p className="text-gray-500 text-sm">No products match the filters.</p>
               ) : (
                 <>
                   <table className="w-full text-left border">

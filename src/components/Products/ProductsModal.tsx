@@ -255,31 +255,36 @@ export default function ProductsModal({
                       <th className="px-3 py-2">Product</th>
                       <th className="px-3 py-2">Qty</th>
                       <th className="px-3 py-2">Unit</th>
+                      <th className="px-3 py-2">Unit Price</th> {/* ✅ Added */}
                       <th className="px-3 py-2">Price (Total)</th>
                       <th className="px-3 py-2">Status</th>
                       <th className="px-3 py-2">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {inventory.map((p) => (
-                      <tr key={p.id} className="border-t">
-                        <td className="px-3 py-2">{p.product_name}</td>
-                        <td className="px-3 py-2">{p.quantity}</td>
-                        <td className="px-3 py-2">{p.unit}</td>
-                        <td className="px-3 py-2">Ksh {p.price}</td>
-                        <td className="px-3 py-2 capitalize">{p.status}</td>
-                        <td className="px-3 py-2">
-                          <button
-                            className="text-blue-600 hover:text-blue-800"
-                            onClick={() => handleEditFromInventory(p)}
-                            title="Edit Product"
-                            aria-label="Edit Product"
-                          >
-                            <Edit size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {inventory.map((p) => {
+                      const unitPrice = p.quantity && p.quantity > 0 ? (p.price ?? 0) / p.quantity : 0;
+                      return (
+                        <tr key={p.id} className="border-t">
+                          <td className="px-3 py-2">{p.product_name}</td>
+                          <td className="px-3 py-2">{p.quantity}</td>
+                          <td className="px-3 py-2">{p.unit}</td>
+                          <td className="px-3 py-2">Ksh {unitPrice.toFixed(2)}</td> {/* ✅ Show unit price */}
+                          <td className="px-3 py-2">Ksh {p.price}</td>
+                          <td className="px-3 py-2 capitalize">{p.status}</td>
+                          <td className="px-3 py-2">
+                            <button
+                              className="text-blue-600 hover:text-blue-800"
+                              onClick={() => handleEditFromInventory(p)}
+                              title="Edit Product"
+                              aria-label="Edit Product"
+                            >
+                              <Edit size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}

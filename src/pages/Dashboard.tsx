@@ -11,8 +11,13 @@ import ProductsModal from "../components/Products/ProductsModal";
 export default function Dashboard() {
   const navigate = useNavigate();
   const farmer = JSON.parse(localStorage.getItem("user") || "{}");
-  const fullName = `${farmer.first_name || ""} ${farmer.middle_name || ""}`.trim();
 
+  // ✅ include last_name for full display
+  const fullName = [farmer.first_name, farmer.middle_name, farmer.last_name]
+    .filter(Boolean)
+    .join(" ");
+
+  // 📊 static demo chart data for now
   const chartData = [
     { name: "Tomatoes", quantity: 400 },
     { name: "Maize", quantity: 300 },
@@ -30,7 +35,13 @@ export default function Dashboard() {
 
   const [walletOpen, setWalletOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
-  
+
+  // 🔄 refresh hook for when products are added/edited
+  const refreshData = async () => {
+    console.log("🔄 Refresh dashboard stats or charts here...");
+    // In future: fetch inventory stats, update KPIs, update chartData
+  };
+
   return (
     <>
       <ThemeToggle />
@@ -65,7 +76,15 @@ export default function Dashboard() {
 
           <nav className="flex-1 px-4 py-6 space-y-3">
             <SidebarLink to="/dashboard" label="Dashboard" icon="🏠" />
-            <SidebarLink to="/products" label="Inventory" icon="🚜" />
+            
+            {/* 🚜 Inventory → open modal for now */}
+            <button
+              onClick={() => setProductsOpen(true)}
+              className="w-full text-left px-3 py-2 rounded transition-colors text-brand-dark dark:text-brand-apple hover:bg-brand-dark dark:hover:bg-brand-apple hover:text-brand-apple dark:hover:text-brand-dark"
+            >
+              🚜 Inventory
+            </button>
+
             <SidebarLink to="/logistics" label="Logistics" icon="🚚" />
             <SidebarLink to="/knowledge-hub" label="Knowledge Hub" icon="📚" />
             <SidebarLink to="/insurance" label="Insurance" icon="🛡️" />
@@ -127,7 +146,6 @@ export default function Dashboard() {
             <Card
               title="Farm Inventory"
               desc="Track harvested items, units, storage, and status."
-              link="/products"
               linkText="Product Management →"
               onClick={() => setProductsOpen(true)}
             />
@@ -135,7 +153,7 @@ export default function Dashboard() {
               <ProductsModal
                 farmerId={farmer?.id}
                 onClose={() => setProductsOpen(false)}
-                onProductAdded={() => {}} // optional, no refresh needed on dashboard
+                onProductAdded={refreshData} // ✅ refresh hook
               />
             )}
 
@@ -243,7 +261,7 @@ function Card({
 
   const handleClick = () => {
     if (onClick) {
-      onClick(); // Wallet modal
+      onClick(); // Wallet or Inventory modal
     } else if (link) {
       navigate(link); // Navigate
     }

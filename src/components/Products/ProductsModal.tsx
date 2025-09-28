@@ -67,7 +67,13 @@ export default function ProductsModal({
 
   // ✅ Pre-fill form if editing
   useEffect(() => {
-    if (product) setForm(product);
+    if (product) {
+      setForm({
+        ...product,
+        quantity: product.quantity ? Number(product.quantity) : 0,
+        price: product.price ? Number(product.price) : 0,
+      });
+    }
   }, [product]);
 
   // ✅ Load inventory (server-side pagination & filters)
@@ -123,8 +129,13 @@ export default function ProductsModal({
     }
   };
 
+  // ✅ When editing from inventory
   const handleEditFromInventory = (p: FarmProduct) => {
-    setForm(p);
+    setForm({
+      ...p,
+      quantity: p.quantity ? Number(p.quantity) : 0,
+      price: p.price ? Number(p.price) : 0,
+    });
     setActiveTab("details");
   };
 

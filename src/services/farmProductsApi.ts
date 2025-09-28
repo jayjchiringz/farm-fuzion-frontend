@@ -2,33 +2,62 @@
 import axios from "axios";
 import { components } from "../../types/api"; // ✅ generated OpenAPI types
 
-// ✅ Alias FarmProduct schema
+// ✅ Alias FarmProduct schema with frontend extensions
 export type FarmProduct = components["schemas"]["FarmProduct"] & {
   id?: string | number;
   spoilage_reason?: string;
 };
 
+// ✅ Allowed product statuses
+export type ProductStatus = "available" | "sold" | "hidden";
+
+// ✅ API response with pagination
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL ||
   "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net";
 
-// ✅ Allowed product statuses
-export type ProductStatus = "available" | "sold" | "hidden";
-
 export const farmProductsApi = {
-  // 🔍 Get all products (with optional filters)
-  async getAll(category?: string, status?: ProductStatus): Promise<FarmProduct[]> {
+  // 🔍 Get all products (with filters + pagination)
+  async getAll(
+    category?: string,
+    status?: ProductStatus,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<PaginatedResponse<FarmProduct>> {
     const params = new URLSearchParams();
     if (category) params.append("category", category);
     if (status) params.append("status", status);
+    params.append("page", String(page));
+    params.append("limit", String(limit));
 
-    const res = await axios.get<FarmProduct[]>(`${API_BASE}/farm-products`, { params });
+    const res = await axios.get<PaginatedResponse<FarmProduct>>(
+      `${API_BASE}/farm-products`,
+      { params }
+    );
     return res.data;
   },
 
-  // 👨‍🌾 Get products by farmer
-  async getFarmerProducts(farmerId: string): Promise<FarmProduct[]> {
-    const res = await axios.get<FarmProduct[]>(`${API_BASE}/farm-products/farmer/${farmerId}`);
+  // 👨‍🌾 Get products by farmer (with pagination)
+  async getFarmerProducts(
+    farmerId: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<PaginatedResponse<FarmProduct>> {
+    const params = new URLSearchParams();
+    params.append("page", String(page));
+    params.append("limit", String(limit));
+
+    const res = await axios.get<PaginatedResponse<FarmProduct>>(
+      `${API_BASE}/farm-products/farmer/${farmerId}`,
+      { params }
+    );
     return res.data;
   },
 
@@ -46,7 +75,9 @@ export const farmProductsApi = {
 
   // 🗑️ Delete product
   async remove(id: string | number): Promise<{ success: boolean }> {
-    const res = await axios.delete<{ success: boolean }>(`${API_BASE}/farm-products/${id}`);
+    const res = await axios.delete<{ success: boolean }>(
+      `${API_BASE}/farm-products/${id}`
+    );
     return res.data;
   },
 

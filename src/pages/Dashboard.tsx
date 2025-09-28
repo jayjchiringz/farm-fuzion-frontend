@@ -7,6 +7,7 @@ import ThemeToggle from "../components/ThemeToggle";
 import React, { useState } from "react";
 import WalletModal from "../components/Wallet/WalletModal";
 import ProductsModal from "../components/Products/ProductsModal";
+import MarketsModal from "../components/Markets/MarketsModal";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -35,6 +36,7 @@ export default function Dashboard() {
 
   const [walletOpen, setWalletOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
+  const [marketsOpen, setMarketsOpen] = useState(false);
 
   // 🔄 refresh hook for when products are added/edited
   const refreshData = async () => {
@@ -156,13 +158,19 @@ export default function Dashboard() {
                 onProductAdded={refreshData} // ✅ refresh hook
               />
             )}
-
             <Card
-              title="Logistics"
-              desc="Schedule delivery of produce and monitor transport."
-              link="/logistics"
-              linkText="Go to Logistics →"
+              title="Agro Marketplace"
+              desc="Discover active markets and price benchmarks."
+              link="/marketplace"
+              linkText="Browse Markets →"
+              onClick={() => setMarketsOpen(true)}
             />
+            {marketsOpen && (
+              <MarketsModal
+                onClose={() => setMarketsOpen(false)}
+                onMarketAdded={refreshData} // ✅ match prop name
+              />
+            )}
             <Card
               title="Loan Center"
               desc="Apply for farm loans and monitor repayments."
@@ -200,10 +208,10 @@ export default function Dashboard() {
               linkText="Review Policies →"
             />
             <Card
-              title="Agro Marketplace"
-              desc="Discover active markets and price benchmarks."
-              link="/marketplace"
-              linkText="Browse Markets →"
+              title="Logistics"
+              desc="Schedule delivery of produce and monitor transport."
+              link="/logistics"
+              linkText="Go to Logistics →"
             />
             <Card
               title="Vet & Disease Services"

@@ -262,7 +262,9 @@ export default function MarketsModal({
                     <input
                       type="number"
                       className="w-full p-2 border rounded"
-                      value={form[field as keyof MarketPrice] ?? ""}
+                      value={typeof form[field as keyof MarketPrice] === "number"
+                        ? (form[field as keyof MarketPrice] as number)
+                        : ""}
                       onChange={(e) =>
                         setForm({
                           ...form,

@@ -200,8 +200,171 @@ export default function ProductsModal({
 
         {/* ✅ Content */}
         <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-          {/* Product details / pricing / status unchanged ... */}
+          {activeTab === "details" && (
+            <>
+              {/* ✅ Product Name */}
+              <label className="flex items-center gap-2 text-sm font-medium">
+                Product Name
+                <Info size={14} className="text-gray-400" aria-label="Info" />
+                <span className="sr-only">
+                  Enter the name of your product (e.g. Maize, Tomatoes)
+                </span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Maize, Tomatoes"
+                className="w-full p-2 border rounded"
+                value={form.product_name}
+                onChange={(e) => setForm({ ...form, product_name: e.target.value })}
+              />
 
+              {/* ✅ Unit */}
+              <label className="flex items-center gap-2 text-sm font-medium">
+                Unit
+                <Info size={14} className="text-gray-400" aria-label="Info" />
+                <span className="sr-only">
+                  Specify the unit of measurement (e.g. kg, bag, litre)
+                </span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. kg, bag, litre"
+                className="w-full p-2 border rounded"
+                value={form.unit}
+                onChange={(e) => setForm({ ...form, unit: e.target.value })}
+              />
+
+              {/* ✅ Category */}
+              <label className="flex items-center gap-2 text-sm font-medium">
+                Category
+                <Info size={14} className="text-gray-400" aria-label="Info" />
+                <span className="sr-only">
+                  Choose product type: produce (e.g. maize), input (e.g. fertilizer), or
+                  service (e.g. transport)
+                </span>
+              </label>
+              <input
+                type="text"
+                placeholder="produce / input / service"
+                className="w-full p-2 border rounded"
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+              />
+            </>
+          )}
+
+          {activeTab === "pricing" && (
+            <>
+              {/* ✅ Quantity */}
+              <label className="flex items-center gap-2 text-sm font-medium">
+                Quantity
+                <Info size={14} className="text-gray-400" aria-label="Info" />
+                <span className="sr-only">
+                  Enter the total amount available (e.g. 50 for 50 kg)
+                </span>
+              </label>
+              <input
+                type="number"
+                placeholder="e.g. 50"
+                className="w-full p-2 border rounded"
+                value={form.quantity}
+                onChange={(e) => {
+                  const qty = Number(e.target.value);
+                  setForm({
+                    ...form,
+                    quantity: qty,
+                    price: unitPrice * qty, // recalc total
+                  });
+                }}
+              />
+
+              {/* ✅ Unit Price */}
+              <label className="flex items-center gap-2 text-sm font-medium">
+                Unit Price (Ksh)
+                <Info size={14} className="text-gray-400" aria-label="Info" />
+                <span className="sr-only">
+                  Price for a single unit (e.g. per kg, per bag)
+                </span>
+              </label>
+              <input
+                type="number"
+                placeholder="e.g. 100"
+                className="w-full p-2 border rounded"
+                value={unitPrice}
+                onChange={(e) => {
+                  const uPrice = Number(e.target.value);
+                  setForm({
+                    ...form,
+                    price: uPrice * (form.quantity ?? 0),
+                  });
+                }}
+              />
+
+              {/* ✅ Total Price */}
+              <label className="flex items-center gap-2 text-sm font-medium">
+                Total Price
+                <Info size={14} className="text-gray-400" aria-label="Info" />
+                <span className="sr-only">
+                  Auto-calculated as Quantity × Unit Price
+                </span>
+              </label>
+              <input
+                type="number"
+                placeholder="Auto calculated"
+                className="w-full p-2 border rounded bg-gray-100"
+                value={form.price}
+                readOnly
+              />
+            </>
+          )}
+
+          {activeTab === "status" && (
+            <>
+              {/* ✅ Status */}
+              <label className="flex items-center gap-2 text-sm font-medium">
+                Product Status
+                <Info size={14} className="text-gray-400" aria-label="Info" />
+                <span className="sr-only">
+                  Select whether the product is available, already sold, or hidden
+                </span>
+              </label>
+              <select
+                className="w-full p-2 border rounded"
+                value={form.status}
+                onChange={(e) =>
+                  setForm({ ...form, status: e.target.value as FarmProduct["status"] })
+                }
+              >
+                <option value="available">Available</option>
+                <option value="sold">Sold</option>
+                <option value="hidden">Hidden</option>
+              </select>
+
+              {/* ✅ Spoilage Reason */}
+              {form.status === "hidden" && (
+                <>
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    Reason for spoilage
+                    <Info size={14} className="text-gray-400" aria-label="Info" />
+                    <span className="sr-only">
+                      Provide a reason why this product was hidden (e.g. spoiled,
+                      damaged, unavailable)
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. spoiled, damaged, unavailable"
+                    className="w-full p-2 border rounded"
+                    value={form.spoilage_reason}
+                    onChange={(e) =>
+                      setForm({ ...form, spoilage_reason: e.target.value })
+                    }
+                  />
+                </>
+              )}
+            </>
+          )}
+          
           {activeTab === "inventory" && (
             <div className="overflow-x-auto">
               {/* ✅ Filter Bar */}

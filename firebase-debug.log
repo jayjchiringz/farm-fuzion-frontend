@@ -1,0 +1,29 @@
+[debug] [2025-09-28T14:51:09.309Z] ----------------------------------------------------------------------
+[debug] [2025-09-28T14:51:09.313Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\dell\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2025-09-28T14:51:09.314Z] CLI Version:   14.11.0
+[debug] [2025-09-28T14:51:09.314Z] Platform:      win32
+[debug] [2025-09-28T14:51:09.314Z] Node Version:  v22.13.1
+[debug] [2025-09-28T14:51:09.315Z] Time:          Sun Sep 28 2025 17:51:09 GMT+0300 (East Africa Time)
+[debug] [2025-09-28T14:51:09.315Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-09-28T14:51:10.094Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-09-28T14:51:10.095Z] > authorizing via signed-in user (caxshuganda@gmail.com)
+[debug] [2025-09-28T14:51:10.095Z] [iam] checking project farm-fuzion-abdf3 for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-09-28T14:51:10.098Z] Checked if tokens are valid: true, expires at: 1759074236155
+[debug] [2025-09-28T14:51:10.098Z] Checked if tokens are valid: true, expires at: 1759074236155
+[debug] [2025-09-28T14:51:10.101Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions [none]
+[debug] [2025-09-28T14:51:10.101Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions x-goog-quota-user=projects/farm-fuzion-abdf3
+[debug] [2025-09-28T14:51:10.101Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-09-28T14:51:21.790Z] *** [apiv2] error from fetch(https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions, {"headers":{},"method":"POST","body":"{\"permissions\":[\"firebase.projects.get\",\"firebasehosting.sites.update\"]}"}): FetchError: request to https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions failed, reason: Client network socket disconnected before secure TLS connection was established
+[debug] [2025-09-28T14:51:21.790Z] [iam] error while checking permissions, command may fail: Failed to make request to https://cloudresourcemanager.googleapis.com/v1/projects/farm-fuzion-abdf3:testIamPermissions
+[debug] [2025-09-28T14:51:21.791Z] Checked if tokens are valid: true, expires at: 1759074236155
+[debug] [2025-09-28T14:51:21.791Z] Checked if tokens are valid: true, expires at: 1759074236155
+[debug] [2025-09-28T14:51:21.792Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/farm-fuzion-abdf3 [none]
+[debug] [2025-09-28T14:51:32.626Z] *** [apiv2] error from fetch(https://firebase.googleapis.com/v1beta1/projects/farm-fuzion-abdf3, {"headers":{},"method":"GET","signal":{}}): FetchError: request to https://firebase.googleapis.com/v1beta1/projects/farm-fuzion-abdf3 failed, reason: Client network socket disconnected before secure TLS connection was established
+[debug] [2025-09-28T14:51:32.627Z] Failed to make request to https://firebase.googleapis.com/v1beta1/projects/farm-fuzion-abdf3 (original: request to https://firebase.googleapis.com/v1beta1/projects/farm-fuzion-abdf3 failed, reason: Client network socket disconnected before secure TLS connection was established)
+[debug] [2025-09-28T14:51:37.651Z] Error: Timed out.
+    at Timeout._onTimeout (C:\Users\dell\AppData\Roaming\npm\node_modules\firebase-tools\lib\utils.js:267:49)
+    at listOnTimeout (node:internal/timers:594:17)
+    at process.processTimers (node:internal/timers:529:7)
+[error] 
+[error] Error: An unexpected error has occurred.

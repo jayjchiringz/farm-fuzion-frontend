@@ -1,26 +1,49 @@
 // src/pages/FarmProducts.tsx
-import React, { useEffect, useState } from "react";
-import { farmProductsApi, FarmProduct, PaginatedResponse } from "../services/farmProductsApi";
+import React, { useEffect, useState, useMemo } from "react";
+import {
+  farmProductsApi,
+  FarmProduct,
+  PaginatedResponse,
+  ProductStatus,
+} from "../services/farmProductsApi";
 import ProductsModal from "../components/Products/ProductsModal";
 
 export default function FarmProductsPage() {
   const farmerId = "demo-farmer-123"; // 🔧 replace with actual logged-in farmer ID
 
-  const [products, setProducts] = useState<PaginatedResponse<FarmProduct> | null>(null);
+  const [products, setProducts] = useState<PaginatedResponse<FarmProduct> | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
 
   const [page, setPage] = useState(1);
   const limit = 5;
 
+  // ✅ Filters
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterStatus, setFilterStatus] = useState<ProductStatus | "">("");
+
   // ✅ Modal state
   const [showModal, setShowModal] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<FarmProduct | undefined>(undefined);
+  const [selectedProduct, setSelectedProduct] = useState<FarmProduct | undefined>(
+    undefined
+  );
 
   // ✅ Load products
   const loadProducts = async () => {
     setLoading(true);
     try {
-      const res = await farmProductsApi.getFarmerProducts(farmerId, page, limit);
+      const res = await farmProductsApi.getFarmerProducts(
+        farmerId,
+        page,
+        limit,
+        {
+          search: searchTerm || undefined,
+          category: filterCategory || undefined,
+          status: (filterStatus as ProductStatus) || undefined,
+        }
+      );
       setProducts(res);
     } catch (err) {
       console.error("Error loading products:", err);
@@ -31,7 +54,23 @@ export default function FarmProductsPage() {
 
   useEffect(() => {
     loadProducts();
-  }, [page]);
+  }, [page, searchTerm, filterCategory, filterStatus]);
+
+  // ✅ Dynamic filter values (from loaded products)
+  const categories = useMemo(
+    () =>
+      Array.from(
+        new Set(products?.data.map((p) => p.category).filter(Boolean) ?? [])
+      ),
+    [products]
+  );
+  const statuses = useMemo(
+    () =>
+      Array.from(
+        new Set(products?.data.map((p) => p.status).filter(Boolean) ?? [])
+      ),
+    [products]
+  );
 
   return (
     <div className="p-6">
@@ -50,6 +89,50 @@ export default function FarmProductsPage() {
         </button>
       </div>
 
+      {/* ✅ Filter Bar */}
+      <div className="flex flex-wrap gap-3 mb-4">
+        <input
+          type="text"
+          placeholder="Search by name..."
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setPage(1);
+          }}
+          className="p-2 border rounded flex-1 min-w-[180px]"
+        />
+        <select
+          value={filterCategory}
+          onChange={(e) => {
+            setFilterCategory(e.target.value);
+            setPage(1);
+          }}
+          className="p-2 border rounded min-w-[160px]"
+        >
+          <option value="">All Categories</option>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
+        <select
+          value={filterStatus}
+          onChange={(e) => {
+            setFilterStatus(e.target.value as ProductStatus | "");
+            setPage(1);
+          }}
+          className="p-2 border rounded min-w-[140px]"
+        >
+          <option value="">All Status</option>
+          {statuses.map((st) => (
+            <option key={st} value={st}>
+              {st}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {loading ? (
         <p>Loading products...</p>
       ) : !products || products.data.length === 0 ? (
@@ -62,32 +145,38 @@ export default function FarmProductsPage() {
                 <th className="px-3 py-2">Product</th>
                 <th className="px-3 py-2">Qty</th>
                 <th className="px-3 py-2">Unit</th>
-                <th className="px-3 py-2">Price</th>
+                <th className="px-3 py-2">Unit Price</th>
+                <th className="px-3 py-2">Price (Total)</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {products.data.map((p) => (
-                <tr key={p.id} className="border-t">
-                  <td className="px-3 py-2">{p.product_name}</td>
-                  <td className="px-3 py-2">{p.quantity}</td>
-                  <td className="px-3 py-2">{p.unit}</td>
-                  <td className="px-3 py-2">Ksh {p.price}</td>
-                  <td className="px-3 py-2 capitalize">{p.status}</td>
-                  <td className="px-3 py-2">
-                    <button
-                      className="text-blue-600 hover:text-blue-800"
-                      onClick={() => {
-                        setSelectedProduct(p);
-                        setShowModal(true);
-                      }}
-                    >
-                      Edit
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {products.data.map((p) => {
+                const unitPrice =
+                  p.quantity && p.quantity > 0 ? (p.price ?? 0) / p.quantity : 0;
+                return (
+                  <tr key={p.id} className="border-t">
+                    <td className="px-3 py-2">{p.product_name}</td>
+                    <td className="px-3 py-2">{p.quantity}</td>
+                    <td className="px-3 py-2">{p.unit}</td>
+                    <td className="px-3 py-2">Ksh {unitPrice.toFixed(2)}</td>
+                    <td className="px-3 py-2">Ksh {p.price}</td>
+                    <td className="px-3 py-2 capitalize">{p.status}</td>
+                    <td className="px-3 py-2">
+                      <button
+                        className="text-blue-600 hover:text-blue-800"
+                        onClick={() => {
+                          setSelectedProduct(p);
+                          setShowModal(true);
+                        }}
+                      >
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 

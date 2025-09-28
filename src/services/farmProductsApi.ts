@@ -44,15 +44,19 @@ export const farmProductsApi = {
     return res.data;
   },
 
-  // 👨‍🌾 Get products by farmer (with pagination)
+  // 👨‍🌾 Get products by farmer (with pagination + filters)
   async getFarmerProducts(
     farmerId: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
+    filters?: { search?: string; category?: string; status?: ProductStatus }
   ): Promise<PaginatedResponse<FarmProduct>> {
     const params = new URLSearchParams();
     params.append("page", String(page));
     params.append("limit", String(limit));
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.category) params.append("category", filters.category);
+    if (filters?.status) params.append("status", filters.status);
 
     const res = await axios.get<PaginatedResponse<FarmProduct>>(
       `${API_BASE}/farm-products/farmer/${farmerId}`,
@@ -63,13 +67,22 @@ export const farmProductsApi = {
 
   // ➕ Add new product
   async add(product: Omit<FarmProduct, "id">): Promise<FarmProduct> {
-    const res = await axios.post<FarmProduct>(`${API_BASE}/farm-products`, product);
+    const res = await axios.post<FarmProduct>(
+      `${API_BASE}/farm-products`,
+      product
+    );
     return res.data;
   },
 
   // ♻️ Update product
-  async update(id: string | number, updates: Partial<FarmProduct>): Promise<FarmProduct> {
-    const res = await axios.put<FarmProduct>(`${API_BASE}/farm-products/${id}`, updates);
+  async update(
+    id: string | number,
+    updates: Partial<FarmProduct>
+  ): Promise<FarmProduct> {
+    const res = await axios.put<FarmProduct>(
+      `${API_BASE}/farm-products/${id}`,
+      updates
+    );
     return res.data;
   },
 
@@ -82,11 +95,17 @@ export const farmProductsApi = {
   },
 
   // ⚠️ Mark product as spoiled
-  async markSpoiled(id: string | number, spoilage_reason: string): Promise<FarmProduct> {
-    const res = await axios.put<FarmProduct>(`${API_BASE}/farm-products/${id}`, {
-      status: "hidden" as ProductStatus,
-      spoilage_reason,
-    });
+  async markSpoiled(
+    id: string | number,
+    spoilage_reason: string
+  ): Promise<FarmProduct> {
+    const res = await axios.put<FarmProduct>(
+      `${API_BASE}/farm-products/${id}`,
+      {
+        status: "hidden" as ProductStatus,
+        spoilage_reason,
+      }
+    );
     return res.data;
   },
 };

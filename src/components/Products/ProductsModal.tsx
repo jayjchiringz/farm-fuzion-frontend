@@ -1,7 +1,18 @@
 // src/components/Products/ProductsModal.tsx
 import React, { useState, useEffect } from "react";
-import { farmProductsApi, FarmProduct, PaginatedResponse } from "../../services/farmProductsApi";
+import {
+  farmProductsApi,
+  FarmProduct as ApiFarmProduct,
+  PaginatedResponse,
+  ProductStatus,
+} from "../../services/farmProductsApi";
 import { Edit, Plus, Info } from "lucide-react";
+
+// ✅ Extend FarmProduct with spoilage_reason
+export type FarmProduct = ApiFarmProduct & {
+  id?: string | number;
+  spoilage_reason?: string;
+};
 
 interface ProductsModalProps {
   farmerId: string;
@@ -16,32 +27,35 @@ export default function ProductsModal({
   onClose,
   onProductAdded,
   product,
-  mode = "inventory",
+  mode = "inventory", // ✅ default is inventory hub
 }: ProductsModalProps) {
   const [form, setForm] = useState<Partial<FarmProduct>>({
     product_name: "",
     quantity: 0,
     unit: "",
     category: "produce",
-    price: 0,
+    price: 0, // stored as total price
     status: "available",
     spoilage_reason: "",
   });
-  const [loading, setLoading] = useState(false);
-  const [loadingInventory, setLoadingInventory] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "pricing" | "status" | "inventory">(
-    mode === "add" || mode === "edit" ? "details" : "inventory"
+
+  const [loading, setLoading] = useState(false); // save loader
+  const [loadingInventory, setLoadingInventory] = useState(false); // inventory loader
+  const [activeTab, setActiveTab] = useState<
+    "details" | "pricing" | "status" | "inventory"
+  >(mode === "add" || mode === "edit" ? "details" : "inventory");
+
+  // ✅ Inventory state (server-driven pagination)
+  const [inventory, setInventory] = useState<PaginatedResponse<FarmProduct> | null>(
+    null
   );
 
-  // ✅ Inventory + Pagination state (from API)
-  const [inventory, setInventory] = useState<PaginatedResponse<FarmProduct> | null>(null);
+  // ✅ Pagination + Filters
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-
-  // ✅ Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const [filterStatus, setFilterStatus] = useState<ProductStatus | "">("");
 
   // ✅ Refresh key
   const [refreshKey, setRefreshKey] = useState(0);
@@ -56,31 +70,21 @@ export default function ProductsModal({
     if (product) setForm(product);
   }, [product]);
 
-  // ✅ Load inventory from API (with filters + pagination)
+  // ✅ Load inventory (server-side pagination & filters)
   const loadInventory = async () => {
     setLoadingInventory(true);
     try {
-      const res = await farmProductsApi.getFarmerProducts(
+      const data = await farmProductsApi.getFarmerProducts(
         farmerId,
         currentPage,
-        itemsPerPage
+        itemsPerPage,
+        {
+          search: searchTerm || undefined,
+          category: filterCategory || undefined,
+          status: filterStatus || undefined,
+        }
       );
-
-      // Client-side search/filter still applied here
-      const filteredData = res.data.filter((p) => {
-        const matchesSearch = p.product_name
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase());
-        const matchesCategory = filterCategory ? p.category === filterCategory : true;
-        const matchesStatus = filterStatus ? p.status === filterStatus : true;
-        return matchesSearch && matchesCategory && matchesStatus;
-      });
-
-      setInventory({
-        ...res,
-        data: filteredData,
-        total: filteredData.length, // ✅ adjusted for client-side filters
-      });
+      setInventory(data);
     } catch (err) {
       console.error("Error loading inventory:", err);
     } finally {
@@ -94,13 +98,12 @@ export default function ProductsModal({
     }
   }, [activeTab, refreshKey, currentPage, searchTerm, filterCategory, filterStatus]);
 
-  // ✅ Save handler
   const handleSave = async () => {
     try {
       setLoading(true);
       const payload = {
         ...form,
-        price: unitPrice * (form.quantity ?? 0),
+        price: unitPrice * (form.quantity ?? 0), // ✅ always save total price
       } as FarmProduct;
 
       if (product?.id || form.id) {
@@ -110,7 +113,7 @@ export default function ProductsModal({
       }
 
       onProductAdded();
-      triggerRefresh();
+      triggerRefresh(); // ✅ refresh inventory
       setActiveTab("inventory");
     } catch (err) {
       console.error("Error saving product:", err);
@@ -138,7 +141,7 @@ export default function ProductsModal({
     setActiveTab("details");
   };
 
-  // ✅ Modal title
+  // ✅ Determine modal title
   const modalTitle =
     activeTab === "inventory"
       ? "Inventory"
@@ -146,9 +149,7 @@ export default function ProductsModal({
       ? "Edit Product"
       : "Add New Product";
 
-  // ✅ Dynamic filter values
-  const categories = Array.from(new Set(inventory?.data.map((p) => p.category))).filter(Boolean);
-  const statuses = Array.from(new Set(inventory?.data.map((p) => p.status))).filter(Boolean);
+  const totalPages = Math.ceil((inventory?.total ?? 0) / itemsPerPage);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -167,7 +168,7 @@ export default function ProductsModal({
           )}
         </div>
 
-        {/* Tabs */}
+        {/* ✅ Tabs */}
         {activeTab !== "inventory" && (
           <div className="flex border-b mb-4">
             {["details", "pricing", "status"].map((tab) => (
@@ -186,13 +187,13 @@ export default function ProductsModal({
           </div>
         )}
 
-        {/* Content */}
+        {/* ✅ Content */}
         <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-          {/* ... existing Details / Pricing / Status tabs unchanged ... */}
+          {/* Product details / pricing / status unchanged ... */}
 
           {activeTab === "inventory" && (
             <div className="overflow-x-auto">
-              {/* Filter Bar */}
+              {/* ✅ Filter Bar */}
               <div className="flex flex-wrap gap-3 mb-3">
                 <input
                   type="text"
@@ -213,26 +214,23 @@ export default function ProductsModal({
                   className="p-2 border rounded min-w-[160px]"
                 >
                   <option value="">All Categories</option>
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
+                  {/* categories ideally should come from backend */}
+                  <option value="produce">Produce</option>
+                  <option value="input">Input</option>
+                  <option value="service">Service</option>
                 </select>
                 <select
                   value={filterStatus}
                   onChange={(e) => {
-                    setFilterStatus(e.target.value);
+                    setFilterStatus(e.target.value as ProductStatus | "");
                     setCurrentPage(1);
                   }}
                   className="p-2 border rounded min-w-[140px]"
                 >
                   <option value="">All Status</option>
-                  {statuses.map((st) => (
-                    <option key={st} value={st}>
-                      {st}
-                    </option>
-                  ))}
+                  <option value="available">Available</option>
+                  <option value="sold">Sold</option>
+                  <option value="hidden">Hidden</option>
                 </select>
               </div>
 
@@ -304,11 +302,10 @@ export default function ProductsModal({
                     </tbody>
                   </table>
 
-                  {/* Pagination Controls */}
+                  {/* ✅ Pagination Controls */}
                   <div className="flex justify-between items-center mt-3 text-sm">
                     <span>
-                      Page {inventory.page} of{" "}
-                      {Math.ceil(inventory.total / inventory.limit) || 1}
+                      Page {inventory.page} of {totalPages || 1}
                     </span>
                     <div className="flex gap-2">
                       <button
@@ -319,7 +316,7 @@ export default function ProductsModal({
                         Prev
                       </button>
                       <button
-                        disabled={currentPage >= Math.ceil(inventory.total / itemsPerPage)}
+                        disabled={currentPage >= totalPages}
                         onClick={() => setCurrentPage((p) => p + 1)}
                         className="px-2 py-1 border rounded disabled:opacity-50"
                       >
@@ -333,7 +330,7 @@ export default function ProductsModal({
           )}
         </div>
 
-        {/* Footer */}
+        {/* ✅ Footer */}
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}

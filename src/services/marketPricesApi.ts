@@ -15,7 +15,7 @@ export interface PaginatedResponse<T> {
   limit: number;
 }
 
-const API_BASE =
+export const API_BASE =
   import.meta.env.VITE_API_BASE_URL ||
   "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net";
 

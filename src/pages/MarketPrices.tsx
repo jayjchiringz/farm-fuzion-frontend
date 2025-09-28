@@ -4,8 +4,10 @@ import {
   marketPricesApi,
   MarketPrice,
   PaginatedResponse,
+  API_BASE
 } from "../services/marketPricesApi";
 import MarketsModal from "../components/Markets/MarketsModal";
+import axios from "axios";
 
 export default function MarketPricesPage() {
   const [prices, setPrices] = useState<PaginatedResponse<MarketPrice> | null>(
@@ -80,6 +82,15 @@ export default function MarketPricesPage() {
         >
           + Add Price
         </button>
+        <button
+          onClick={async () => {
+            await axios.get(`${API_BASE}/market-prices/sync`);
+            loadPrices();
+          }}
+          className="bg-blue-600 text-white px-3 py-1 rounded ml-2"
+        >
+          Sync Now
+        </button>
       </div>
 
       {/* ✅ Filter Bar */}
@@ -119,8 +130,8 @@ export default function MarketPricesPage() {
         >
           <option value="">All Regions</option>
           {regions.map((r) => (
-            <option key={r} value={r}>
-              {r}
+            <option key={r ?? "unknown"} value={r ?? ""}>
+              {r ?? "Unknown"}
             </option>
           ))}
         </select>
@@ -143,6 +154,8 @@ export default function MarketPricesPage() {
                 <th className="px-3 py-2">Broker</th>
                 <th className="px-3 py-2">Farmgate</th>
                 <th className="px-3 py-2">Actions</th>
+                <th className="px-3 py-2">Source</th>
+                <th className="px-3 py-2">Last Synced</th>
               </tr>
             </thead>
             <tbody>
@@ -155,6 +168,20 @@ export default function MarketPricesPage() {
                   <td className="px-3 py-2">Ksh {p.retail_price}</td>
                   <td className="px-3 py-2">Ksh {p.broker_price}</td>
                   <td className="px-3 py-2">Ksh {p.farmgate_price}</td>
+                  <td className="px-3 py-2">
+                    {p.benchmark ? (
+                      <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
+                        Benchmark ({p.source})
+                      </span>
+                    ) : (
+                      <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
+                        User
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-500">
+                    {p.last_synced ? new Date(p.last_synced).toLocaleString() : "—"}
+                  </td>
                   <td className="px-3 py-2">
                     <button
                       className="text-blue-600 hover:text-blue-800"

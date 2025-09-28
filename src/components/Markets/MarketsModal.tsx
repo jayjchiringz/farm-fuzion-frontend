@@ -34,6 +34,7 @@ export default function MarketsModal({
     region: "",
     source: "",
     collected_at: new Date().toISOString(),
+    benchmark: false,
   });
 
   const [loading, setLoading] = useState(false);
@@ -65,6 +66,7 @@ export default function MarketsModal({
         retail_price: price.retail_price ?? 0,
         broker_price: price.broker_price ?? 0,
         farmgate_price: price.farmgate_price ?? 0,
+        benchmark: price.benchmark ?? false,
       });
     }
   }, [price]);
@@ -223,7 +225,7 @@ export default function MarketsModal({
               <input
                 type="text"
                 className="w-full p-2 border rounded"
-                value={form.region}
+                value={form.region ?? ""}   // ✅ normalize null -> ""
                 onChange={(e) => setForm({ ...form, region: e.target.value })}
               />
 
@@ -232,9 +234,20 @@ export default function MarketsModal({
               <input
                 type="text"
                 className="w-full p-2 border rounded"
-                value={form.source}
+                value={form.source ?? ""}   // ✅ normalize null -> ""
                 onChange={(e) => setForm({ ...form, source: e.target.value })}
               />
+
+              {/* Benchmark */}
+              <label className="text-sm font-medium">Benchmark price?</label>
+              <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={!!form.benchmark}
+                onChange={(e) => setForm({ ...form, benchmark: e.target.checked })}
+              />
+              </div>
+
             </>
           )}
 

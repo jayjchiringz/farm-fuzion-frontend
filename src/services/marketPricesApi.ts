@@ -24,12 +24,12 @@ export const marketPricesApi = {
   async getAll(
     page: number = 1,
     limit: number = 10,
-    filters?: { search?: string; region?: string; category?: string }
+    filters?: { product?: string; region?: string; category?: string }
   ): Promise<PaginatedResponse<MarketPrice>> {
     const params = new URLSearchParams();
     params.append("page", String(page));
     params.append("limit", String(limit));
-    if (filters?.search) params.append("search", filters.search);
+    if (filters?.product) params.append("product", filters.product);
     if (filters?.region) params.append("region", filters.region);
     if (filters?.category) params.append("category", filters.category);
 

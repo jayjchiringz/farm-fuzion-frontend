@@ -4,7 +4,7 @@ import {
   marketPricesApi,
   MarketPrice,
   PaginatedResponse,
-  API_BASE
+  API_BASE,
 } from "../services/marketPricesApi";
 import MarketsModal from "../components/Markets/MarketsModal";
 import axios from "axios";
@@ -34,7 +34,7 @@ export default function MarketPricesPage() {
     setLoading(true);
     try {
       const res = await marketPricesApi.getAll(page, limit, {
-        search: searchTerm || undefined,
+        product: searchTerm || undefined,
         category: filterCategory || undefined,
         region: filterRegion || undefined,
       });
@@ -50,7 +50,7 @@ export default function MarketPricesPage() {
     loadPrices();
   }, [page, searchTerm, filterCategory, filterRegion]);
 
-  // ✅ Dynamic filter values (from loaded prices)
+  // ✅ Dynamic filter values
   const categories = useMemo(
     () =>
       Array.from(
@@ -73,24 +73,26 @@ export default function MarketPricesPage() {
         <h1 className="text-2xl font-bold text-brand-dark dark:text-brand-apple">
           Market Prices
         </h1>
-        <button
-          onClick={() => {
-            setSelectedPrice(undefined);
-            setShowModal(true);
-          }}
-          className="bg-brand-green text-white px-4 py-2 rounded"
-        >
-          + Add Price
-        </button>
-        <button
-          onClick={async () => {
-            await axios.get(`${API_BASE}/market-prices/sync`);
-            loadPrices();
-          }}
-          className="bg-blue-600 text-white px-3 py-1 rounded ml-2"
-        >
-          Sync Now
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setSelectedPrice(undefined);
+              setShowModal(true);
+            }}
+            className="bg-brand-green text-white px-4 py-2 rounded"
+          >
+            + Add Price
+          </button>
+          <button
+            onClick={async () => {
+              await axios.get(`${API_BASE}/market-prices/sync`);
+              loadPrices();
+            }}
+            className="bg-blue-600 text-white px-3 py-1 rounded"
+          >
+            Sync Now
+          </button>
+        </div>
       </div>
 
       {/* ✅ Filter Bar */}
@@ -153,9 +155,10 @@ export default function MarketPricesPage() {
                 <th className="px-3 py-2">Retail</th>
                 <th className="px-3 py-2">Broker</th>
                 <th className="px-3 py-2">Farmgate</th>
-                <th className="px-3 py-2">Actions</th>
                 <th className="px-3 py-2">Source</th>
-                <th className="px-3 py-2">Last Synced</th>
+                <th className="px-3 py-2">Collected At</th>
+                <th className="px-3 py-2">Type</th>
+                <th className="px-3 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -168,19 +171,22 @@ export default function MarketPricesPage() {
                   <td className="px-3 py-2">Ksh {p.retail_price}</td>
                   <td className="px-3 py-2">Ksh {p.broker_price}</td>
                   <td className="px-3 py-2">Ksh {p.farmgate_price}</td>
+                  <td className="px-3 py-2">{p.source}</td>
+                  <td className="px-3 py-2 text-sm text-gray-500">
+                    {p.collected_at
+                      ? new Date(p.collected_at).toLocaleDateString()
+                      : "—"}
+                  </td>
                   <td className="px-3 py-2">
                     {p.benchmark ? (
                       <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
-                        Benchmark ({p.source})
+                        Benchmark
                       </span>
                     ) : (
                       <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
                         User
                       </span>
                     )}
-                  </td>
-                  <td className="px-3 py-2 text-sm text-gray-500">
-                    {p.last_synced ? new Date(p.last_synced).toLocaleString() : "—"}
                   </td>
                   <td className="px-3 py-2">
                     <button

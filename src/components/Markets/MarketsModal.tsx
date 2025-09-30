@@ -5,7 +5,7 @@ import {
   MarketPrice as ApiMarketPrice,
   PaginatedResponse,
 } from "../../services/marketPricesApi";
-import { Edit, Plus, Info } from "lucide-react";
+import { Edit, Plus } from "lucide-react";
 
 // ✅ Extend MarketPrice for frontend
 export type MarketPrice = ApiMarketPrice & { id?: string | number };
@@ -75,14 +75,10 @@ export default function MarketsModal({
   const loadInventory = async () => {
     setLoadingInventory(true);
     try {
-      const data = await marketPricesApi.getAll(
-        currentPage,
-        itemsPerPage,
-        {
-          search: searchTerm || undefined,
-          region: filterRegion || undefined,
-        }
-      );
+      const data = await marketPricesApi.getAll(currentPage, itemsPerPage, {
+        product: searchTerm || undefined, // 🔹 match backend param
+        region: filterRegion || undefined,
+      });
       setInventory(data);
     } catch (err) {
       console.error("Error loading market prices:", err);
@@ -225,7 +221,7 @@ export default function MarketsModal({
               <input
                 type="text"
                 className="w-full p-2 border rounded"
-                value={form.region ?? ""}   // ✅ normalize null -> ""
+                value={form.region ?? ""}
                 onChange={(e) => setForm({ ...form, region: e.target.value })}
               />
 
@@ -234,47 +230,53 @@ export default function MarketsModal({
               <input
                 type="text"
                 className="w-full p-2 border rounded"
-                value={form.source ?? ""}   // ✅ normalize null -> ""
+                value={form.source ?? ""}
                 onChange={(e) => setForm({ ...form, source: e.target.value })}
               />
 
               {/* Benchmark */}
               <label className="text-sm font-medium">Benchmark price?</label>
               <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={!!form.benchmark}
-                onChange={(e) => setForm({ ...form, benchmark: e.target.checked })}
-              />
+                <input
+                  type="checkbox"
+                  checked={!!form.benchmark}
+                  onChange={(e) =>
+                    setForm({ ...form, benchmark: e.target.checked })
+                  }
+                />
               </div>
-
             </>
           )}
 
           {activeTab === "pricing" && (
             <>
-              {["wholesale_price", "retail_price", "broker_price", "farmgate_price"].map(
-                (field) => (
-                  <div key={field}>
-                    <label className="text-sm font-medium capitalize">
-                      {field.replace("_", " ")} (Ksh)
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full p-2 border rounded"
-                      value={typeof form[field as keyof MarketPrice] === "number"
+              {[
+                "wholesale_price",
+                "retail_price",
+                "broker_price",
+                "farmgate_price",
+              ].map((field) => (
+                <div key={field}>
+                  <label className="text-sm font-medium capitalize">
+                    {field.replace("_", " ")} (Ksh)
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full p-2 border rounded"
+                    value={
+                      typeof form[field as keyof MarketPrice] === "number"
                         ? (form[field as keyof MarketPrice] as number)
-                        : ""}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          [field]: Number(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                )
-              )}
+                        : ""
+                    }
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        [field]: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+              ))}
             </>
           )}
 

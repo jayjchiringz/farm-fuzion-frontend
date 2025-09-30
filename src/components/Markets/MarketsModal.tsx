@@ -6,6 +6,14 @@ import {
   PaginatedResponse,
 } from "../../services/marketPricesApi";
 import { Edit, Plus } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 // ✅ Extend MarketPrice for frontend
 export type MarketPrice = ApiMarketPrice & { id?: string | number };
@@ -35,12 +43,15 @@ export default function MarketsModal({
     source: "",
     collected_at: new Date().toISOString(),
     benchmark: false,
+    volatility: "stable",
+    last_synced: new Date().toISOString(),
   });
 
   const [loading, setLoading] = useState(false);
   const [loadingInventory, setLoadingInventory] = useState(false);
+
   const [activeTab, setActiveTab] = useState<
-    "details" | "pricing" | "inventory"
+    "details" | "pricing" | "inventory" | "historical" | "intel"
   >(mode === "add" || mode === "edit" ? "details" : "inventory");
 
   // ✅ Inventory state
@@ -67,6 +78,8 @@ export default function MarketsModal({
         broker_price: price.broker_price ?? 0,
         farmgate_price: price.farmgate_price ?? 0,
         benchmark: price.benchmark ?? false,
+        volatility: price.volatility ?? "stable",
+        last_synced: price.last_synced ?? new Date().toISOString(),
       });
     }
   }, [price]);
@@ -76,7 +89,7 @@ export default function MarketsModal({
     setLoadingInventory(true);
     try {
       const data = await marketPricesApi.getAll(currentPage, itemsPerPage, {
-        product: searchTerm || undefined, // 🔹 match backend param
+        product: searchTerm || undefined,
         region: filterRegion || undefined,
       });
       setInventory(data);
@@ -88,7 +101,9 @@ export default function MarketsModal({
   };
 
   useEffect(() => {
-    if (activeTab === "inventory") loadInventory();
+    if (activeTab === "inventory" || activeTab === "historical") {
+      loadInventory();
+    }
   }, [activeTab, refreshKey, currentPage, searchTerm, filterRegion]);
 
   // ✅ Save
@@ -133,6 +148,9 @@ export default function MarketsModal({
       region: "",
       source: "",
       collected_at: new Date().toISOString(),
+      benchmark: false,
+      volatility: "stable",
+      last_synced: new Date().toISOString(),
     });
     setActiveTab("details");
   };
@@ -167,7 +185,7 @@ export default function MarketsModal({
         {/* ✅ Tabs */}
         {activeTab !== "inventory" && (
           <div className="flex border-b mb-4">
-            {["details", "pricing"].map((tab) => (
+            {["details", "pricing", "historical", "intel"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
@@ -185,9 +203,9 @@ export default function MarketsModal({
 
         {/* ✅ Content */}
         <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+          {/* Details */}
           {activeTab === "details" && (
             <>
-              {/* Product */}
               <label className="text-sm font-medium">Product Name</label>
               <input
                 type="text"
@@ -198,7 +216,6 @@ export default function MarketsModal({
                 }
               />
 
-              {/* Category */}
               <label className="text-sm font-medium">Category</label>
               <input
                 type="text"
@@ -207,7 +224,6 @@ export default function MarketsModal({
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
               />
 
-              {/* Unit */}
               <label className="text-sm font-medium">Unit</label>
               <input
                 type="text"
@@ -216,7 +232,6 @@ export default function MarketsModal({
                 onChange={(e) => setForm({ ...form, unit: e.target.value })}
               />
 
-              {/* Region */}
               <label className="text-sm font-medium">Region</label>
               <input
                 type="text"
@@ -225,7 +240,6 @@ export default function MarketsModal({
                 onChange={(e) => setForm({ ...form, region: e.target.value })}
               />
 
-              {/* Source */}
               <label className="text-sm font-medium">Source</label>
               <input
                 type="text"
@@ -234,7 +248,6 @@ export default function MarketsModal({
                 onChange={(e) => setForm({ ...form, source: e.target.value })}
               />
 
-              {/* Benchmark */}
               <label className="text-sm font-medium">Benchmark price?</label>
               <div className="flex items-center gap-2">
                 <input
@@ -248,6 +261,7 @@ export default function MarketsModal({
             </>
           )}
 
+          {/* Pricing */}
           {activeTab === "pricing" && (
             <>
               {[
@@ -280,9 +294,63 @@ export default function MarketsModal({
             </>
           )}
 
+          {/* Historical */}
+          {activeTab === "historical" && (
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={inventory?.data || []}>
+                  <XAxis
+                    dataKey="collected_at"
+                    tickFormatter={(d) => new Date(d).toLocaleDateString()}
+                  />
+                  <YAxis />
+                  <Tooltip
+                    labelFormatter={(d) => new Date(d).toLocaleString()}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="wholesale_price"
+                    stroke="#4CAF50"
+                    name="Wholesale"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="retail_price"
+                    stroke="#2196F3"
+                    name="Retail"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Intel */}
+          {activeTab === "intel" && (
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                ⚡ AI-assisted fetch and web-scraped values (marked volatile).
+              </p>
+              <p>
+                <strong>Volatility:</strong> {form.volatility ?? "stable"}
+              </p>
+              <p>
+                <strong>Last Synced:</strong>{" "}
+                {form.last_synced
+                  ? new Date(form.last_synced).toLocaleString()
+                  : "—"}
+              </p>
+              <p>
+                <strong>Current Auto Price:</strong>{" "}
+                {form.volatility === "volatile"
+                  ? `Ksh ${form.wholesale_price}`
+                  : "—"}
+              </p>
+            </div>
+          )}
+
+          {/* Inventory */}
           {activeTab === "inventory" && (
             <div className="overflow-x-auto">
-              {/* Filters */}
               <div className="flex flex-wrap gap-3 mb-3">
                 <input
                   type="text"
@@ -349,7 +417,6 @@ export default function MarketsModal({
                     </tbody>
                   </table>
 
-                  {/* Pagination */}
                   <div className="flex justify-between items-center mt-3 text-sm">
                     <span>
                       Page {inventory.page} of {totalPages || 1}

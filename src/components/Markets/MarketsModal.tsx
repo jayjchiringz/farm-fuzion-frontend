@@ -59,6 +59,9 @@ export default function MarketsModal({
   const [inventory, setInventory] =
     useState<PaginatedResponse<MarketPrice> | null>(null);
 
+  // ✅ Historical data (full history for product)
+  const [history, setHistory] = useState<MarketPrice[]>([]);
+
   // ✅ Pagination + filters
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -82,10 +85,14 @@ export default function MarketsModal({
         volatility: price.volatility ?? "stable",
         last_synced: price.last_synced ?? new Date().toISOString(),
       });
+      
+      // Auto-load historical data for this product
+      loadHistory(price.product_name);
+      setActiveTab("historical");
     }
   }, [price]);
 
-  // ✅ Load inventory
+  // ✅ Load paginated inventory (for browsing all)
   const loadInventory = async () => {
     setLoadingInventory(true);
     try {
@@ -101,21 +108,31 @@ export default function MarketsModal({
     }
   };
 
+  // ✅ Load full history for a product
+  const loadHistory = async (productName: string) => {
+    try {
+      const all = await marketPricesApi.getAll(1, 200, { product: productName }); // fetch more
+      setHistory(all.data);
+    } catch (err) {
+      console.error("Error loading history:", err);
+    }
+  };
+
   useEffect(() => {
-    if (activeTab === "inventory" || activeTab === "historical") {
+    if (activeTab === "inventory") {
       loadInventory();
     }
   }, [activeTab, refreshKey, currentPage, searchTerm, filterRegion]);
 
-  // ✅ Historical data sorted by collected_at
+  // ✅ Historical data sorted by collected_at (from full history)
   const historicalData = useMemo(() => {
-    if (!inventory?.data) return [];
-    return [...inventory.data].sort(
+    if (!history.length) return [];
+    return [...history].sort(
       (a, b) =>
         new Date(a.collected_at ?? "").getTime() -
         new Date(b.collected_at ?? "").getTime()
     );
-  }, [inventory]);
+  }, [history]);
 
   // ✅ Save
   const handleSave = async () => {

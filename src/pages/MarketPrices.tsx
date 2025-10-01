@@ -3,7 +3,6 @@ import React, { useEffect, useState, useMemo } from "react";
 import {
   marketPricesApi,
   MarketPrice,
-  PaginatedResponse,
   API_BASE,
 } from "../services/marketPricesApi";
 import MarketsModal from "../components/Markets/MarketsModal";
@@ -11,13 +10,8 @@ import axios from "axios";
 import { formatCurrencyKES } from "../utils/format";
 
 export default function MarketPricesPage() {
-  const [prices, setPrices] = useState<PaginatedResponse<MarketPrice> | null>(
-    null
-  );
+  const [summary, setSummary] = useState<MarketPrice[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const [page, setPage] = useState(1);
-  const limit = 5;
 
   // ✅ Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,49 +24,55 @@ export default function MarketPricesPage() {
     undefined
   );
 
-  // ✅ Load prices
-  const loadPrices = async () => {
+  // ✅ Load summary (latest per product)
+  const loadSummary = async () => {
     setLoading(true);
     try {
-      const res = await marketPricesApi.getAll(page, limit, {
-        product: searchTerm || undefined,
-        category: filterCategory || undefined,
-        region: filterRegion || undefined,
-      });
-      setPrices(res);
+      let res = await marketPricesApi.getSummary();
+
+      // 🔍 Apply filters client-side
+      if (searchTerm) {
+        res = res.filter((p) =>
+          p.product_name?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+      if (filterCategory) {
+        res = res.filter((p) => p.category === filterCategory);
+      }
+      if (filterRegion) {
+        res = res.filter((p) => p.region === filterRegion);
+      }
+
+      setSummary(res);
     } catch (err) {
-      console.error("Error loading market prices:", err);
+      console.error("Error loading summary:", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadPrices();
-  }, [page, searchTerm, filterCategory, filterRegion]);
+    loadSummary();
+  }, [searchTerm, filterCategory, filterRegion]);
 
   // ✅ Dynamic filter values
   const categories = useMemo(
     () =>
-      Array.from(
-        new Set(prices?.data.map((p) => p.category).filter(Boolean) ?? [])
-      ),
-    [prices]
+      Array.from(new Set(summary.map((p) => p.category).filter(Boolean) ?? [])),
+    [summary]
   );
 
   const regions = useMemo(
     () =>
-      Array.from(
-        new Set(prices?.data.map((p) => p.region).filter(Boolean) ?? [])
-      ),
-    [prices]
+      Array.from(new Set(summary.map((p) => p.region).filter(Boolean) ?? [])),
+    [summary]
   );
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-brand-dark dark:text-brand-apple">
-          Market Prices
+          Market Prices (Latest per Product)
         </h1>
         <div className="flex gap-2">
           <button
@@ -87,7 +87,7 @@ export default function MarketPricesPage() {
           <button
             onClick={async () => {
               await axios.get(`${API_BASE}/market-prices/sync`);
-              loadPrices();
+              loadSummary();
             }}
             className="bg-blue-600 text-white px-3 py-1 rounded"
           >
@@ -102,18 +102,12 @@ export default function MarketPricesPage() {
           type="text"
           placeholder="Search by product..."
           value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setPage(1);
-          }}
+          onChange={(e) => setSearchTerm(e.target.value)}
           className="p-2 border rounded flex-1 min-w-[180px]"
         />
         <select
           value={filterCategory}
-          onChange={(e) => {
-            setFilterCategory(e.target.value);
-            setPage(1);
-          }}
+          onChange={(e) => setFilterCategory(e.target.value)}
           className="p-2 border rounded min-w-[160px]"
         >
           <option value="">All Categories</option>
@@ -125,10 +119,7 @@ export default function MarketPricesPage() {
         </select>
         <select
           value={filterRegion}
-          onChange={(e) => {
-            setFilterRegion(e.target.value);
-            setPage(1);
-          }}
+          onChange={(e) => setFilterRegion(e.target.value)}
           className="p-2 border rounded min-w-[160px]"
         >
           <option value="">All Regions</option>
@@ -142,7 +133,7 @@ export default function MarketPricesPage() {
 
       {loading ? (
         <p>Loading market prices...</p>
-      ) : !prices || prices.data.length === 0 ? (
+      ) : summary.length === 0 ? (
         <p className="text-gray-500">No market prices found.</p>
       ) : (
         <div className="overflow-x-auto">
@@ -154,25 +145,23 @@ export default function MarketPricesPage() {
                 <th className="px-3 py-2">Region</th>
                 <th className="px-3 py-2">Wholesale</th>
                 <th className="px-3 py-2">Retail</th>
-                <th className="px-3 py-2">Broker</th>
-                <th className="px-3 py-2">Farmgate</th>
-                <th className="px-3 py-2">Source</th>
                 <th className="px-3 py-2">Collected At</th>
                 <th className="px-3 py-2">Type</th>
                 <th className="px-3 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {prices.data.map((p) => (
+              {summary.map((p) => (
                 <tr key={p.id} className="border-t">
                   <td className="px-3 py-2">{p.product_name}</td>
                   <td className="px-3 py-2">{p.category}</td>
                   <td className="px-3 py-2">{p.region}</td>
-                  <td className="px-3 py-2">{formatCurrencyKES(p.wholesale_price)}</td>
-                  <td className="px-3 py-2">{formatCurrencyKES(p.retail_price)}</td>
-                  <td className="px-3 py-2">{formatCurrencyKES(p.broker_price)}</td>
-                  <td className="px-3 py-2">{formatCurrencyKES(p.farmgate_price)}</td>
-                  <td className="px-3 py-2">{p.source}</td>
+                  <td className="px-3 py-2">
+                    {formatCurrencyKES(p.wholesale_price)}
+                  </td>
+                  <td className="px-3 py-2">
+                    {formatCurrencyKES(p.retail_price)}
+                  </td>
                   <td className="px-3 py-2 text-sm text-gray-500">
                     {p.collected_at
                       ? new Date(p.collected_at).toLocaleDateString()
@@ -197,36 +186,13 @@ export default function MarketPricesPage() {
                         setShowModal(true);
                       }}
                     >
-                      Edit
+                      View
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-
-          {/* Pagination */}
-          <div className="flex justify-between items-center mt-3 text-sm">
-            <span>
-              Page {prices.page} of {Math.ceil(prices.total / prices.limit)}
-            </span>
-            <div className="flex gap-2">
-              <button
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="px-2 py-1 border rounded disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <button
-                disabled={page >= Math.ceil(prices.total / limit)}
-                onClick={() => setPage((p) => p + 1)}
-                className="px-2 py-1 border rounded disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
@@ -235,7 +201,7 @@ export default function MarketPricesPage() {
         <MarketsModal
           price={selectedPrice}
           onClose={() => setShowModal(false)}
-          onMarketAdded={loadPrices}
+          onMarketAdded={loadSummary}
         />
       )}
     </div>

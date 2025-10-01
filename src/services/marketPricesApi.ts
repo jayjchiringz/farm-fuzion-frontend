@@ -81,4 +81,13 @@ export const marketPricesApi = {
     );
     return res.data;
   },
+
+  // 🔹 Get summary (latest per product)
+  async getSummary(): Promise<MarketPrice[]> {
+    const res = await axios.get<{ data: MarketPrice[] }>(
+      `${API_BASE}/market-prices/summary`
+    );
+    return res.data.data;
+  },
+
 };

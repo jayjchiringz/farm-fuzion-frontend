@@ -26,18 +26,23 @@ export const marketPricesApi = {
     limit: number = 10,
     filters?: { product?: string; region?: string; category?: string }
   ): Promise<PaginatedResponse<MarketPrice>> {
-    const params = new URLSearchParams();
-    params.append("page", String(page));
-    params.append("limit", String(limit));
-    if (filters?.product) params.append("product", filters.product);
-    if (filters?.region) params.append("region", filters.region);
-    if (filters?.category) params.append("category", filters.category);
+    try {
+      const params = new URLSearchParams();
+      params.append("page", String(page));
+      params.append("limit", String(limit));
+      if (filters?.product) params.append("product", filters.product);
+      if (filters?.region) params.append("region", filters.region);
+      if (filters?.category) params.append("category", filters.category);
 
-    const res = await axios.get<PaginatedResponse<MarketPrice>>(
-      `${API_BASE}/market-prices`,
-      { params }
-    );
-    return res.data;
+      const res = await axios.get<PaginatedResponse<MarketPrice>>(
+        `${API_BASE}/market-prices`,
+        { params }
+      );
+      return res.data;
+    } catch (err) {
+      console.error("❌ Error fetching market prices:", err);
+      throw err;
+    }
   },
 
   // ➕ Add new market price
@@ -65,6 +70,14 @@ export const marketPricesApi = {
   async remove(id: string | number): Promise<{ success: boolean }> {
     const res = await axios.delete<{ success: boolean }>(
       `${API_BASE}/market-prices/${id}`
+    );
+    return res.data;
+  },
+
+  // 🔄 Sync materialized view
+  async sync(): Promise<{ message: string }> {
+    const res = await axios.post<{ message: string }>(
+      `${API_BASE}/market-prices/sync`
     );
     return res.data;
   },

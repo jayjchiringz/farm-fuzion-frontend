@@ -111,7 +111,9 @@ export default function MarketsModal({
   // ✅ Load full history for a product
   const loadHistory = async (productName: string) => {
     try {
-      const all = await marketPricesApi.getAll(1, 200, { product: productName }); // fetch more
+      const all = await marketPricesApi.getAll(1, 500, {
+        product: productName.trim(),
+      });
       setHistory(all.data);
     } catch (err) {
       console.error("Error loading history:", err);
@@ -330,31 +332,37 @@ export default function MarketsModal({
           {/* Historical */}
           {activeTab === "historical" && (
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={historicalData}>
-                  <XAxis
-                    dataKey="collected_at"
-                    tickFormatter={(d) => new Date(d).toLocaleDateString()}
-                  />
-                  <YAxis />
-                  <Tooltip
-                    labelFormatter={(d) => new Date(d).toLocaleString()}
-                    formatter={(value: number) => formatCurrencyKES(value)}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="wholesale_price"
-                    stroke="#4CAF50"
-                    name="Wholesale"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="retail_price"
-                    stroke="#2196F3"
-                    name="Retail"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {historicalData.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  No historical data available for this product.
+                </p>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={historicalData}>
+                    <XAxis
+                      dataKey="collected_at"
+                      tickFormatter={(d) => new Date(d).toLocaleDateString()}
+                    />
+                    <YAxis />
+                    <Tooltip
+                      labelFormatter={(d) => new Date(d).toLocaleString()}
+                      formatter={(value: number) => formatCurrencyKES(value)}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="wholesale_price"
+                      stroke="#4CAF50"
+                      name="Wholesale"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="retail_price"
+                      stroke="#2196F3"
+                      name="Retail"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </div>
           )}
 

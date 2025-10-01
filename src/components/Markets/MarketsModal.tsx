@@ -1,5 +1,5 @@
 // src/components/Markets/MarketsModal.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   marketPricesApi,
   MarketPrice as ApiMarketPrice,
@@ -14,6 +14,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { formatCurrencyKES } from "../../utils/format";
 
 // ✅ Extend MarketPrice for frontend
 export type MarketPrice = ApiMarketPrice & { id?: string | number };
@@ -35,10 +36,10 @@ export default function MarketsModal({
     product_name: "",
     category: "",
     unit: "",
-    wholesale_price: 0,
-    retail_price: 0,
-    broker_price: 0,
-    farmgate_price: 0,
+    wholesale_price: null,
+    retail_price: null,
+    broker_price: null,
+    farmgate_price: null,
     region: "",
     source: "",
     collected_at: new Date().toISOString(),
@@ -73,10 +74,10 @@ export default function MarketsModal({
     if (price) {
       setForm({
         ...price,
-        wholesale_price: price.wholesale_price ?? 0,
-        retail_price: price.retail_price ?? 0,
-        broker_price: price.broker_price ?? 0,
-        farmgate_price: price.farmgate_price ?? 0,
+        wholesale_price: price.wholesale_price ?? null,
+        retail_price: price.retail_price ?? null,
+        broker_price: price.broker_price ?? null,
+        farmgate_price: price.farmgate_price ?? null,
         benchmark: price.benchmark ?? false,
         volatility: price.volatility ?? "stable",
         last_synced: price.last_synced ?? new Date().toISOString(),
@@ -105,6 +106,16 @@ export default function MarketsModal({
       loadInventory();
     }
   }, [activeTab, refreshKey, currentPage, searchTerm, filterRegion]);
+
+  // ✅ Historical data sorted by collected_at
+  const historicalData = useMemo(() => {
+    if (!inventory?.data) return [];
+    return [...inventory.data].sort(
+      (a, b) =>
+        new Date(a.collected_at ?? "").getTime() -
+        new Date(b.collected_at ?? "").getTime()
+    );
+  }, [inventory]);
 
   // ✅ Save
   const handleSave = async () => {
@@ -141,10 +152,10 @@ export default function MarketsModal({
       product_name: "",
       category: "",
       unit: "",
-      wholesale_price: 0,
-      retail_price: 0,
-      broker_price: 0,
-      farmgate_price: 0,
+      wholesale_price: null,
+      retail_price: null,
+      broker_price: null,
+      farmgate_price: null,
       region: "",
       source: "",
       collected_at: new Date().toISOString(),
@@ -210,7 +221,7 @@ export default function MarketsModal({
               <input
                 type="text"
                 className="w-full p-2 border rounded"
-                value={form.product_name}
+                value={form.product_name ?? ""}
                 onChange={(e) =>
                   setForm({ ...form, product_name: e.target.value })
                 }
@@ -220,7 +231,7 @@ export default function MarketsModal({
               <input
                 type="text"
                 className="w-full p-2 border rounded"
-                value={form.category}
+                value={form.category ?? ""}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
               />
 
@@ -228,7 +239,7 @@ export default function MarketsModal({
               <input
                 type="text"
                 className="w-full p-2 border rounded"
-                value={form.unit}
+                value={form.unit ?? ""}
                 onChange={(e) => setForm({ ...form, unit: e.target.value })}
               />
 
@@ -264,6 +275,9 @@ export default function MarketsModal({
           {/* Pricing */}
           {activeTab === "pricing" && (
             <>
+              <p className="text-xs text-gray-500 mb-2">
+                All prices are entered in Kenyan Shillings (KES).
+              </p>
               {[
                 "wholesale_price",
                 "retail_price",
@@ -272,7 +286,7 @@ export default function MarketsModal({
               ].map((field) => (
                 <div key={field}>
                   <label className="text-sm font-medium capitalize">
-                    {field.replace("_", " ")} (Ksh)
+                    {field.replace("_", " ")} (KES)
                   </label>
                   <input
                     type="number"
@@ -285,7 +299,9 @@ export default function MarketsModal({
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        [field]: Number(e.target.value),
+                        [field]: e.target.value
+                          ? Number(e.target.value)
+                          : null,
                       })
                     }
                   />
@@ -298,7 +314,7 @@ export default function MarketsModal({
           {activeTab === "historical" && (
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={inventory?.data || []}>
+                <LineChart data={historicalData}>
                   <XAxis
                     dataKey="collected_at"
                     tickFormatter={(d) => new Date(d).toLocaleDateString()}
@@ -306,6 +322,7 @@ export default function MarketsModal({
                   <YAxis />
                   <Tooltip
                     labelFormatter={(d) => new Date(d).toLocaleString()}
+                    formatter={(value: number) => formatCurrencyKES(value)}
                   />
                   <Line
                     type="monotone"
@@ -342,7 +359,7 @@ export default function MarketsModal({
               <p>
                 <strong>Current Auto Price:</strong>{" "}
                 {form.volatility === "volatile"
-                  ? `Ksh ${form.wholesale_price}`
+                  ? formatCurrencyKES(form.wholesale_price)
                   : "—"}
               </p>
             </div>
@@ -399,10 +416,18 @@ export default function MarketsModal({
                           <td className="px-3 py-2">{p.product_name}</td>
                           <td className="px-3 py-2">{p.unit}</td>
                           <td className="px-3 py-2">{p.region}</td>
-                          <td className="px-3 py-2">Ksh {p.wholesale_price}</td>
-                          <td className="px-3 py-2">Ksh {p.retail_price}</td>
-                          <td className="px-3 py-2">Ksh {p.broker_price}</td>
-                          <td className="px-3 py-2">Ksh {p.farmgate_price}</td>
+                          <td className="px-3 py-2">
+                            {formatCurrencyKES(p.wholesale_price)}
+                          </td>
+                          <td className="px-3 py-2">
+                            {formatCurrencyKES(p.retail_price)}
+                          </td>
+                          <td className="px-3 py-2">
+                            {formatCurrencyKES(p.broker_price)}
+                          </td>
+                          <td className="px-3 py-2">
+                            {formatCurrencyKES(p.farmgate_price)}
+                          </td>
                           <td className="px-3 py-2">
                             <button
                               className="text-blue-600 hover:text-blue-800"

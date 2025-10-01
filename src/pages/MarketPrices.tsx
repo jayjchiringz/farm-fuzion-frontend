@@ -8,6 +8,7 @@ import {
 } from "../services/marketPricesApi";
 import MarketsModal from "../components/Markets/MarketsModal";
 import axios from "axios";
+import { formatCurrencyKES } from "../utils/format";
 
 export default function MarketPricesPage() {
   const [prices, setPrices] = useState<PaginatedResponse<MarketPrice> | null>(
@@ -167,10 +168,10 @@ export default function MarketPricesPage() {
                   <td className="px-3 py-2">{p.product_name}</td>
                   <td className="px-3 py-2">{p.category}</td>
                   <td className="px-3 py-2">{p.region}</td>
-                  <td className="px-3 py-2">Ksh {p.wholesale_price}</td>
-                  <td className="px-3 py-2">Ksh {p.retail_price}</td>
-                  <td className="px-3 py-2">Ksh {p.broker_price}</td>
-                  <td className="px-3 py-2">Ksh {p.farmgate_price}</td>
+                  <td className="px-3 py-2">{formatCurrencyKES(p.wholesale_price)}</td>
+                  <td className="px-3 py-2">{formatCurrencyKES(p.retail_price)}</td>
+                  <td className="px-3 py-2">{formatCurrencyKES(p.broker_price)}</td>
+                  <td className="px-3 py-2">{formatCurrencyKES(p.farmgate_price)}</td>
                   <td className="px-3 py-2">{p.source}</td>
                   <td className="px-3 py-2 text-sm text-gray-500">
                     {p.collected_at

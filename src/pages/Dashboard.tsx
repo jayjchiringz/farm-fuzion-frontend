@@ -120,7 +120,7 @@ export default function Dashboard() {
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-brand-dark text-brand-dark dark:text-brand-apple p-6 md:p-8 transition-colors duration-300">
           <h1 className="text-[46px] leading-[64px] font-bold mb-4 font-ubuntu">
-            {fullName} welcome to sustained Agribusiness!
+            {fullName} Sustained Agribusiness!
           </h1>
 
           <div className="mt-10">

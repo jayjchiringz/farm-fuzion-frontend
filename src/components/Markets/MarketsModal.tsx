@@ -126,6 +126,12 @@ export default function MarketsModal({
     }
   }, [activeTab, refreshKey, currentPage, searchTerm, filterRegion]);
 
+  useEffect(() => {
+    if (activeTab === "historical" && form.product_name) {
+      loadHistory(form.product_name);
+    }
+  }, [activeTab, form.product_name]);
+
   // ✅ Historical data sorted by collected_at (from full history)
   const historicalData = useMemo(() => {
     if (!history.length) return [];

@@ -108,7 +108,7 @@ export default function MarketsModal({
     setLoadingInventory(true);
     try {
       const data = await marketPricesApi.getAll(currentPage, itemsPerPage, {
-        product: searchTerm || undefined,
+        product: debouncedSearch || undefined,
         region: filterRegion || undefined,
       });
       setInventory(data);
@@ -133,26 +133,7 @@ export default function MarketsModal({
 
   useEffect(() => {
     if (activeTab !== "inventory") return;
-
-    let isMounted = true; // prevent stale updates
-    setLoadingInventory(true);
-
-    marketPricesApi
-      .getAll(currentPage, itemsPerPage, {
-        product: debouncedSearch || undefined,
-        region: filterRegion || undefined,
-      })
-      .then((data) => {
-        if (isMounted) setInventory(data);
-      })
-      .catch((err) => console.error("Error loading market prices:", err))
-      .finally(() => {
-        if (isMounted) setLoadingInventory(false);
-      });
-
-    return () => {
-      isMounted = false; // cancel if unmounted or re-run
-    };
+    loadInventory();
   }, [activeTab, refreshKey, currentPage, debouncedSearch, filterRegion]);
 
   useEffect(() => {
@@ -453,78 +434,81 @@ export default function MarketsModal({
 
               {loadingInventory ? (
                 <p className="text-gray-500">Refreshing prices…</p>
-              ) : inventory && inventory.data.length > 0 ? (
-
-                <p className="text-gray-500 text-sm">No prices found.</p>
-              ) : (
-                <>
-                  <table className="w-full text-left border">
-                    <thead className="bg-slate-100 dark:bg-[#0a3d32]">
-                      <tr>
-                        <th className="px-3 py-2">Product</th>
-                        <th className="px-3 py-2">Unit</th>
-                        <th className="px-3 py-2">Region</th>
-                        <th className="px-3 py-2">Wholesale</th>
-                        <th className="px-3 py-2">Retail</th>
-                        <th className="px-3 py-2">Broker</th>
-                        <th className="px-3 py-2">Farmgate</th>
-                        <th className="px-3 py-2">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {inventory.data.map((p) => (
-                        <tr key={p.id} className="border-t">
-                          <td className="px-3 py-2">{p.product_name}</td>
-                          <td className="px-3 py-2">{p.unit}</td>
-                          <td className="px-3 py-2">{p.region}</td>
-                          <td className="px-3 py-2">
-                            {formatCurrencyKES(p.wholesale_price)}
-                          </td>
-                          <td className="px-3 py-2">
-                            {formatCurrencyKES(p.retail_price)}
-                          </td>
-                          <td className="px-3 py-2">
-                            {formatCurrencyKES(p.broker_price)}
-                          </td>
-                          <td className="px-3 py-2">
-                            {formatCurrencyKES(p.farmgate_price)}
-                          </td>
-                          <td className="px-3 py-2">
-                            <button
-                              className="text-blue-600 hover:text-blue-800"
-                              onClick={() => handleEditFromInventory(p)}
-                              title="Edit Price"
-                            >
-                              <Edit size={16} />
-                            </button>
-                          </td>
+              ) : inventory ? (
+                inventory.data.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No prices found.</p>
+                ) : (
+                  <>
+                    <table className="w-full text-left border">
+                      <thead className="bg-slate-100 dark:bg-[#0a3d32]">
+                        <tr>
+                          <th className="px-3 py-2">Product</th>
+                          <th className="px-3 py-2">Unit</th>
+                          <th className="px-3 py-2">Region</th>
+                          <th className="px-3 py-2">Wholesale</th>
+                          <th className="px-3 py-2">Retail</th>
+                          <th className="px-3 py-2">Broker</th>
+                          <th className="px-3 py-2">Farmgate</th>
+                          <th className="px-3 py-2">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {inventory.data.map((p) => (
+                          <tr key={p.id} className="border-t">
+                            <td className="px-3 py-2">{p.product_name}</td>
+                            <td className="px-3 py-2">{p.unit}</td>
+                            <td className="px-3 py-2">{p.region}</td>
+                            <td className="px-3 py-2">
+                              {formatCurrencyKES(p.wholesale_price)}
+                            </td>
+                            <td className="px-3 py-2">
+                              {formatCurrencyKES(p.retail_price)}
+                            </td>
+                            <td className="px-3 py-2">
+                              {formatCurrencyKES(p.broker_price)}
+                            </td>
+                            <td className="px-3 py-2">
+                              {formatCurrencyKES(p.farmgate_price)}
+                            </td>
+                            <td className="px-3 py-2">
+                              <button
+                                className="text-blue-600 hover:text-blue-800"
+                                onClick={() => handleEditFromInventory(p)}
+                                title="Edit Price"
+                              >
+                                <Edit size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
 
-                  <div className="flex justify-between items-center mt-3 text-sm">
-                    <span>
-                      Page {inventory.page} of {totalPages || 1}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        disabled={currentPage === 1}
-                        onClick={() => setCurrentPage((p) => p - 1)}
-                        className="px-2 py-1 border rounded disabled:opacity-50"
-                      >
-                        Prev
-                      </button>
-                      <button
-                        disabled={currentPage >= totalPages}
-                        onClick={() => setCurrentPage((p) => p + 1)}
-                        className="px-2 py-1 border rounded disabled:opacity-50"
-                      >
-                        Next
-                      </button>
+                    <div className="flex justify-between items-center mt-3 text-sm">
+                      <span>
+                        Page {inventory.page} of {totalPages || 1}
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          disabled={currentPage === 1}
+                          onClick={() => setCurrentPage((p) => p - 1)}
+                          className="px-2 py-1 border rounded disabled:opacity-50"
+                        >
+                          Prev
+                        </button>
+                        <button
+                          disabled={currentPage >= totalPages}
+                          onClick={() => setCurrentPage((p) => p + 1)}
+                          className="px-2 py-1 border rounded disabled:opacity-50"
+                        >
+                          Next
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </>
+                  </>
+                )
+              ) : (
+                <p className="text-gray-500 text-sm">No prices found.</p>
               )}
             </div>
           )}

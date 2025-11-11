@@ -72,6 +72,17 @@ export default function MarketsModal({
   const [refreshKey, setRefreshKey] = useState(0);
   const triggerRefresh = () => setRefreshKey((k) => k + 1);
 
+  // 🧠 Debounced search term (prevents rapid re-fetching)
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500); // delay 500ms after user stops typing
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
   // ✅ Pre-fill form if editing
   useEffect(() => {
     if (price) {
@@ -121,10 +132,28 @@ export default function MarketsModal({
   };
 
   useEffect(() => {
-    if (activeTab === "inventory") {
-      loadInventory();
-    }
-  }, [activeTab, refreshKey, currentPage, searchTerm, filterRegion]);
+    if (activeTab !== "inventory") return;
+
+    let isMounted = true; // prevent stale updates
+    setLoadingInventory(true);
+
+    marketPricesApi
+      .getAll(currentPage, itemsPerPage, {
+        product: debouncedSearch || undefined,
+        region: filterRegion || undefined,
+      })
+      .then((data) => {
+        if (isMounted) setInventory(data);
+      })
+      .catch((err) => console.error("Error loading market prices:", err))
+      .finally(() => {
+        if (isMounted) setLoadingInventory(false);
+      });
+
+    return () => {
+      isMounted = false; // cancel if unmounted or re-run
+    };
+  }, [activeTab, refreshKey, currentPage, debouncedSearch, filterRegion]);
 
   useEffect(() => {
     if (activeTab === "historical" && form.product_name) {
@@ -424,7 +453,8 @@ export default function MarketsModal({
 
               {loadingInventory ? (
                 <p className="text-gray-500">Refreshing prices…</p>
-              ) : !inventory || inventory.data.length === 0 ? (
+              ) : inventory && inventory.data.length > 0 ? (
+
                 <p className="text-gray-500 text-sm">No prices found.</p>
               ) : (
                 <>

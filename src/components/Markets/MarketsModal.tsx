@@ -594,7 +594,7 @@ export default function MarketsModal({
                   <h4 className="font-bold text-lg mb-2">Farm Intelligence Ready</h4>
                   <p className="text-gray-600 mb-4">
                     Click "Generate Insights" to analyze {form.product_name || 'this product'} 
-                    using our AI-powered farm intelligence engine.
+                     using our AI-powered farm intelligence engine.
                   </p>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="bg-gray-50 p-3 rounded">

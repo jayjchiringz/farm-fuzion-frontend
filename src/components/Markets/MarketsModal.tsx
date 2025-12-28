@@ -15,6 +15,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { formatCurrencyKES } from "../../utils/format";
+import IntelligenceDashboard from './IntelligenceDashboard';
+import { CartesianGrid } from "recharts";
 
 // ✅ Extend MarketPrice for frontend
 export type MarketPrice = ApiMarketPrice & { id?: string | number };
@@ -211,6 +213,28 @@ export default function MarketsModal({
 
   const totalPages = Math.ceil((inventory?.total ?? 0) / itemsPerPage);
 
+  // Add this state
+  const [intelligenceData, setIntelligenceData] = useState<any>(null);
+  const [loadingIntelligence, setLoadingIntelligence] = useState(false);
+
+  // Add this function
+  const fetchIntelligence = async () => {
+    if (!form.product_name) return;
+    
+    setLoadingIntelligence(true);
+    try {
+      const response = await fetch(
+        `/api/market-prices/intelligence/${encodeURIComponent(form.product_name)}`
+      );
+      const data = await response.json();
+      setIntelligenceData(data);
+    } catch (error) {
+      console.error('Failed to fetch intelligence:', error);
+    } finally {
+      setLoadingIntelligence(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow-lg max-w-5xl w-full">
@@ -383,26 +407,216 @@ export default function MarketsModal({
           )}
 
           {/* Intel */}
+          // Update the intel tab content
           {activeTab === "intel" && (
-            <div className="space-y-2">
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                ⚡ AI-assisted fetch and web-scraped values (marked volatile).
-              </p>
-              <p>
-                <strong>Volatility:</strong> {form.volatility ?? "stable"}
-              </p>
-              <p>
-                <strong>Last Synced:</strong>{" "}
-                {form.last_synced
-                  ? new Date(form.last_synced).toLocaleString()
-                  : "—"}
-              </p>
-              <p>
-                <strong>Current Auto Price:</strong>{" "}
-                {form.volatility === "volatile"
-                  ? formatCurrencyKES(form.wholesale_price)
-                  : "—"}
-              </p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold">🧠 Farm Intelligence</h3>
+                <button 
+                  onClick={fetchIntelligence}
+                  className="bg-brand-green text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2"
+                  disabled={loadingIntelligence || !form.product_name}
+                >
+                  {loadingIntelligence ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Analyzing...
+                    </>
+                  ) : (
+                    'Generate Insights'
+                  )}
+                </button>
+              </div>
+              
+              {intelligenceData ? (
+                <div className="space-y-6">
+                  {/* Recommendation Card */}
+                  <div className={`p-4 rounded-lg border ${
+                    intelligenceData.insights.recommendation === 'BUY' ? 'bg-green-50 border-green-200' :
+                    intelligenceData.insights.recommendation === 'SELL' ? 'bg-red-50 border-red-200' :
+                    intelligenceData.insights.recommendation === 'HOLD' ? 'bg-yellow-50 border-yellow-200' :
+                    'bg-blue-50 border-blue-200'
+                  }`}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${
+                        intelligenceData.insights.recommendation === 'BUY' ? 'bg-green-100 text-green-600' :
+                        intelligenceData.insights.recommendation === 'SELL' ? 'bg-red-100 text-red-600' :
+                        intelligenceData.insights.recommendation === 'HOLD' ? 'bg-yellow-100 text-yellow-600' :
+                        'bg-blue-100 text-blue-600'
+                      }`}>
+                        {intelligenceData.insights.recommendation === 'BUY' ? '📈' :
+                        intelligenceData.insights.recommendation === 'SELL' ? '📉' :
+                        intelligenceData.insights.recommendation === 'HOLD' ? '⏸️' : '💡'}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-lg">
+                          {intelligenceData.insights.recommendation} 
+                          <span className="ml-2 text-sm font-normal bg-white px-2 py-1 rounded">
+                            {intelligenceData.insights.confidence}% confidence
+                          </span>
+                        </h4>
+                        <p className="text-gray-600">{intelligenceData.insights.reason}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                      <div className="bg-white p-3 rounded border">
+                        <p className="text-sm text-gray-500">Current Price</p>
+                        <p className="font-bold text-lg">KES {intelligenceData.insights.currentPrice?.toLocaleString()}</p>
+                      </div>
+                      <div className="bg-white p-3 rounded border">
+                        <p className="text-sm text-gray-500">Expected (30d)</p>
+                        <p className="font-bold text-lg">KES {intelligenceData.insights.predictedPrice30d?.toLocaleString()}</p>
+                      </div>
+                      <div className="bg-white p-3 rounded border">
+                        <p className="text-sm text-gray-500">Trend</p>
+                        <p className={`font-bold text-lg ${
+                          intelligenceData.insights.trend === 'UP' ? 'text-green-600' :
+                          intelligenceData.insights.trend === 'DOWN' ? 'text-red-600' : 'text-yellow-600'
+                        }`}>
+                          {intelligenceData.insights.trend}
+                        </p>
+                      </div>
+                      <div className="bg-white p-3 rounded border">
+                        <p className="text-sm text-gray-500">Risk Level</p>
+                        <p className={`font-bold text-lg ${
+                          intelligenceData.insights.riskLevel === 'LOW' ? 'text-green-600' :
+                          intelligenceData.insights.riskLevel === 'HIGH' ? 'text-red-600' : 'text-yellow-600'
+                        }`}>
+                          {intelligenceData.insights.riskLevel}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Price Predictions */}
+                  <div className="bg-white p-4 rounded-lg border">
+                    <h4 className="font-bold mb-3">📊 Price Forecast (Next 30 Days)</h4>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={intelligenceData.predictions}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            dataKey="date" 
+                            tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          />
+                          <YAxis />
+                          <Tooltip 
+                            labelFormatter={(date) => new Date(date).toLocaleDateString()}
+                            formatter={(value: number) => [`KES ${value.toLocaleString()}`, 'Price']}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="price" 
+                            stroke="#4CAF50" 
+                            strokeWidth={2}
+                            dot={{ r: 2 }}
+                            name="Predicted Price"
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="upperBound" 
+                            stroke="#82ca9d" 
+                            strokeWidth={1}
+                            strokeDasharray="3 3"
+                            name="Upper Bound"
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="lowerBound" 
+                            stroke="#82ca9d" 
+                            strokeWidth={1}
+                            strokeDasharray="3 3"
+                            name="Lower Bound"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                  
+                  {/* Market Advice */}
+                  {intelligenceData.marketAdvice && (
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <h4 className="font-bold mb-3 text-blue-800">⏰ Market Timing Advice</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-sm text-blue-600">Best Time to Plant/Buy</p>
+                          <p className="font-bold text-lg">{intelligenceData.marketAdvice.bestTimeToBuy}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-blue-600">Best Time to Harvest/Sell</p>
+                          <p className="font-bold text-lg">{intelligenceData.marketAdvice.bestTimeToSell}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-blue-600">Current Market</p>
+                          <p className={`font-bold text-lg ${
+                            intelligenceData.marketAdvice.currentMarketCondition === 'FAVORABLE' ? 'text-green-600' :
+                            intelligenceData.marketAdvice.currentMarketCondition === 'UNFAVORABLE' ? 'text-red-600' : 'text-yellow-600'
+                          }`}>
+                            {intelligenceData.marketAdvice.currentMarketCondition}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4 p-3 bg-white rounded border">
+                        <p className="text-sm font-semibold text-gray-700">💡 Farmer Tip:</p>
+                        <p className="text-gray-600">{intelligenceData.marketAdvice.farmerTip}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Optimal Action Date */}
+                  {intelligenceData.insights.optimalActionDate && (
+                    <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                          📅
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-purple-800">Optimal Action Date</h4>
+                          <p className="text-purple-600">
+                            Consider taking action around{' '}
+                            <span className="font-bold">
+                              {new Date(intelligenceData.insights.optimalActionDate).toLocaleDateString()}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+                    <span className="text-2xl">🧠</span>
+                  </div>
+                  <h4 className="font-bold text-lg mb-2">Farm Intelligence Ready</h4>
+                  <p className="text-gray-600 mb-4">
+                    Click "Generate Insights" to analyze {form.product_name || 'this product'} 
+                    using our AI-powered farm intelligence engine.
+                  </p>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="bg-gray-50 p-3 rounded">
+                      <span className="font-semibold">📈 Trend Analysis</span>
+                      <p className="text-gray-500">Identify price direction</p>
+                    </div>
+                    <div className="bg-gray-50 p-3 rounded">
+                      <span className="font-semibold">🔮 Price Predictions</span>
+                      <p className="text-gray-500">30-day forecast with bounds</p>
+                    </div>
+                    <div className="bg-gray-50 p-3 rounded">
+                      <span className="font-semibold">⚠️ Risk Assessment</span>
+                      <p className="text-gray-500">Market volatility analysis</p>
+                    </div>
+                    <div className="bg-gray-50 p-3 rounded">
+                      <span className="font-semibold">⏰ Timing Advice</span>
+                      <p className="text-gray-500">Best buy/sell periods</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

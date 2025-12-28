@@ -1,9 +1,98 @@
 @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&family=Baloo+2:wght@400;600;800&display=swap');
 
+/* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind base;
+/* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind components;
+/* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind utilities;
 
-html, body, #root {
-  height: 100%;
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  
+  body {
+    @apply transition-colors duration-300;
+  }
+}
+
+@layer components {
+  /* Smooth card animations */
+  .card-enter {
+    @apply animate-fade-in;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg;
+  }
+  
+  /* Price change animations */
+  .price-up {
+    @apply animate-pulse-slow;
+  }
+  
+  .price-down {
+    @apply animate-pulse-slow;
+  }
+  
+  /* Loading animation */
+  .loading-wave {
+    @apply animate-pulse-slow bg-gradient-to-r from-transparent via-brand-green/10 to-transparent;
+  }
+  
+  /* Modal backdrop */
+  .modal-backdrop {
+    @apply backdrop-blur-sm bg-black/30 transition-opacity duration-300;
+  }
+  
+  /* Smooth table row animations */
+  .table-row-enter {
+    @apply animate-slide-up;
+    animation-fill-mode: both;
+  }
+  
+  /* Delay animations for staggered effects */
+  .stagger-delay-1 { animation-delay: 100ms; }
+  .stagger-delay-2 { animation-delay: 200ms; }
+  .stagger-delay-3 { animation-delay: 300ms; }
+  .stagger-delay-4 { animation-delay: 400ms; }
+  .stagger-delay-5 { animation-delay: 500ms; }
+}
+
+@layer utilities {
+  /* Scrollbar styling */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 20px;
+  }
+  
+  /* Text gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-green to-emerald-600;
+  }
+  
+  /* Glass effect */
+  .glass-effect {
+    @apply backdrop-blur-md bg-white/10 border border-white/20;
+  }
+  
+  /* Shimmer effect */
+  .shimmer {
+    @apply relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent;
+  }
 }

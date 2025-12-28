@@ -407,7 +407,6 @@ export default function MarketsModal({
           )}
 
           {/* Intel */}
-          // Update the intel tab content
           {activeTab === "intel" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">

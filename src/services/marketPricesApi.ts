@@ -91,3 +91,13 @@ export const marketPricesApi = {
   },
 
 };
+
+// Add to your marketPricesApi.ts
+export const getMarketDashboard = async (region?: string, limit?: number) => {
+  const params = new URLSearchParams();
+  if (region) params.append('region', region);
+  if (limit) params.append('limit', limit.toString());
+  
+  const response = await fetch(`${API_BASE}/market-prices/dashboard?${params}`);
+  return await response.json();
+};

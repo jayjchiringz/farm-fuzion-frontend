@@ -241,7 +241,11 @@ const IntelligenceDashboard: React.FC<IntelligenceDashboardProps> = ({ farmerDat
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {data.map((entry, index) => (
+                  {[
+                    { name: 'Low Risk', value: 40, color: '#4CAF50' },
+                    { name: 'Medium Risk', value: 35, color: '#FFC107' },
+                    { name: 'High Risk', value: 25, color: '#F44336' }
+                  ].map((entry: { color: string | undefined; }, index: any) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>

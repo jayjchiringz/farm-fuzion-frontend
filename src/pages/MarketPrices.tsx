@@ -57,12 +57,15 @@ export default function MarketPricesPage() {
     undefined
   );
 
+// Add state for currency
+const [selectedCurrency, setSelectedCurrency] = useState<'KES' | 'USD' | 'UGX' | 'TZS'>('KES');  
+
   // ✅ Load summary + dashboard data
   const loadSummary = async () => {
     setLoading(true);
     try {
       // Load basic summary
-      let res = await marketPricesApi.getSummary();
+      let res = await marketPricesApi.getSummary(selectedCurrency);
 
       // 🔍 Apply filters client-side
       if (searchTerm) {
@@ -469,13 +472,13 @@ export default function MarketPricesPage() {
                           <div className="flex justify-between gap-4">
                             <span className="text-sm text-gray-500 dark:text-gray-400">Retail:</span>
                             <span className="font-medium text-gray-900 dark:text-white">
-                              {formatCurrencyKES(p.retail_price)}
+                              {p.retail_price !== undefined ? formatCurrencyKES(p.retail_price) : '$'}
                             </span>
                           </div>
                           <div className="flex justify-between gap-4">
                             <span className="text-sm text-gray-500 dark:text-gray-400">Farmgate:</span>
                             <span className="font-medium text-gray-700 dark:text-gray-300">
-                              {formatCurrencyKES(p.farmgate_price)}
+                              {p.farmgate_price !== undefined ? formatCurrencyKES(p.farmgate_price) : '$'}
                             </span>
                           </div>
                         </div>

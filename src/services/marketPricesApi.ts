@@ -83,7 +83,7 @@ export const marketPricesApi = {
   },
 
   // 🔹 Get summary (latest per product)
-  async getSummary(): Promise<MarketPrice[]> {
+  async getSummary(selectedCurrency: string): Promise<MarketPrice[]> {
     const res = await axios.get<{ data: MarketPrice[] }>(
       `${API_BASE}/market-prices/summary`
     );
@@ -99,5 +99,33 @@ export const getMarketDashboard = async (region?: string, limit?: number) => {
   if (limit) params.append('limit', limit.toString());
   
   const response = await fetch(`${API_BASE}/market-prices/dashboard?${params}`);
+  return await response.json();
+};
+
+// In marketPricesApi.ts
+export const getSummary = async (currency?: string) => {
+  const params = new URLSearchParams();
+  if (currency) params.append('currency', currency);
+  
+  const response = await fetch(`${API_BASE}/market-prices/summary?${params}`);
+  const data = await response.json();
+  return data.data;
+};
+
+export const getAll = async (
+  page: number, 
+  limit: number, 
+  filters?: { product?: string; region?: string; currency?: string }
+) => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+  
+  if (filters?.product) params.append('product', filters.product);
+  if (filters?.region) params.append('region', filters.region);
+  if (filters?.currency) params.append('currency', filters.currency);
+  
+  const response = await fetch(`${API_BASE}/market-prices?${params}`);
   return await response.json();
 };

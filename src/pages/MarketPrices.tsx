@@ -5,8 +5,7 @@ import {
   MarketPrice,
   API_BASE,
 } from "../services/marketPricesApi";
-import MarketsModal from "../components/Markets/MarketsModal";
-import axios from "axios";
+import MarketPricesModal from "../components/Markets/MarketsModal"; // ✅ Updated import
 import { formatCurrencyKES } from "../utils/format";
 import {
   TrendingUp,
@@ -51,14 +50,11 @@ export default function MarketPricesPage() {
   const [filterCategory, setFilterCategory] = useState("");
   const [filterRegion, setFilterRegion] = useState("");
 
-  // ✅ Modal state
+  // ✅ Modal state - Updated for new modal
   const [showModal, setShowModal] = useState(false);
-  const [selectedPrice, setSelectedPrice] = useState<MarketPrice | undefined>(
-    undefined
-  );
 
-// Add state for currency
-const [selectedCurrency, setSelectedCurrency] = useState<'KES' | 'USD' | 'UGX' | 'TZS'>('KES');  
+  // Add state for currency
+  const [selectedCurrency, setSelectedCurrency] = useState<'KES' | 'USD' | 'UGX' | 'TZS'>('KES');  
 
   // ✅ Load summary + dashboard data
   const loadSummary = async () => {
@@ -104,16 +100,24 @@ const [selectedCurrency, setSelectedCurrency] = useState<'KES' | 'USD' | 'UGX' |
     loadSummary();
   }, [searchTerm, filterCategory, filterRegion]);
 
-  // ✅ Dynamic filter values
+  // ✅ Dynamic filter values - Updated with proper filtering
   const categories = useMemo(
     () =>
-      Array.from(new Set(summary.map((p) => p.category).filter(Boolean) ?? [])),
+      Array.from(new Set(
+        summary
+          .map((p) => p.category)
+          .filter((category): category is string => Boolean(category))
+      )),
     [summary]
   );
 
   const regions = useMemo(
     () =>
-      Array.from(new Set(summary.map((p) => p.region).filter(Boolean) ?? [])),
+      Array.from(new Set(
+        summary
+          .map((p) => p.region)
+          .filter((region): region is string => Boolean(region))
+      )),
     [summary]
   );
 
@@ -155,14 +159,11 @@ const [selectedCurrency, setSelectedCurrency] = useState<'KES' | 'USD' | 'UGX' |
           </div>
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => {
-                setSelectedPrice(undefined);
-                setShowModal(true);
-              }}
+              onClick={() => setShowModal(true)} // ✅ Open the modal directly
               className="flex items-center gap-2 bg-brand-green hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors card-hover"
             >
               <Sparkles size={18} />
-              AI Insights
+              Open Market Dashboard
             </button>
             <button
               onClick={loadSummary}
@@ -357,7 +358,7 @@ const [selectedCurrency, setSelectedCurrency] = useState<'KES' | 'USD' | 'UGX' |
         )}
       </div>
 
-      {/* Filter Bar - Modern Design */}
+      {/* Filter Bar - Modern Design - Fixed with proper filtering */}
       <div className="mb-6 animate-fade-in" style={{ animationDelay: '300ms' }}>
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 card-hover">
           <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
@@ -385,7 +386,7 @@ const [selectedCurrency, setSelectedCurrency] = useState<'KES' | 'USD' | 'UGX' |
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent focus:ring-2 focus:ring-brand-green focus:border-transparent transition-all duration-300"
               >
                 <option value="">All Categories</option>
-                {categories.map((cat, idx) => (
+                {categories.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>
@@ -400,8 +401,8 @@ const [selectedCurrency, setSelectedCurrency] = useState<'KES' | 'USD' | 'UGX' |
             >
               <option value="">All Regions</option>
               {regions.map((r) => (
-                <option key={r ?? "unknown"} value={r ?? ""}>
-                  {r ?? "Unknown"}
+                <option key={r} value={r}>
+                  {r}
                 </option>
               ))}
             </select>
@@ -518,19 +519,13 @@ const [selectedCurrency, setSelectedCurrency] = useState<'KES' | 'USD' | 'UGX' |
                         <div className="flex items-center gap-2">
                           <button
                             className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors duration-300"
-                            onClick={() => {
-                              setSelectedPrice(p);
-                              setShowModal(true);
-                            }}
+                            onClick={() => setShowModal(true)} // ✅ Open modal directly
                           >
                             View Details
                           </button>
                           <button
                             className="text-brand-green hover:text-green-700 font-medium transition-colors duration-300"
-                            onClick={() => {
-                              setSelectedPrice(p);
-                              setShowModal(true);
-                            }}
+                            onClick={() => setShowModal(true)} // ✅ Open modal directly
                           >
                             AI Insights →
                           </button>
@@ -555,15 +550,13 @@ const [selectedCurrency, setSelectedCurrency] = useState<'KES' | 'USD' | 'UGX' |
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal - Updated with new component */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <MarketsModal
-            price={selectedPrice}
-            onClose={() => setShowModal(false)}
-            onMarketAdded={loadSummary}
-          />
-        </div>
+        <MarketPricesModal
+          farmerId={undefined} // or pass actual farmerId if available
+          onClose={() => setShowModal(false)}
+          onMarketAdded={loadSummary}
+        />
       )}
     </div>
   );

@@ -22,12 +22,6 @@ import {
   Globe,
 } from "lucide-react";
 
-interface MarketsModalProps {
-  price?: MarketPrice | null;
-  onClose: () => void;
-  onMarketAdded?: () => Promise<void> | void;
-}
-
 // Custom hook for loading animations
 const useLoadingAnimation = (isLoading: boolean) => {
   const [pulse, setPulse] = useState(false);
@@ -43,6 +37,12 @@ const useLoadingAnimation = (isLoading: boolean) => {
 
   return pulse;
 };
+
+interface MarketsModalProps {
+  price?: MarketPrice | null;
+  onClose: () => void;
+  onMarketAdded?: () => Promise<void> | void;
+}
 
 export default function MarketPricesPage({
   price,

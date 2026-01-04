@@ -4,7 +4,6 @@ import {
   marketPricesApi,
   MarketPrice,
   API_BASE,
-  getMarketDashboard,
 } from "../../services/marketPricesApi";
 import { formatCurrency } from "../../utils/format";
 import {
@@ -67,6 +66,29 @@ export default function MarketPricesModal({
   });
   const [editingId, setEditingId] = useState<string | number | null>(null);
 
+  // ✅ ALL MARKETPLACE HOOKS AT TOP LEVEL
+  const [marketplaceProducts, setMarketplaceProducts] = useState<MarketplaceProduct[]>([]);
+  const [marketplaceLoading, setMarketplaceLoading] = useState(false);
+  const [marketplaceFilters, setMarketplaceFilters] = useState({
+    category: '',
+    minPrice: '',
+    maxPrice: '',
+    location: '',
+    sort: 'newest',
+    search: '',
+  });
+
+  // ✅ ALL CART HOOKS AT TOP LEVEL
+  const [cartData, setCartData] = useState<ShoppingCartType[]>([]);
+  const [cartLoading, setCartLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
+  // ✅ ALL ORDERS HOOKS AT TOP LEVEL
+  const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [activeOrdersTab, setActiveOrdersTab] = useState<'buyer' | 'seller'>('buyer');
+  const [statusFilter, setStatusFilter] = useState('');
+
   // Load data based on tab
   const loadData = async () => {
     setLoading(true);
@@ -106,9 +128,218 @@ export default function MarketPricesModal({
     }
   };
 
+  // ✅ Marketplace loading function
+  const loadMarketplaceProducts = async () => {
+    setMarketplaceLoading(true);
+    try {
+      const response = await marketplaceApi.getProducts({
+        ...marketplaceFilters,
+        category: marketplaceFilters.category || undefined,
+        minPrice: marketplaceFilters.minPrice ? parseFloat(marketplaceFilters.minPrice) : undefined,
+        maxPrice: marketplaceFilters.maxPrice ? parseFloat(marketplaceFilters.maxPrice) : undefined,
+        location: marketplaceFilters.location || undefined,
+        status: 'available',
+        sort: marketplaceFilters.sort,
+        search: marketplaceFilters.search || undefined,
+        limit: 20,
+      });
+      setMarketplaceProducts(response.data || []);
+    } catch (error) {
+      console.error("Error loading marketplace products:", error);
+    } finally {
+      setMarketplaceLoading(false);
+    }
+  };
+
+  // ✅ Cart loading function
+  const loadCart = async () => {
+    if (!farmerId) return;
+    
+    setCartLoading(true);
+    try {
+      const response = await marketplaceApi.getCart(farmerId);
+      setCartData(response.carts || []);
+    } catch (error) {
+      console.error("Error loading cart:", error);
+    } finally {
+      setCartLoading(false);
+    }
+  };
+
+  // ✅ Orders loading function
+  const loadOrders = async () => {
+    if (!farmerId) return;
+    
+    setOrdersLoading(true);
+    try {
+      let response;
+      if (activeOrdersTab === 'buyer') {
+        response = await marketplaceApi.getBuyerOrders(farmerId, { 
+          status: statusFilter || undefined 
+        });
+      } else {
+        response = await marketplaceApi.getSellerOrders(farmerId, { 
+          status: statusFilter || undefined 
+        });
+      }
+      setOrders(response.data || []);
+    } catch (error) {
+      console.error("Error loading orders:", error);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  // ✅ Marketplace actions
+  const handleAddToCart = async (product: MarketplaceProduct) => {
+    if (!farmerId) {
+      alert("Please login to add items to cart");
+      return;
+    }
+
+    try {
+      await marketplaceApi.addToCart({
+        marketplace_product_id: product.id,
+        quantity: 1,
+        buyer_id: farmerId,
+      });
+      alert("Added to cart!");
+      // Refresh cart if we're on cart tab
+      if (currentTab === "cart") {
+        loadCart();
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      alert("Failed to add to cart");
+    }
+  };
+
+  // ✅ Cart actions
+  const handleCheckout = async (cartId: string) => {
+    if (!farmerId) {
+      alert("Please login to checkout");
+      return;
+    }
+
+    setCheckoutLoading(cartId);
+    try {
+      const result = await marketplaceApi.checkout({
+        cart_id: cartId,
+        buyer_id: farmerId,
+        payment_method: "wallet",
+        notes: "Order from FarmFuzion Marketplace",
+      });
+      
+      alert(`Order ${result.order_number} created successfully! Total: ${formatCurrencyKES(result.total_amount)}`);
+      
+      // Refresh cart data
+      loadCart();
+      
+      // Navigate to orders tab
+      setCurrentTab("orders");
+    } catch (error: any) {
+      console.error("Checkout error:", error);
+      alert(error.response?.data?.error || "Checkout failed. Please try again.");
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
+  const handleRemoveItem = async (itemId: string) => {
+    if (!farmerId) return;
+    
+    if (confirm("Remove this item from cart?")) {
+      try {
+        await marketplaceApi.removeCartItem(itemId, farmerId);
+        loadCart(); // Refresh cart
+      } catch (error) {
+        console.error("Error removing item:", error);
+        alert("Failed to remove item");
+      }
+    }
+  };
+
+  // ✅ Order actions
+  const handleUpdateStatus = async (orderId: string, status: string) => {
+    if (!farmerId) return;
+    
+    if (confirm(`Update order status to "${status}"?`)) {
+      try {
+        await marketplaceApi.updateOrderStatus(orderId, {
+          status,
+          farmer_id: farmerId,
+        });
+        loadOrders(); // Refresh orders
+        alert("Order status updated successfully!");
+      } catch (error) {
+        console.error("Error updating order:", error);
+        alert("Failed to update order status");
+      }
+    }
+  };
+
+  const handlePayment = async (orderId: string) => {
+    if (!farmerId) return;
+    
+    try {
+      await marketplaceApi.processPayment(orderId, {
+        payment_method: "wallet",
+        buyer_id: farmerId,
+      });
+      alert("Payment processed successfully!");
+      loadOrders(); // Refresh orders
+    } catch (error) {
+      console.error("Payment error:", error);
+      alert("Payment failed");
+    }
+  };
+
+  // ✅ Status helper functions
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      case 'confirmed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+      case 'shipping': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
+      case 'delivered': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+    }
+  };
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'paid': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      case 'failed': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+    }
+  };
+
+  // Main useEffect for summary data
   useEffect(() => {
     loadData();
   }, [currentTab, searchTerm, filterCategory, filterRegion, selectedCurrency]);
+
+  // ✅ Marketplace useEffect
+  useEffect(() => {
+    if (currentTab === "marketplace") {
+      loadMarketplaceProducts();
+    }
+  }, [currentTab, marketplaceFilters]);
+
+  // ✅ Cart useEffect
+  useEffect(() => {
+    if (currentTab === "cart" && farmerId) {
+      loadCart();
+    }
+  }, [currentTab, farmerId]);
+
+  // ✅ Orders useEffect
+  useEffect(() => {
+    if (currentTab === "orders" && farmerId) {
+      loadOrders();
+    }
+  }, [currentTab, farmerId, activeOrdersTab, statusFilter]);
 
   // Calculate market metrics
   const marketMetrics = useMemo(() => {
@@ -144,7 +375,7 @@ export default function MarketPricesModal({
       Array.from(new Set(
         summary
           .map((p) => p.region)
-          .filter(Boolean)  // Filter out null/undefined here too
+          .filter(Boolean)
       )),
     [summary]
   );
@@ -738,254 +969,122 @@ export default function MarketPricesModal({
     </div>
   );
 
-  // Render marketplace tab
-  const renderMarketplace = () => {
-    const [marketplaceProducts, setMarketplaceProducts] = useState<MarketplaceProduct[]>([]);
-    const [marketplaceLoading, setMarketplaceLoading] = useState(false);
-    const [marketplaceFilters, setMarketplaceFilters] = useState({
-      category: '',
-      minPrice: '',
-      maxPrice: '',
-      location: '',
-      sort: 'newest',
-      search: '',
-    });
-
-    // Load marketplace products
-    const loadMarketplaceProducts = async () => {
-      setMarketplaceLoading(true);
-      try {
-        const response = await marketplaceApi.getProducts({
-          ...marketplaceFilters,
-          category: marketplaceFilters.category || undefined,
-          minPrice: marketplaceFilters.minPrice ? parseFloat(marketplaceFilters.minPrice) : undefined,
-          maxPrice: marketplaceFilters.maxPrice ? parseFloat(marketplaceFilters.maxPrice) : undefined,
-          location: marketplaceFilters.location || undefined,
-          status: 'available',
-          sort: marketplaceFilters.sort,
-          search: marketplaceFilters.search || undefined,
-          limit: 20,
-        });
-        setMarketplaceProducts(response.data || []);
-      } catch (error) {
-        console.error("Error loading marketplace products:", error);
-      } finally {
-        setMarketplaceLoading(false);
-      }
-    };
-
-    // Add to cart function
-    const handleAddToCart = async (product: MarketplaceProduct) => {
-      if (!farmerId) {
-        alert("Please login to add items to cart");
-        return;
-      }
-
-      try {
-        await marketplaceApi.addToCart({
-          marketplace_product_id: product.id,
-          quantity: 1,
-          buyer_id: farmerId,
-        });
-        alert("Added to cart!");
-      } catch (error) {
-        console.error("Error adding to cart:", error);
-        alert("Failed to add to cart");
-      }
-    };
-
-    useEffect(() => {
-      if (currentTab === "marketplace") {
-        loadMarketplaceProducts();
-      }
-    }, [currentTab, marketplaceFilters]);
-
-    return (
+  // ✅ Render marketplace tab - NO HOOKS INSIDE
+  const renderMarketplace = () => (
+    <div className="mb-6">
       <div className="mb-6">
-        <div className="mb-6">
-          <h3 className="text-xl font-bold text-brand-dark dark:text-brand-apple">
-            FarmFuzion Marketplace
+        <h3 className="text-xl font-bold text-brand-dark dark:text-brand-apple">
+          FarmFuzion Marketplace
+        </h3>
+        <p className="text-gray-600 dark:text-gray-300 mt-1">
+          Buy and sell farm products directly with other farmers
+        </p>
+      </div>
+
+      {/* Marketplace Filters */}
+      <div className="mb-6 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={marketplaceFilters.search}
+            onChange={(e) => setMarketplaceFilters({...marketplaceFilters, search: e.target.value})}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent"
+          />
+          <select
+            value={marketplaceFilters.category}
+            onChange={(e) => setMarketplaceFilters({...marketplaceFilters, category: e.target.value})}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent"
+          >
+            <option value="">All Categories</option>
+            <option value="produce">Produce</option>
+            <option value="inputs">Farm Inputs</option>
+            <option value="services">Services</option>
+          </select>
+          <select
+            value={marketplaceFilters.sort}
+            onChange={(e) => setMarketplaceFilters({...marketplaceFilters, sort: e.target.value})}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent"
+          >
+            <option value="newest">Newest First</option>
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
+            <option value="rating">Highest Rated</option>
+          </select>
+          <button
+            onClick={loadMarketplaceProducts}
+            className="bg-brand-green hover:bg-green-700 text-white px-4 py-2 rounded-lg"
+          >
+            Apply Filters
+          </button>
+        </div>
+      </div>
+
+      {/* Marketplace Products Grid */}
+      {marketplaceLoading ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green"></div>
+        </div>
+      ) : marketplaceProducts.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            <ShoppingCart className="text-gray-400" size={24} />
+          </div>
+          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
+            No products available
           </h3>
-          <p className="text-gray-600 dark:text-gray-300 mt-1">
-            Buy and sell farm products directly with other farmers
+          <p className="text-gray-500 dark:text-gray-400">
+            Be the first to list your products!
           </p>
         </div>
-
-        {/* Marketplace Filters */}
-        <div className="mb-6 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={marketplaceFilters.search}
-              onChange={(e) => setMarketplaceFilters({...marketplaceFilters, search: e.target.value})}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent"
-            />
-            <select
-              value={marketplaceFilters.category}
-              onChange={(e) => setMarketplaceFilters({...marketplaceFilters, category: e.target.value})}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent"
-            >
-              <option value="">All Categories</option>
-              <option value="produce">Produce</option>
-              <option value="inputs">Farm Inputs</option>
-              <option value="services">Services</option>
-            </select>
-            <select
-              value={marketplaceFilters.sort}
-              onChange={(e) => setMarketplaceFilters({...marketplaceFilters, sort: e.target.value})}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent"
-            >
-              <option value="newest">Newest First</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-              <option value="rating">Highest Rated</option>
-            </select>
-            <button
-              onClick={loadMarketplaceProducts}
-              className="bg-brand-green hover:bg-green-700 text-white px-4 py-2 rounded-lg"
-            >
-              Apply Filters
-            </button>
-          </div>
-        </div>
-
-        {/* Marketplace Products Grid */}
-        {marketplaceLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green"></div>
-          </div>
-        ) : marketplaceProducts.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-              <ShoppingCart className="text-gray-400" size={24} />
-            </div>
-            <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-              No products available
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400">
-              Be the first to list your products!
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {marketplaceProducts.map((product) => (
-              <div key={product.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h4 className="font-bold text-lg text-gray-900 dark:text-white">
-                      {product.product_name}
-                    </h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      By {product.first_name} {product.last_name}
-                    </p>
-                  </div>
-                  <span className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 text-sm font-medium px-2 py-1 rounded">
-                    {formatCurrencyKES(product.price)}
-                  </span>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {marketplaceProducts.map((product) => (
+            <div key={product.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h4 className="font-bold text-lg text-gray-900 dark:text-white">
+                    {product.product_name}
+                  </h4>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    By {product.first_name} {product.last_name}
+                  </p>
                 </div>
-                
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Quantity:</span>
-                    <span className="font-medium">{product.quantity} {product.unit}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Location:</span>
-                    <span className="font-medium">{product.location || 'Not specified'}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Rating:</span>
-                    <span className="font-medium">{product.rating.toFixed(1)} ⭐</span>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => handleAddToCart(product)}
-                  className="w-full bg-brand-green hover:bg-green-700 text-white py-2 rounded-lg font-medium transition-colors"
-                >
-                  Add to Cart
-                </button>
+                <span className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 text-sm font-medium px-2 py-1 rounded">
+                  {formatCurrencyKES(product.price)}
+                </span>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
+              
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500 dark:text-gray-400">Quantity:</span>
+                  <span className="font-medium">{product.quantity} {product.unit}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500 dark:text-gray-400">Location:</span>
+                  <span className="font-medium">{product.location || 'Not specified'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500 dark:text-gray-400">Rating:</span>
+                  <span className="font-medium">{product.rating?.toFixed(1) || '0.0'} ⭐</span>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => handleAddToCart(product)}
+                className="w-full bg-brand-green hover:bg-green-700 text-white py-2 rounded-lg font-medium transition-colors"
+              >
+                Add to Cart
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
-  // ... (after renderMarketplace function)
-
-  // Render Cart Tab
+  // ✅ Render Cart Tab - NO HOOKS INSIDE
   const renderCart = () => {
-    const [cartData, setCartData] = useState<ShoppingCartType[]>([]);
-    const [cartLoading, setCartLoading] = useState(false);
-    const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
-
-    const loadCart = async () => {
-      if (!farmerId) return;
-      
-      setCartLoading(true);
-      try {
-        const response = await marketplaceApi.getCart(farmerId);
-        setCartData(response.carts || []);
-      } catch (error) {
-        console.error("Error loading cart:", error);
-      } finally {
-        setCartLoading(false);
-      }
-    };
-
-    const handleCheckout = async (cartId: string) => {
-      if (!farmerId) {
-        alert("Please login to checkout");
-        return;
-      }
-
-      setCheckoutLoading(cartId);
-      try {
-        const result = await marketplaceApi.checkout({
-          cart_id: cartId,
-          buyer_id: farmerId,
-          payment_method: "wallet",
-          notes: "Order from FarmFuzion Marketplace",
-        });
-        
-        alert(`Order ${result.order_number} created successfully! Total: ${formatCurrencyKES(result.total_amount)}`);
-        
-        // Refresh cart data
-        loadCart();
-        
-        // Navigate to orders tab
-        setCurrentTab("orders");
-      } catch (error: any) {
-        console.error("Checkout error:", error);
-        alert(error.response?.data?.error || "Checkout failed. Please try again.");
-      } finally {
-        setCheckoutLoading(null);
-      }
-    };
-
-    const handleRemoveItem = async (itemId: string) => {
-      if (!farmerId) return;
-      
-      if (confirm("Remove this item from cart?")) {
-        try {
-          await marketplaceApi.removeCartItem(itemId, farmerId);
-          loadCart(); // Refresh cart
-        } catch (error) {
-          console.error("Error removing item:", error);
-          alert("Failed to remove item");
-        }
-      }
-    };
-
-    useEffect(() => {
-      if (currentTab === "cart" && farmerId) {
-        loadCart();
-      }
-    }, [currentTab, farmerId]);
-
     if (!farmerId) {
       return (
         <div className="mb-6">
@@ -1166,96 +1265,8 @@ export default function MarketPricesModal({
     );
   };
 
-  // Render Orders Tab
+  // ✅ Render Orders Tab - NO HOOKS INSIDE
   const renderOrders = () => {
-    const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
-    const [ordersLoading, setOrdersLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'buyer' | 'seller'>('buyer');
-    const [statusFilter, setStatusFilter] = useState('');
-
-    const loadOrders = async () => {
-      if (!farmerId) return;
-      
-      setOrdersLoading(true);
-      try {
-        let response;
-        if (activeTab === 'buyer') {
-          response = await marketplaceApi.getBuyerOrders(farmerId, { 
-            status: statusFilter || undefined 
-          });
-        } else {
-          response = await marketplaceApi.getSellerOrders(farmerId, { 
-            status: statusFilter || undefined 
-          });
-        }
-        setOrders(response.data || []);
-      } catch (error) {
-        console.error("Error loading orders:", error);
-      } finally {
-        setOrdersLoading(false);
-      }
-    };
-
-    const handleUpdateStatus = async (orderId: string, status: string) => {
-      if (!farmerId) return;
-      
-      if (confirm(`Update order status to "${status}"?`)) {
-        try {
-          await marketplaceApi.updateOrderStatus(orderId, {
-            status,
-            farmer_id: farmerId,
-          });
-          loadOrders(); // Refresh orders
-          alert("Order status updated successfully!");
-        } catch (error) {
-          console.error("Error updating order:", error);
-          alert("Failed to update order status");
-        }
-      }
-    };
-
-    const handlePayment = async (orderId: string) => {
-      if (!farmerId) return;
-      
-      try {
-        await marketplaceApi.processPayment(orderId, {
-          payment_method: "wallet",
-          buyer_id: farmerId,
-        });
-        alert("Payment processed successfully!");
-        loadOrders(); // Refresh orders
-      } catch (error) {
-        console.error("Payment error:", error);
-        alert("Payment failed");
-      }
-    };
-
-    const getStatusColor = (status: string) => {
-      switch (status.toLowerCase()) {
-        case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-        case 'confirmed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-        case 'shipping': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
-        case 'delivered': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-        case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-        default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
-      }
-    };
-
-    const getPaymentStatusColor = (status: string) => {
-      switch (status.toLowerCase()) {
-        case 'paid': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-        case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-        case 'failed': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-        default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
-      }
-    };
-
-    useEffect(() => {
-      if (currentTab === "orders" && farmerId) {
-        loadOrders();
-      }
-    }, [currentTab, farmerId, activeTab, statusFilter]);
-
     if (!farmerId) {
       return (
         <div className="mb-6">
@@ -1307,9 +1318,9 @@ export default function MarketPricesModal({
         <div className="mb-6">
           <div className="flex border-b border-gray-200 dark:border-gray-700">
             <button
-              onClick={() => setActiveTab('buyer')}
+              onClick={() => setActiveOrdersTab('buyer')}
               className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                activeTab === 'buyer'
+                activeOrdersTab === 'buyer'
                   ? 'border-brand-green text-brand-green'
                   : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
               }`}
@@ -1317,9 +1328,9 @@ export default function MarketPricesModal({
               👤 My Purchases
             </button>
             <button
-              onClick={() => setActiveTab('seller')}
+              onClick={() => setActiveOrdersTab('seller')}
               className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                activeTab === 'seller'
+                activeOrdersTab === 'seller'
                   ? 'border-brand-green text-brand-green'
                   : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
               }`}
@@ -1367,7 +1378,7 @@ export default function MarketPricesModal({
               No orders found
             </h3>
             <p className="text-gray-500 dark:text-gray-400 mb-6">
-              {activeTab === 'buyer' 
+              {activeOrdersTab === 'buyer' 
                 ? "You haven't placed any orders yet"
                 : "You haven't received any orders yet"}
             </p>
@@ -1398,7 +1409,7 @@ export default function MarketPricesModal({
                         </span>
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {activeTab === 'buyer' 
+                        {activeOrdersTab === 'buyer' 
                           ? `Seller: ${order.seller_first_name} ${order.seller_last_name}`
                           : `Buyer: ${order.buyer_first_name} ${order.buyer_last_name}`}
                         <span className="mx-2">•</span>
@@ -1453,7 +1464,7 @@ export default function MarketPricesModal({
                       </div>
                       
                       <div className="flex flex-wrap gap-2">
-                        {activeTab === 'seller' && order.status === 'pending' && (
+                        {activeOrdersTab === 'seller' && order.status === 'pending' && (
                           <>
                             <button
                               onClick={() => handleUpdateStatus(order.id, 'confirmed')}
@@ -1470,7 +1481,7 @@ export default function MarketPricesModal({
                           </>
                         )}
                         
-                        {activeTab === 'seller' && order.status === 'confirmed' && (
+                        {activeOrdersTab === 'seller' && order.status === 'confirmed' && (
                           <button
                             onClick={() => handleUpdateStatus(order.id, 'shipping')}
                             className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
@@ -1479,7 +1490,7 @@ export default function MarketPricesModal({
                           </button>
                         )}
                         
-                        {activeTab === 'seller' && order.status === 'shipping' && (
+                        {activeOrdersTab === 'seller' && order.status === 'shipping' && (
                           <button
                             onClick={() => handleUpdateStatus(order.id, 'delivered')}
                             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
@@ -1488,7 +1499,7 @@ export default function MarketPricesModal({
                           </button>
                         )}
                         
-                        {activeTab === 'buyer' && order.payment_status === 'pending' && (
+                        {activeOrdersTab === 'buyer' && order.payment_status === 'pending' && (
                           <button
                             onClick={() => handlePayment(order.id)}
                             className="bg-brand-green hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"

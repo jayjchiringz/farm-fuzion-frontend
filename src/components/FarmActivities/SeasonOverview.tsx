@@ -12,6 +12,61 @@ export const SeasonOverview: React.FC<SeasonOverviewProps> = ({ farmerId }) => {
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<any>(null);
 
+  // Add state for financial data
+  const [seasonFinancials, setSeasonFinancials] = useState({
+    totalExpenses: 0,
+    totalHarvestValue: 0,
+    totalSales: 0,
+    profitLoss: 0
+  });
+
+  // Add function to calculate season financials
+  const calculateSeasonFinancials = async (seasonId: number) => {
+    try {
+      // Get diary entries for this season
+      const diaryResponse = await farmActivitiesApi.getFarmerDiaryEntries(farmerId, {
+        season_id: seasonId,
+        limit: 100
+      });
+      
+      let expenses = 0;
+      let harvestValue = 0;
+      let sales = 0;
+      
+      diaryResponse.data.forEach(entry => {
+        if (entry.metadata) {
+          if (entry.entry_type === 'expense' && entry.metadata.amount) {
+            expenses += entry.metadata.amount;
+          }
+          if (entry.entry_type === 'harvest') {
+            if (entry.metadata.estimated_value) {
+              harvestValue += entry.metadata.estimated_value;
+            }
+            if (entry.metadata.actual_sales) {
+              sales += entry.metadata.actual_sales;
+            }
+          }
+        }
+      });
+      
+      setSeasonFinancials({
+        totalExpenses: expenses,
+        totalHarvestValue: harvestValue,
+        totalSales: sales,
+        profitLoss: sales - expenses
+      });
+    } catch (error) {
+      console.error("Error calculating season financials:", error);
+    }
+  };  
+
+  // Call this when season changes
+  useEffect(() => {
+    if (selectedSeason) {
+      calculateSeasonFinancials(selectedSeason.id!);
+    }
+  }, [selectedSeason]);
+
   useEffect(() => {
     loadSeasons();
   }, [farmerId]);
@@ -217,6 +272,34 @@ export const SeasonOverview: React.FC<SeasonOverviewProps> = ({ farmerId }) => {
                 )}
               </div>
             ))}
+          </div>
+
+          {/* Seasonal Expenses */}
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded">
+              <div className="text-xs text-gray-600 dark:text-gray-400">Total Expenses</div>
+              <div className="text-lg font-semibold text-red-600 dark:text-red-400">
+                Ksh {seasonFinancials.totalExpenses.toLocaleString()}
+              </div>
+            </div>
+            <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded">
+              <div className="text-xs text-gray-600 dark:text-gray-400">Harvest Value</div>
+              <div className="text-lg font-semibold text-green-600 dark:text-green-400">
+                Ksh {seasonFinancials.totalHarvestValue.toLocaleString()}
+              </div>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
+              <div className="text-xs text-gray-600 dark:text-gray-400">Actual Sales</div>
+              <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                Ksh {seasonFinancials.totalSales.toLocaleString()}
+              </div>
+            </div>
+            <div className={`${seasonFinancials.profitLoss >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'} p-3 rounded`}>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Profit/Loss</div>
+              <div className={`text-lg font-semibold ${seasonFinancials.profitLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                Ksh {seasonFinancials.profitLoss.toLocaleString()}
+              </div>
+            </div>
           </div>
         </>
       )}

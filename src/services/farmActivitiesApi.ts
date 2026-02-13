@@ -48,6 +48,7 @@ export type SeasonActivity = {
   updated_at?: string;
 };
 
+// Update the FarmDiaryEntry type to include metadata
 export type FarmDiaryEntry = {
   id?: number;
   farmer_id: number;
@@ -62,6 +63,20 @@ export type FarmDiaryEntry = {
   related_activity_id?: number;
   tags?: string[];
   images_urls?: string[];
+  metadata?: {
+    // Expense fields
+    amount?: number;
+    category?: string;
+    payment_method?: string;
+    vendor?: string;
+    // Harvest fields
+    quantity?: number;
+    unit?: string;
+    estimated_value?: number;
+    actual_sales?: number;
+    buyer?: string;
+    notes?: string;
+  };
   created_at?: string;
   updated_at?: string;
 };

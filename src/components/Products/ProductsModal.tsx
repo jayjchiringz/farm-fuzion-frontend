@@ -1,5 +1,5 @@
 // src/components/Products/ProductsModal.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   farmProductsApi,
   FarmProduct as ApiFarmProduct,
@@ -12,18 +12,17 @@ import { FarmDiary } from "../FarmActivities/FarmDiary";
 import { SeasonOverview } from "../FarmActivities/SeasonOverview";
 import { Edit, Plus, Info } from "lucide-react";
 
-// ✅ Extend FarmProduct with spoilage_reason
 export type FarmProduct = ApiFarmProduct & {
   id?: string | number;
   spoilage_reason?: string;
 };
 
 interface ProductsModalProps {
-  farmerId: number;
+  farmerId: number; // This should be a number
   onClose: () => void;
   onProductAdded: () => void;
-  product?: FarmProduct; // optional, for editing
-  mode?: "add" | "edit" | "inventory"; // ✅ control modal mode
+  product?: FarmProduct;
+  mode?: "add" | "edit" | "inventory";
 }
 
 export default function ProductsModal({
@@ -31,14 +30,62 @@ export default function ProductsModal({
   onClose,
   onProductAdded,
   product,
-  mode = "inventory", // ✅ default is inventory hub
+  mode = "inventory",
 }: ProductsModalProps) {
+  // Validate farmerId immediately
+  const [validFarmerId, setValidFarmerId] = useState<number | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    console.log("ProductsModal received farmerId:", farmerId, "type:", typeof farmerId);
+    
+    // Validate the farmerId
+    if (farmerId === undefined || farmerId === null) {
+      setValidationError("Farmer ID is missing");
+      setValidFarmerId(null);
+    } else if (isNaN(farmerId)) {
+      setValidationError("Farmer ID is not a valid number");
+      setValidFarmerId(null);
+    } else if (farmerId <= 0) {
+      setValidationError("Farmer ID must be positive");
+      setValidFarmerId(null);
+    } else {
+      console.log("✅ Valid farmerId:", farmerId);
+      setValidFarmerId(farmerId);
+      setValidationError(null);
+    }
+  }, [farmerId]);
+
+  // Don't render if we don't have a valid ID
+  if (!validFarmerId) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow-lg max-w-md w-full">
+          <h3 className="text-xl font-bold text-red-600 mb-4">Error</h3>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            {validationError || "Invalid farmer ID. Please log in again."}
+          </p>
+          <p className="text-sm text-gray-500 mb-4">
+            Received: farmerId = {farmerId} (type: {typeof farmerId})
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 rounded bg-brand-green text-white hover:bg-green-700"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Rest of your component - use validFarmerId for all API calls
   const [form, setForm] = useState<Partial<FarmProduct>>({
     product_name: "",
     quantity: 0,
     unit: "",
     category: "produce",
-    price: 0, // stored as total price
+    price: 0,
     status: "available",
     spoilage_reason: "",
   });
@@ -47,49 +94,31 @@ export default function ProductsModal({
   const [loadingInventory, setLoadingInventory] = useState(false);
   const [seasons, setSeasons] = useState<FarmSeason[]>([]);
   
-  // ✅ Tab state - fixed the type definition
   const [activeTab, setActiveTab] = useState<
     "details" | "pricing" | "status" | "inventory" | "planner" | "seasons" | "diary"
   >(mode === "add" || mode === "edit" ? "details" : "inventory");
 
-  // ✅ Inventory state (server-driven pagination)
-  const [inventory, setInventory] = useState<PaginatedResponse<FarmProduct> | null>(
-    null
-  );
-
-  // ✅ Pagination + Filters
+  const [inventory, setInventory] = useState<PaginatedResponse<FarmProduct> | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState<ProductStatus | "">("");
-
-  // ✅ Refresh key
   const [refreshKey, setRefreshKey] = useState(0);
-  const triggerRefresh = () => setRefreshKey((k) => k + 1);
 
-  // ✅ Derived unit price
-  const unitPrice =
-    form.quantity && form.quantity > 0 ? (form.price ?? 0) / form.quantity : 0;
+  const unitPrice = form.quantity && form.quantity > 0 ? (form.price ?? 0) / form.quantity : 0;
 
-  // ✅ Load seasons for diary
+  // Load seasons using validFarmerId
   const loadSeasons = async () => {
     try {
-      const response = await farmActivitiesApi.getFarmerSeasons(Number(farmerId));
+      console.log("Loading seasons for farmer:", validFarmerId);
+      const response = await farmActivitiesApi.getFarmerSeasons(validFarmerId);
       setSeasons(response.data);
     } catch (error) {
       console.error("Error loading seasons:", error);
     }
   };
 
-  // Add this near the top of ProductsModal component
-  useEffect(() => {
-    console.log("ProductsModal farmerId prop:", farmerId);
-    console.log("Type:", typeof farmerId);
-    console.log("As number:", Number(farmerId));
-  }, [farmerId]);
-
-  // ✅ Pre-fill form if editing
   useEffect(() => {
     if (product) {
       setForm({
@@ -100,19 +129,18 @@ export default function ProductsModal({
     }
   }, [product]);
 
-  // ✅ Load seasons when farmerId changes
   useEffect(() => {
-    if (farmerId && (activeTab === "diary" || activeTab === "seasons" || activeTab === "planner")) {
+    if (validFarmerId && (activeTab === "diary" || activeTab === "seasons" || activeTab === "planner")) {
       loadSeasons();
     }
-  }, [farmerId, activeTab]);
+  }, [validFarmerId, activeTab]);
 
-  // ✅ Load inventory (server-side pagination & filters)
   const loadInventory = async () => {
     setLoadingInventory(true);
     try {
+      console.log("Loading inventory for farmer:", validFarmerId);
       const data = await farmProductsApi.getFarmerProducts(
-        String(farmerId),
+        String(validFarmerId), // Convert to string for products API
         currentPage,
         itemsPerPage,
         {
@@ -140,17 +168,17 @@ export default function ProductsModal({
       setLoading(true);
       const payload = {
         ...form,
-        price: unitPrice * (form.quantity ?? 0), // ✅ always save total price
+        price: unitPrice * (form.quantity ?? 0),
       } as FarmProduct;
 
       if (product?.id || form.id) {
         await farmProductsApi.update(String(product?.id || form.id), payload);
       } else {
-        await farmProductsApi.add({ ...payload, farmer_id: farmerId } as unknown as FarmProduct);
+        await farmProductsApi.add({ ...payload, farmer_id: String(validFarmerId) } as FarmProduct);
       }
 
       onProductAdded();
-      triggerRefresh(); // ✅ refresh inventory
+      triggerRefresh();
       setActiveTab("inventory");
     } catch (err) {
       console.error("Error saving product:", err);
@@ -160,7 +188,8 @@ export default function ProductsModal({
     }
   };
 
-  // ✅ When editing from inventory
+  const triggerRefresh = () => setRefreshKey((k) => k + 1);
+
   const handleEditFromInventory = (p: FarmProduct) => {
     setForm({
       ...p,
@@ -188,7 +217,6 @@ export default function ProductsModal({
     setActiveTab("seasons");
   };
 
-  // ✅ Determine modal title
   const getModalTitle = () => {
     if (activeTab === "inventory") return "Farm Inventory";
     if (activeTab === "planner") return "🌱 Farm Planner";
@@ -199,9 +227,18 @@ export default function ProductsModal({
 
   const totalPages = Math.ceil((inventory?.total ?? 0) / itemsPerPage);
 
+  // Add a debug display (remove in production)
+  const DebugInfo = () => (
+    <div className="mb-2 p-2 bg-yellow-100 dark:bg-yellow-900 text-xs rounded">
+      <p>🔧 Debug: farmerId = {validFarmerId} (valid number)</p>
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow-lg max-w-6xl w-full">
+        <DebugInfo /> {/* Remove this in production */}
+        
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-brand-dark dark:text-brand-apple">
             {getModalTitle()}
@@ -216,7 +253,7 @@ export default function ProductsModal({
           )}
         </div>
 
-        {/* ✅ Main Navigation Tabs */}
+        {/* Main Navigation Tabs */}
         <div className="flex border-b mb-4 overflow-x-auto">
           <button
             onClick={() => setActiveTab("inventory")}
@@ -260,8 +297,8 @@ export default function ProductsModal({
           </button>
         </div>
 
-        {/* ✅ Product Form Sub-tabs (only shown when in product editing mode) */}
-        {activeTab === "details" || activeTab === "pricing" || activeTab === "status" ? (
+        {/* Product Form Sub-tabs */}
+        {(activeTab === "details" || activeTab === "pricing" || activeTab === "status") && (
           <div className="flex border-b mb-4">
             {["details", "pricing", "status"].map((tab) => (
               <button
@@ -277,9 +314,9 @@ export default function ProductsModal({
               </button>
             ))}
           </div>
-        ) : null}
+        )}
 
-        {/* ✅ Content */}
+        {/* Content */}
         <div className="space-y-3 max-h-[70vh] overflow-y-auto px-1">
           {/* PRODUCT DETAILS TAB */}
           {activeTab === "details" && (
@@ -423,6 +460,7 @@ export default function ProductsModal({
           {/* INVENTORY TAB */}
           {activeTab === "inventory" && (
             <div className="overflow-x-auto">
+              {/* Filter Bar */}
               <div className="flex flex-wrap gap-3 mb-3">
                 <input
                   type="text"
@@ -558,7 +596,7 @@ export default function ProductsModal({
           {/* FARM PLANNER TAB */}
           {activeTab === "planner" && (
             <FarmPlanner
-              farmerId={Number(farmerId)}
+              farmerId={validFarmerId}
               onPlanCreated={handlePlanCreated}
               onClose={() => setActiveTab("seasons")}
             />
@@ -566,19 +604,19 @@ export default function ProductsModal({
 
           {/* SEASONS TAB */}
           {activeTab === "seasons" && (
-            <SeasonOverview farmerId={Number(farmerId)} />
+            <SeasonOverview farmerId={validFarmerId} />
           )}
 
           {/* FARM DIARY TAB */}
           {activeTab === "diary" && (
             <FarmDiary 
-              farmerId={Number(farmerId)} 
+              farmerId={validFarmerId}
               seasons={seasons} 
             />
           )}
         </div>
 
-        {/* ✅ Footer */}
+        {/* Footer */}
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
@@ -586,7 +624,7 @@ export default function ProductsModal({
           >
             Close
           </button>
-          {activeTab === "details" || activeTab === "pricing" || activeTab === "status" ? (
+          {(activeTab === "details" || activeTab === "pricing" || activeTab === "status") && (
             <button
               onClick={handleSave}
               disabled={loading}
@@ -594,7 +632,7 @@ export default function ProductsModal({
             >
               {loading ? "Saving..." : form.id || product?.id ? "Update Product" : "Save Product"}
             </button>
-          ) : null}
+          )}
         </div>
       </div>
     </div>

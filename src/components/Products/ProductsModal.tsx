@@ -253,7 +253,7 @@ export default function ProductsModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow-lg max-w-6xl w-full">
-        <DebugInfo /> {/* Remove this in production */}
+        <DebugInfo />
         
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-brand-dark dark:text-brand-apple">

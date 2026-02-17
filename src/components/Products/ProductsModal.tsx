@@ -34,6 +34,7 @@ export default function ProductsModal({
 }: ProductsModalProps) {
   
   // State declarations
+  const [isMounted, setIsMounted] = useState(false);
   const [validFarmerId, setValidFarmerId] = useState<number | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isLoadingFarmerId, setIsLoadingFarmerId] = useState(false);
@@ -63,9 +64,6 @@ export default function ProductsModal({
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState<ProductStatus | "">("");
   const [refreshKey, setRefreshKey] = useState(0);
-
-  // Add this after your state declarations
-  const [isMounted, setIsMounted] = useState(false);
 
   const unitPrice = form.quantity && form.quantity > 0 ? (form.price ?? 0) / form.quantity : 0;
 

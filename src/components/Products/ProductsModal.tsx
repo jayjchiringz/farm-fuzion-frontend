@@ -82,6 +82,13 @@ export default function ProductsModal({
     }
   };
 
+  // Add this near the top of ProductsModal component
+  useEffect(() => {
+    console.log("ProductsModal farmerId prop:", farmerId);
+    console.log("Type:", typeof farmerId);
+    console.log("As number:", Number(farmerId));
+  }, [farmerId]);
+
   // ✅ Pre-fill form if editing
   useEffect(() => {
     if (product) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { farmActivitiesApi, FarmDiaryEntry, FarmSeason } from "../../services/farmActivitiesApi";
 
 interface FarmDiaryProps {
@@ -24,6 +24,15 @@ interface HarvestDetails {
 }
 
 export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) => {
+  // Validate farmerId
+  const validFarmerId = useMemo(() => {
+    if (!farmerId || isNaN(farmerId) || farmerId <= 0) {
+      console.error("Invalid farmerId in FarmDiary:", farmerId);
+      return null;
+    }
+    return farmerId;
+  }, [farmerId]);
+
   const [entries, setEntries] = useState<FarmDiaryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewEntry, setShowNewEntry] = useState(false);
@@ -58,18 +67,26 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
     }
   });
 
+  // Update the useEffect dependencies
   useEffect(() => {
-    loadEntries();
-  }, [farmerId, selectedSeason]);
+    if (validFarmerId) {
+      loadEntries();
+    }
+  }, [validFarmerId, selectedSeason]);
 
   useEffect(() => {
     calculateFinancialSummary();
   }, [entries]);
 
   const loadEntries = async () => {
+    if (!validFarmerId) {
+      console.error("Cannot load entries: Invalid farmerId");
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
-      const response = await farmActivitiesApi.getFarmerDiaryEntries(farmerId, {
+      const response = await farmActivitiesApi.getFarmerDiaryEntries(validFarmerId, {
         season_id: selectedSeason,
         limit: 50
       });
@@ -112,33 +129,42 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
   };
 
   const createEntry = async () => {
+    if (!validFarmerId) {
+      alert("Invalid farmer ID. Please try again.");
+      return;
+    }
+
     if (!newEntry.content) {
       alert("Please enter diary content");
       return;
     }
 
     // Prepare metadata based on entry type
-    const metadata: any = {};
-    
+    let metadata = {};
+
     if (newEntry.entry_type === 'expense' && newEntry.expense_details) {
-      metadata.amount = newEntry.expense_details.amount;
-      metadata.category = newEntry.expense_details.category;
-      metadata.payment_method = newEntry.expense_details.payment_method;
-      metadata.vendor = newEntry.expense_details.vendor;
-      metadata.notes = newEntry.expense_details.notes;
+      metadata = {
+        amount: newEntry.expense_details.amount || 0,
+        category: newEntry.expense_details.category || 'other',
+        payment_method: newEntry.expense_details.payment_method || 'cash',
+        vendor: newEntry.expense_details.vendor || '',
+        notes: newEntry.expense_details.notes || ''
+      };
     }
     
     if (newEntry.entry_type === 'harvest' && newEntry.harvest_details) {
-      metadata.quantity = newEntry.harvest_details.quantity;
-      metadata.unit = newEntry.harvest_details.unit;
-      metadata.estimated_value = newEntry.harvest_details.estimated_value;
-      metadata.actual_sales = newEntry.harvest_details.actual_sales;
-      metadata.buyer = newEntry.harvest_details.buyer;
+      metadata = {
+        quantity: newEntry.harvest_details.quantity || 0,
+        unit: newEntry.harvest_details.unit || 'kg',
+        estimated_value: newEntry.harvest_details.estimated_value || 0,
+        actual_sales: newEntry.harvest_details.actual_sales || 0,
+        buyer: newEntry.harvest_details.buyer || ''
+      };
     }
 
     try {
       await farmActivitiesApi.createDiaryEntry({
-        farmer_id: farmerId,
+        farmer_id: validFarmerId, 
         season_id: newEntry.season_id,
         entry_date: newEntry.entry_date,
         title: newEntry.title,
@@ -148,7 +174,7 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
         temperature: newEntry.temperature,
         rainfall_mm: newEntry.rainfall_mm,
         tags: newEntry.tags || [],
-        metadata: Object.keys(metadata).length > 0 ? metadata : undefined
+        metadata: metadata // Use the prepared metadata object
       });
 
       setShowNewEntry(false);

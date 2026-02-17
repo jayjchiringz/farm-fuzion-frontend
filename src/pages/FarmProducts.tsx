@@ -12,6 +12,7 @@ import { useAuth } from "../contexts/AuthContext";
 export default function FarmProductsPage() {
   const { getFarmerId, user, loading: authLoading } = useAuth();
   const [farmerId, setFarmerId] = useState<number | null>(null);
+  const [fetchingFarmerId, setFetchingFarmerId] = useState(false);
 
   const [products, setProducts] = useState<PaginatedResponse<FarmProduct> | null>(
     null
@@ -21,25 +22,42 @@ export default function FarmProductsPage() {
   const [page, setPage] = useState(1);
   const limit = 5;
 
-  // ✅ Filters
+  // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState<ProductStatus | "">("");
 
-  // ✅ Modal state
+  // Modal state
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<FarmProduct | undefined>(
     undefined
   );
 
-  // Get farmer ID from auth context
+  // Get numeric farmer ID from auth context
   useEffect(() => {
-    const id = getFarmerId();
-    console.log("Retrieved farmer ID:", id);
-    setFarmerId(id);
+    const fetchNumericFarmerId = async () => {
+      if (!user) {
+        setFarmerId(null);
+        return;
+      }
+
+      setFetchingFarmerId(true);
+      try {
+        const numericId = await getFarmerId();
+        console.log("Retrieved numeric farmer ID:", numericId);
+        setFarmerId(numericId);
+      } catch (error) {
+        console.error("Error fetching numeric farmer ID:", error);
+        setFarmerId(null);
+      } finally {
+        setFetchingFarmerId(false);
+      }
+    };
+
+    fetchNumericFarmerId();
   }, [user]);
 
-  // ✅ Load products
+  // Load products
   const loadProducts = async () => {
     if (!farmerId) {
       console.warn("No farmer ID available yet");
@@ -49,7 +67,7 @@ export default function FarmProductsPage() {
     setLoading(true);
     try {
       const res = await farmProductsApi.getFarmerProducts(
-        String(farmerId), // Convert to string for the API
+        String(farmerId),
         page,
         limit,
         {
@@ -72,7 +90,7 @@ export default function FarmProductsPage() {
     }
   }, [farmerId, page, searchTerm, filterCategory, filterStatus]);
 
-  // ✅ Dynamic filter values (from loaded products)
+  // Dynamic filter values
   const categories = useMemo(
     () =>
       Array.from(
@@ -88,7 +106,6 @@ export default function FarmProductsPage() {
     [products]
   );
 
-  // Handle add product button
   const handleAddProduct = () => {
     if (!farmerId) {
       alert("Please log in to add products");
@@ -98,7 +115,6 @@ export default function FarmProductsPage() {
     setShowModal(true);
   };
 
-  // Handle edit product
   const handleEditProduct = (product: FarmProduct) => {
     if (!farmerId) {
       alert("Please log in to edit products");
@@ -108,7 +124,7 @@ export default function FarmProductsPage() {
     setShowModal(true);
   };
 
-  if (authLoading) {
+  if (authLoading || fetchingFarmerId) {
     return (
       <div className="p-6 flex justify-center items-center">
         <div className="text-center">
@@ -144,7 +160,7 @@ export default function FarmProductsPage() {
         </button>
       </div>
 
-      {/* ✅ Filter Bar */}
+      {/* Filter Bar */}
       <div className="flex flex-wrap gap-3 mb-4">
         <input
           type="text"

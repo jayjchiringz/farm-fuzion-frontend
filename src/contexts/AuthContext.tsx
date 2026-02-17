@@ -1,13 +1,13 @@
+// src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../services/api';
 
 interface User {
-  id: number;
+  id: string; // This is the auth UUID
   email: string;
   first_name: string;
   last_name: string;
   role: string;
-  farmer_id?: number;
 }
 
 interface AuthContextType {
@@ -15,7 +15,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  getFarmerId: () => number | null;
+  getFarmerId: () => Promise<number | null>; // Make this async
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,7 +27,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Check for stored session
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const storedToken = localStorage.getItem('token');
+    
+    if (storedUser && storedToken) {
       setUser(JSON.parse(storedUser));
     }
     setLoading(false);
@@ -52,20 +54,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('token');
   };
 
-  const getFarmerId = (): number | null => {
+  const getFarmerId = async (): Promise<number | null> => {
     if (!user) return null;
     
-    // If user is a farmer, return their farmer_id
-    if (user.role === 'farmer' && user.farmer_id) {
-      return user.farmer_id;
+    try {
+      // If user is a farmer, fetch their numeric ID from the farmers table
+      if (user.role === 'farmer') {
+        // You might need to adjust this endpoint based on your API
+        const response = await api.get(`/farmers/by-user/${user.id}`);
+        return response.data.farmer_id; // This should be the numeric ID
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error fetching farmer ID:', error);
+      return null;
     }
-    
-    // If user has id and is farmer, return that
-    if (user.role === 'farmer' && user.id) {
-      return user.id;
-    }
-    
-    return null;
   };
 
   return (

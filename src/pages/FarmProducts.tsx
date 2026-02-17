@@ -13,6 +13,7 @@ export default function FarmProductsPage() {
   const { getFarmerId, user, loading: authLoading } = useAuth();
   const [numericFarmerId, setNumericFarmerId] = useState<number | null>(null);
   const [fetchingFarmerId, setFetchingFarmerId] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [products, setProducts] = useState<PaginatedResponse<FarmProduct> | null>(
     null
@@ -36,18 +37,31 @@ export default function FarmProductsPage() {
   // Get numeric farmer ID from auth context when user is available
   useEffect(() => {
     const fetchNumericFarmerId = async () => {
+      console.log("Auth user:", user);
+      
       if (!user) {
+        console.log("No user found");
         setNumericFarmerId(null);
         return;
       }
 
       setFetchingFarmerId(true);
+      setError(null);
+      
       try {
+        console.log("Calling getFarmerId() for user:", user.id);
         const id = await getFarmerId();
-        console.log("Retrieved numeric farmer ID:", id);
-        setNumericFarmerId(id);
+        console.log("getFarmerId() returned:", id, "type:", typeof id);
+        
+        if (id === null) {
+          setError("No farmer profile found for this user");
+          setNumericFarmerId(null);
+        } else {
+          setNumericFarmerId(id);
+        }
       } catch (error) {
         console.error("Error fetching numeric farmer ID:", error);
+        setError("Failed to load farmer profile");
         setNumericFarmerId(null);
       } finally {
         setFetchingFarmerId(false);
@@ -64,6 +78,7 @@ export default function FarmProductsPage() {
       return;
     }
 
+    console.log("Loading products for numeric ID:", numericFarmerId);
     setLoading(true);
     try {
       const res = await farmProductsApi.getFarmerProducts(
@@ -111,6 +126,7 @@ export default function FarmProductsPage() {
       alert("Please log in to add products");
       return;
     }
+    console.log("Opening add product modal with numeric ID:", numericFarmerId);
     setSelectedProduct(undefined);
     setShowModal(true);
   };
@@ -120,6 +136,7 @@ export default function FarmProductsPage() {
       alert("Please log in to edit products");
       return;
     }
+    console.log("Opening edit product modal with numeric ID:", numericFarmerId);
     setSelectedProduct(product);
     setShowModal(true);
   };
@@ -138,6 +155,20 @@ export default function FarmProductsPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-red-500">Error: {error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-4 px-4 py-2 bg-brand-green text-white rounded"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   if (!numericFarmerId) {
     return (
       <div className="p-6 text-center">
@@ -148,10 +179,12 @@ export default function FarmProductsPage() {
 
   return (
     <div className="p-6">
-      {/* Debug info - remove in production */}
-      <div className="mb-4 p-2 bg-blue-100 dark:bg-blue-900 rounded text-sm">
-        🔧 Using Numeric Farmer ID: <strong>{numericFarmerId}</strong> 
-        (type: {typeof numericFarmerId})
+      {/* Debug info */}
+      <div className="mb-4 p-3 bg-blue-100 dark:bg-blue-900 rounded text-sm">
+        <p>🔧 Debug Info:</p>
+        <p>Numeric Farmer ID: <strong>{numericFarmerId}</strong> (type: {typeof numericFarmerId})</p>
+        <p>User UUID: <strong>{user?.id}</strong></p>
+        <p>Modal will open with: <strong>{numericFarmerId}</strong></p>
       </div>
 
       <div className="flex justify-between items-center mb-4">

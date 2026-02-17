@@ -55,16 +55,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getFarmerId = async (): Promise<number | null> => {
-    if (!user) return null;
+    if (!user) {
+      console.log("getFarmerId: No user");
+      return null;
+    }
     
     try {
-      // If user is a farmer, fetch their numeric ID from the farmers table
+      console.log("getFarmerId: Fetching for user:", user.id);
+      
       if (user.role === 'farmer') {
-        // You might need to adjust this endpoint based on your API
         const response = await api.get(`/farmers/by-user/${user.id}`);
-        return response.data.farmer_id; // This should be the numeric ID
+        console.log("getFarmerId: Response:", response.data);
+        
+        if (response.data && response.data.farmer_id) {
+          return response.data.farmer_id;
+        }
       }
       
+      console.log("getFarmerId: No farmer_id in response");
       return null;
     } catch (error) {
       console.error('Error fetching farmer ID:', error);

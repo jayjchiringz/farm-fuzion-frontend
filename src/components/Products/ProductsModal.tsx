@@ -18,7 +18,7 @@ export type FarmProduct = ApiFarmProduct & {
 };
 
 interface ProductsModalProps {
-  farmerId: number; // This should be a number
+  farmerId: number | string; // Accept both types
   onClose: () => void;
   onProductAdded: () => void;
   product?: FarmProduct;
@@ -39,19 +39,34 @@ export default function ProductsModal({
   useEffect(() => {
     console.log("ProductsModal received farmerId:", farmerId, "type:", typeof farmerId);
     
-    // Validate the farmerId
-    if (farmerId === undefined || farmerId === null) {
+    // Try to convert to number
+    let numericId: number | null = null;
+    
+    if (typeof farmerId === 'number') {
+      numericId = farmerId;
+    } else if (typeof farmerId === 'string') {
+      // Try to parse the string to number
+      numericId = parseInt(farmerId, 10);
+      if (isNaN(numericId)) {
+        // If it's a UUID, we need to fetch the numeric ID from the backend
+        console.log("String is not a number, might be UUID:", farmerId);
+        numericId = null;
+      }
+    }
+    
+    // Validate
+    if (numericId === null || numericId === undefined) {
       setValidationError("Farmer ID is missing");
       setValidFarmerId(null);
-    } else if (isNaN(farmerId)) {
+    } else if (isNaN(numericId)) {
       setValidationError("Farmer ID is not a valid number");
       setValidFarmerId(null);
-    } else if (farmerId <= 0) {
+    } else if (numericId <= 0) {
       setValidationError("Farmer ID must be positive");
       setValidFarmerId(null);
     } else {
-      console.log("✅ Valid farmerId:", farmerId);
-      setValidFarmerId(farmerId);
+      console.log("✅ Valid farmerId:", numericId);
+      setValidFarmerId(numericId);
       setValidationError(null);
     }
   }, [farmerId]);

@@ -57,7 +57,14 @@ export default function FarmProductsPage() {
           setError("No farmer profile found for this user");
           setNumericFarmerId(null);
         } else {
-          setNumericFarmerId(id);
+          // Ensure it's a number
+          const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+          if (!isNaN(numericId) && numericId > 0) {
+            setNumericFarmerId(numericId);
+          } else {
+            setError("Invalid farmer ID format");
+            setNumericFarmerId(null);
+          }
         }
       } catch (error) {
         console.error("Error fetching numeric farmer ID:", error);

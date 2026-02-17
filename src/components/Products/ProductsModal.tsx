@@ -33,7 +33,7 @@ export default function ProductsModal({
   mode = "inventory",
 }: ProductsModalProps) {
   
-  // State declarations
+  // ALL useState hooks must come first, in a consistent order
   const [isMounted, setIsMounted] = useState(false);
   const [validFarmerId, setValidFarmerId] = useState<number | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -59,24 +59,54 @@ export default function ProductsModal({
 
   const [inventory, setInventory] = useState<PaginatedResponse<FarmProduct> | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState<ProductStatus | "">("");
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const itemsPerPage = 5;
   const unitPrice = form.quantity && form.quantity > 0 ? (form.price ?? 0) / form.quantity : 0;
 
+  // ALL useEffect hooks come next, in a consistent order
   useEffect(() => {
     setIsMounted(true);
     return () => setIsMounted(false);
   }, []);
 
+  // Validate and convert farmerId
+  useEffect(() => {
+    const validateFarmerId = async () => {
+      // ... your validation logic
+    };
+    validateFarmerId();
+  }, [farmerId]);
+
+  useEffect(() => {
+    if (product) {
+      setForm({
+        ...product,
+        quantity: product.quantity ? Number(product.quantity) : 0,
+        price: product.price ? Number(product.price) : 0,
+      });
+    }
+  }, [product]);
+
+  useEffect(() => {
+    if (validFarmerId && (activeTab === "diary" || activeTab === "seasons" || activeTab === "planner")) {
+      loadSeasons();
+    }
+  }, [validFarmerId, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "inventory") {
+      loadInventory();
+    }
+  }, [activeTab, refreshKey, currentPage, searchTerm, filterCategory, filterStatus]);
+
   // Don't render anything until mounted on client
   if (!isMounted) {
     return null;
   }
-
 
   // Validate and convert farmerId
   useEffect(() => {

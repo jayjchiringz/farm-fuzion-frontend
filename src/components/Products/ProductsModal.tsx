@@ -64,7 +64,21 @@ export default function ProductsModal({
   const [filterStatus, setFilterStatus] = useState<ProductStatus | "">("");
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // Add this after your state declarations
+  const [isMounted, setIsMounted] = useState(false);
+
   const unitPrice = form.quantity && form.quantity > 0 ? (form.price ?? 0) / form.quantity : 0;
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
+  // Don't render anything until mounted on client
+  if (!isMounted) {
+    return null;
+  }
+
 
   // Validate and convert farmerId
   useEffect(() => {

@@ -33,69 +33,11 @@ export default function ProductsModal({
   mode = "inventory",
 }: ProductsModalProps) {
   
-  // Validate farmerId immediately
+  // State declarations
   const [validFarmerId, setValidFarmerId] = useState<number | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [isLoadingFarmerId, setIsLoadingFarmerId] = useState(false);
 
-  useEffect(() => {
-    console.log("ProductsModal received farmerId:", farmerId, "type:", typeof farmerId);
-    
-    // Try to convert to number
-    let numericId: number | null = null;
-    
-    if (typeof farmerId === 'number') {
-      numericId = farmerId;
-    } else if (typeof farmerId === 'string') {
-      // Try to parse the string to number
-      numericId = parseInt(farmerId, 10);
-      if (isNaN(numericId)) {
-        // If it's a UUID, we need to fetch the numeric ID from the backend
-        console.log("String is not a number, might be UUID:", farmerId);
-        numericId = null;
-      }
-    }
-    
-    // Validate
-    if (numericId === null || numericId === undefined) {
-      setValidationError("Farmer ID is missing");
-      setValidFarmerId(null);
-    } else if (isNaN(numericId)) {
-      setValidationError("Farmer ID is not a valid number");
-      setValidFarmerId(null);
-    } else if (numericId <= 0) {
-      setValidationError("Farmer ID must be positive");
-      setValidFarmerId(null);
-    } else {
-      console.log("✅ Valid farmerId:", numericId);
-      setValidFarmerId(numericId);
-      setValidationError(null);
-    }
-  }, [farmerId]);
-
-  // Don't render if we don't have a valid ID
-  if (!validFarmerId) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow-lg max-w-md w-full">
-          <h3 className="text-xl font-bold text-red-600 mb-4">Error</h3>
-          <p className="text-gray-700 dark:text-gray-300 mb-4">
-            {validationError || "Invalid farmer ID. Please log in again."}
-          </p>
-          <p className="text-sm text-gray-500 mb-4">
-            Received: farmerId = {farmerId} (type: {typeof farmerId})
-          </p>
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-2 rounded bg-brand-green text-white hover:bg-green-700"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Rest of your component - use validFarmerId for all API calls
   const [form, setForm] = useState<Partial<FarmProduct>>({
     product_name: "",
     quantity: 0,
@@ -123,6 +65,115 @@ export default function ProductsModal({
   const [refreshKey, setRefreshKey] = useState(0);
 
   const unitPrice = form.quantity && form.quantity > 0 ? (form.price ?? 0) / form.quantity : 0;
+
+  // Validate and convert farmerId
+  useEffect(() => {
+    const validateFarmerId = async () => {
+      console.log("ProductsModal received farmerId:", farmerId, "type:", typeof farmerId);
+      
+      // Case 1: It's already a valid number
+      if (typeof farmerId === 'number' && !isNaN(farmerId) && farmerId > 0) {
+        console.log("✅ Valid numeric farmerId:", farmerId);
+        setValidFarmerId(farmerId);
+        setValidationError(null);
+        return;
+      }
+      
+      // Case 2: It's a string that might be a UUID
+      if (typeof farmerId === 'string') {
+        // Check if it looks like a UUID (contains hyphens and is long)
+        if (farmerId.includes('-') && farmerId.length > 20) {
+          console.log("📝 Detected UUID, fetching numeric ID from backend...");
+          setIsLoadingFarmerId(true);
+          
+          try {
+            const API_BASE = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
+            const response = await fetch(`${API_BASE}/farmers/by-user/${farmerId}`);
+            
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log("Backend response:", data);
+            
+            if (data && data.farmer_id) {
+              console.log("✅ Fetched numeric farmerId:", data.farmer_id);
+              setValidFarmerId(data.farmer_id);
+              setValidationError(null);
+            } else {
+              setValidationError("Could not find farmer profile");
+              setValidFarmerId(null);
+            }
+          } catch (error) {
+            console.error("Error fetching farmer ID:", error);
+            setValidationError("Failed to load farmer profile");
+            setValidFarmerId(null);
+          } finally {
+            setIsLoadingFarmerId(false);
+          }
+          return;
+        }
+        
+        // Case 3: It's a string that might be a number
+        const parsed = parseInt(farmerId, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+          console.log("✅ Parsed string to number:", parsed);
+          setValidFarmerId(parsed);
+          setValidationError(null);
+        } else {
+          setValidationError("Invalid farmer ID format");
+          setValidFarmerId(null);
+        }
+        return;
+      }
+      
+      setValidationError("Invalid farmer ID");
+      setValidFarmerId(null);
+    };
+
+    validateFarmerId();
+  }, [farmerId]);
+
+  // Show loading state while fetching numeric ID
+  if (isLoadingFarmerId) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow-lg max-w-md w-full">
+          <div className="text-center">
+            <svg className="animate-spin h-8 w-8 mx-auto text-brand-green mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <p className="text-gray-700 dark:text-gray-300">Loading farmer profile...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if no valid farmer ID
+  if (!validFarmerId) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow-lg max-w-md w-full">
+          <h3 className="text-xl font-bold text-red-600 mb-4">Error</h3>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            {validationError || "Invalid farmer ID. Please log in again."}
+          </p>
+          <p className="text-sm text-gray-500 mb-4">
+            Received: {farmerId} (type: {typeof farmerId})
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 rounded bg-brand-green text-white hover:bg-green-700"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Load seasons using validFarmerId
   const loadSeasons = async () => {
@@ -156,7 +207,7 @@ export default function ProductsModal({
     try {
       console.log("Loading inventory for farmer:", validFarmerId);
       const data = await farmProductsApi.getFarmerProducts(
-        String(validFarmerId), // Convert to string for products API
+        String(validFarmerId),
         currentPage,
         itemsPerPage,
         {
@@ -243,10 +294,9 @@ export default function ProductsModal({
 
   const totalPages = Math.ceil((inventory?.total ?? 0) / itemsPerPage);
 
-  // Add a debug display (remove in production)
   const DebugInfo = () => (
-    <div className="mb-2 p-2 bg-yellow-100 dark:bg-yellow-900 text-xs rounded">
-      <p>🔧 Debug: farmerId = {validFarmerId} (valid number)</p>
+    <div className="mb-2 p-2 bg-green-100 dark:bg-green-900 text-xs rounded">
+      <p>✅ Using numeric farmerId: {validFarmerId}</p>
     </div>
   );
 
@@ -332,7 +382,7 @@ export default function ProductsModal({
           </div>
         )}
 
-        {/* Content */}
+        {/* Content - All your existing tabs remain exactly the same */}
         <div className="space-y-3 max-h-[70vh] overflow-y-auto px-1">
           {/* PRODUCT DETAILS TAB */}
           {activeTab === "details" && (

@@ -3,11 +3,13 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../services/api';
 
 interface User {
-  id: string; // This is the auth UUID
+  id: string;
   email: string;
-  first_name: string;
-  last_name: string;
+  first_name?: string;
+  last_name?: string;
   role: string;
+  group_id?: string;
+  created_at?: string;
 }
 
 interface AuthContextType {
@@ -15,7 +17,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  getFarmerId: () => Promise<number | null>; // Make this async
+  getFarmerId: () => Promise<number | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,11 +66,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("getFarmerId: Fetching for user:", user.id);
       
       if (user.role === 'farmer') {
+        // Make sure this endpoint exists and returns the numeric ID
         const response = await api.get(`/farmers/by-user/${user.id}`);
         console.log("getFarmerId: Response:", response.data);
         
         if (response.data && response.data.farmer_id) {
-          return response.data.farmer_id;
+          const numericId = response.data.farmer_id;
+          console.log("getFarmerId: Got numeric ID:", numericId);
+          return numericId;
         }
       }
       

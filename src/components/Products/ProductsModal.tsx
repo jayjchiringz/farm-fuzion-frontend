@@ -18,7 +18,7 @@ export type FarmProduct = ApiFarmProduct & {
 };
 
 interface ProductsModalProps {
-  farmerId: number | string; // Accept both types
+  farmerId: number | string;
   onClose: () => void;
   onProductAdded: () => void;
   product?: FarmProduct;
@@ -73,42 +73,7 @@ export default function ProductsModal({
     return () => setIsMounted(false);
   }, []);
 
-  // Validate and convert farmerId
-  useEffect(() => {
-    const validateFarmerId = async () => {
-      // ... your validation logic
-    };
-    validateFarmerId();
-  }, [farmerId]);
-
-  useEffect(() => {
-    if (product) {
-      setForm({
-        ...product,
-        quantity: product.quantity ? Number(product.quantity) : 0,
-        price: product.price ? Number(product.price) : 0,
-      });
-    }
-  }, [product]);
-
-  useEffect(() => {
-    if (validFarmerId && (activeTab === "diary" || activeTab === "seasons" || activeTab === "planner")) {
-      loadSeasons();
-    }
-  }, [validFarmerId, activeTab]);
-
-  useEffect(() => {
-    if (activeTab === "inventory") {
-      loadInventory();
-    }
-  }, [activeTab, refreshKey, currentPage, searchTerm, filterCategory, filterStatus]);
-
-  // Don't render anything until mounted on client
-  if (!isMounted) {
-    return null;
-  }
-
-  // Validate and convert farmerId
+  // SINGLE validation useEffect - remove the duplicate one later
   useEffect(() => {
     const validateFarmerId = async () => {
       console.log("ProductsModal received farmerId:", farmerId, "type:", typeof farmerId);
@@ -177,7 +142,69 @@ export default function ProductsModal({
     validateFarmerId();
   }, [farmerId]);
 
-  // Show loading state while fetching numeric ID
+  // Update form when product changes
+  useEffect(() => {
+    if (product) {
+      setForm({
+        ...product,
+        quantity: product.quantity ? Number(product.quantity) : 0,
+        price: product.price ? Number(product.price) : 0,
+      });
+    }
+  }, [product]);
+
+  // Load seasons when validFarmerId or activeTab changes
+  useEffect(() => {
+    const loadSeasons = async () => {
+      if (!validFarmerId) return;
+      try {
+        console.log("Loading seasons for farmer:", validFarmerId);
+        const response = await farmActivitiesApi.getFarmerSeasons(validFarmerId);
+        setSeasons(response.data);
+      } catch (error) {
+        console.error("Error loading seasons:", error);
+      }
+    };
+
+    if (validFarmerId && (activeTab === "diary" || activeTab === "seasons" || activeTab === "planner")) {
+      loadSeasons();
+    }
+  }, [validFarmerId, activeTab]);
+
+  // Load inventory when activeTab or filters change
+  useEffect(() => {
+    const loadInventory = async () => {
+      if (!validFarmerId || activeTab !== "inventory") return;
+      
+      setLoadingInventory(true);
+      try {
+        console.log("Loading inventory for farmer:", validFarmerId);
+        const data = await farmProductsApi.getFarmerProducts(
+          String(validFarmerId),
+          currentPage,
+          itemsPerPage,
+          {
+            search: searchTerm || undefined,
+            category: filterCategory || undefined,
+            status: filterStatus || undefined,
+          }
+        );
+        setInventory(data);
+      } catch (err) {
+        console.error("Error loading inventory:", err);
+      } finally {
+        setLoadingInventory(false);
+      }
+    };
+
+    loadInventory();
+  }, [activeTab, refreshKey, currentPage, searchTerm, filterCategory, filterStatus, validFarmerId]);
+
+  // Conditional returns AFTER all hooks
+  if (!isMounted) {
+    return null;
+  }
+
   if (isLoadingFarmerId) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -194,7 +221,6 @@ export default function ProductsModal({
     );
   }
 
-  // Show error if no valid farmer ID
   if (!validFarmerId) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -217,61 +243,7 @@ export default function ProductsModal({
     );
   }
 
-  // Load seasons using validFarmerId
-  const loadSeasons = async () => {
-    try {
-      console.log("Loading seasons for farmer:", validFarmerId);
-      const response = await farmActivitiesApi.getFarmerSeasons(validFarmerId);
-      setSeasons(response.data);
-    } catch (error) {
-      console.error("Error loading seasons:", error);
-    }
-  };
-
-  useEffect(() => {
-    if (product) {
-      setForm({
-        ...product,
-        quantity: product.quantity ? Number(product.quantity) : 0,
-        price: product.price ? Number(product.price) : 0,
-      });
-    }
-  }, [product]);
-
-  useEffect(() => {
-    if (validFarmerId && (activeTab === "diary" || activeTab === "seasons" || activeTab === "planner")) {
-      loadSeasons();
-    }
-  }, [validFarmerId, activeTab]);
-
-  const loadInventory = async () => {
-    setLoadingInventory(true);
-    try {
-      console.log("Loading inventory for farmer:", validFarmerId);
-      const data = await farmProductsApi.getFarmerProducts(
-        String(validFarmerId),
-        currentPage,
-        itemsPerPage,
-        {
-          search: searchTerm || undefined,
-          category: filterCategory || undefined,
-          status: filterStatus || undefined,
-        }
-      );
-      setInventory(data);
-    } catch (err) {
-      console.error("Error loading inventory:", err);
-    } finally {
-      setLoadingInventory(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === "inventory") {
-      loadInventory();
-    }
-  }, [activeTab, refreshKey, currentPage, searchTerm, filterCategory, filterStatus]);
-
+  // Handlers
   const handleSave = async () => {
     try {
       setLoading(true);
@@ -322,7 +294,6 @@ export default function ProductsModal({
   };
 
   const handlePlanCreated = (seasonId: number) => {
-    loadSeasons();
     setActiveTab("seasons");
   };
 

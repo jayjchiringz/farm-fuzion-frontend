@@ -7,9 +7,11 @@ import {
   ProductStatus,
 } from "../services/farmProductsApi";
 import ProductsModal from "../components/Products/ProductsModal";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function FarmProductsPage() {
-  const farmerId = "demo-farmer-123"; // 🔧 replace with actual logged-in farmer ID
+  const { getFarmerId, user, loading: authLoading } = useAuth();
+  const [farmerId, setFarmerId] = useState<number | null>(null);
 
   const [products, setProducts] = useState<PaginatedResponse<FarmProduct> | null>(
     null
@@ -30,12 +32,24 @@ export default function FarmProductsPage() {
     undefined
   );
 
+  // Get farmer ID from auth context
+  useEffect(() => {
+    const id = getFarmerId();
+    console.log("Retrieved farmer ID:", id);
+    setFarmerId(id);
+  }, [user]);
+
   // ✅ Load products
   const loadProducts = async () => {
+    if (!farmerId) {
+      console.warn("No farmer ID available yet");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await farmProductsApi.getFarmerProducts(
-        farmerId,
+        String(farmerId), // Convert to string for the API
         page,
         limit,
         {
@@ -53,8 +67,10 @@ export default function FarmProductsPage() {
   };
 
   useEffect(() => {
-    loadProducts();
-  }, [page, searchTerm, filterCategory, filterStatus]);
+    if (farmerId) {
+      loadProducts();
+    }
+  }, [farmerId, page, searchTerm, filterCategory, filterStatus]);
 
   // ✅ Dynamic filter values (from loaded products)
   const categories = useMemo(
@@ -72,6 +88,48 @@ export default function FarmProductsPage() {
     [products]
   );
 
+  // Handle add product button
+  const handleAddProduct = () => {
+    if (!farmerId) {
+      alert("Please log in to add products");
+      return;
+    }
+    setSelectedProduct(undefined);
+    setShowModal(true);
+  };
+
+  // Handle edit product
+  const handleEditProduct = (product: FarmProduct) => {
+    if (!farmerId) {
+      alert("Please log in to edit products");
+      return;
+    }
+    setSelectedProduct(product);
+    setShowModal(true);
+  };
+
+  if (authLoading) {
+    return (
+      <div className="p-6 flex justify-center items-center">
+        <div className="text-center">
+          <svg className="animate-spin h-8 w-8 mx-auto text-brand-green" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!farmerId) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-red-500">Please log in to access farm products</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
@@ -79,11 +137,8 @@ export default function FarmProductsPage() {
           Farm Products
         </h1>
         <button
-          onClick={() => {
-            setSelectedProduct(undefined);
-            setShowModal(true);
-          }}
-          className="bg-brand-green text-white px-4 py-2 rounded"
+          onClick={handleAddProduct}
+          className="bg-brand-green text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
         >
           + Add Product
         </button>
@@ -99,7 +154,7 @@ export default function FarmProductsPage() {
             setSearchTerm(e.target.value);
             setPage(1);
           }}
-          className="p-2 border rounded flex-1 min-w-[180px]"
+          className="p-2 border rounded flex-1 min-w-[180px] dark:bg-gray-800 dark:border-gray-700"
         />
         <select
           value={filterCategory}
@@ -107,7 +162,7 @@ export default function FarmProductsPage() {
             setFilterCategory(e.target.value);
             setPage(1);
           }}
-          className="p-2 border rounded min-w-[160px]"
+          className="p-2 border rounded min-w-[160px] dark:bg-gray-800 dark:border-gray-700"
         >
           <option value="">All Categories</option>
           {categories.map((cat) => (
@@ -122,7 +177,7 @@ export default function FarmProductsPage() {
             setFilterStatus(e.target.value as ProductStatus | "");
             setPage(1);
           }}
-          className="p-2 border rounded min-w-[140px]"
+          className="p-2 border rounded min-w-[140px] dark:bg-gray-800 dark:border-gray-700"
         >
           <option value="">All Status</option>
           {statuses.map((st) => (
@@ -134,13 +189,28 @@ export default function FarmProductsPage() {
       </div>
 
       {loading ? (
-        <p>Loading products...</p>
+        <div className="flex justify-center items-center py-10">
+          <svg className="animate-spin h-6 w-6 text-brand-green" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <span className="ml-2">Loading products...</span>
+        </div>
       ) : !products || products.data.length === 0 ? (
-        <p className="text-gray-500">No products found.</p>
+        <div className="text-center py-10 text-gray-500">
+          <p className="text-4xl mb-2">📦</p>
+          <p>No products found.</p>
+          <button
+            onClick={handleAddProduct}
+            className="mt-3 text-brand-green hover:underline"
+          >
+            + Add your first product
+          </button>
+        </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border text-left">
-            <thead className="bg-slate-100 dark:bg-[#0a3d32]">
+          <table className="w-full border text-left dark:border-gray-700">
+            <thead className="bg-slate-100 dark:bg-gray-800">
               <tr>
                 <th className="px-3 py-2">Product</th>
                 <th className="px-3 py-2">Qty</th>
@@ -156,20 +226,25 @@ export default function FarmProductsPage() {
                 const unitPrice =
                   p.quantity && p.quantity > 0 ? (p.price ?? 0) / p.quantity : 0;
                 return (
-                  <tr key={p.id} className="border-t">
+                  <tr key={p.id} className="border-t dark:border-gray-700">
                     <td className="px-3 py-2">{p.product_name}</td>
                     <td className="px-3 py-2">{p.quantity}</td>
                     <td className="px-3 py-2">{p.unit}</td>
                     <td className="px-3 py-2">Ksh {unitPrice.toFixed(2)}</td>
                     <td className="px-3 py-2">Ksh {p.price}</td>
-                    <td className="px-3 py-2 capitalize">{p.status}</td>
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        p.status === 'available' ? 'bg-green-100 text-green-800' :
+                        p.status === 'sold' ? 'bg-gray-100 text-gray-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {p.status}
+                      </span>
+                    </td>
                     <td className="px-3 py-2">
                       <button
-                        className="text-blue-600 hover:text-blue-800"
-                        onClick={() => {
-                          setSelectedProduct(p);
-                          setShowModal(true);
-                        }}
+                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                        onClick={() => handleEditProduct(p)}
                       >
                         Edit
                       </button>
@@ -189,14 +264,14 @@ export default function FarmProductsPage() {
               <button
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="px-2 py-1 border rounded disabled:opacity-50"
+                className="px-2 py-1 border rounded disabled:opacity-50 dark:border-gray-700"
               >
                 Prev
               </button>
               <button
                 disabled={page >= Math.ceil(products.total / limit)}
                 onClick={() => setPage((p) => p + 1)}
-                className="px-2 py-1 border rounded disabled:opacity-50"
+                className="px-2 py-1 border rounded disabled:opacity-50 dark:border-gray-700"
               >
                 Next
               </button>
@@ -206,7 +281,7 @@ export default function FarmProductsPage() {
       )}
 
       {/* Modal */}
-      {showModal && (
+      {showModal && farmerId && (
         <ProductsModal
           farmerId={farmerId}
           product={selectedProduct}

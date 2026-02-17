@@ -19,7 +19,7 @@ export type FarmProduct = ApiFarmProduct & {
 };
 
 interface ProductsModalProps {
-  farmerId: string;
+  farmerId: number;
   onClose: () => void;
   onProductAdded: () => void;
   product?: FarmProduct; // optional, for editing
@@ -112,7 +112,7 @@ export default function ProductsModal({
     setLoadingInventory(true);
     try {
       const data = await farmProductsApi.getFarmerProducts(
-        farmerId,
+        String(farmerId),
         currentPage,
         itemsPerPage,
         {
@@ -146,7 +146,7 @@ export default function ProductsModal({
       if (product?.id || form.id) {
         await farmProductsApi.update(String(product?.id || form.id), payload);
       } else {
-        await farmProductsApi.add({ ...payload, farmer_id: farmerId } as FarmProduct);
+        await farmProductsApi.add({ ...payload, farmer_id: farmerId } as unknown as FarmProduct);
       }
 
       onProductAdded();

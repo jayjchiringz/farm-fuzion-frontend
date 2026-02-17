@@ -11,46 +11,49 @@ import LoanRepayments from "./pages/LoanRepayments";
 import AdminDashboard from "./pages/AdminDashboard"; // ✅ NEW
 
 import React from "react";
+import { AuthProvider } from "./contexts/AuthContext";
 
 export default function App() {
   return (
-    <MainLayout>
-      <Routes>
-        <Route path="/" element={<RedirectBasedOnAuth />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/verify" element={<VerifyOtp />} />
+    <AuthProvider>
+      <MainLayout>
+        <Routes>
+          <Route path="/" element={<RedirectBasedOnAuth />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/verify" element={<VerifyOtp />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/admin-dashboard"
-          element={
-            <PrivateRoute>
-              <AdminDashboard children={undefined} />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/register-farmer"
-          element={
-            <PrivateRoute>
-              <RegisterFarmerUnderGroup />
-            </PrivateRoute>
-          }
-        />
-        <Route path="/loans" element={<Loans />} />
-        <Route path="/repayments/:loanId" element={<LoanRepayments />} />
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin-dashboard"
+            element={
+              <PrivateRoute>
+                <AdminDashboard children={undefined} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/register-farmer"
+            element={
+              <PrivateRoute>
+                <RegisterFarmerUnderGroup />
+              </PrivateRoute>
+            }
+          />
+          <Route path="/loans" element={<Loans />} />
+          <Route path="/repayments/:loanId" element={<LoanRepayments />} />
 
-        {/* Fallback route */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </MainLayout>
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </MainLayout>
+    </AuthProvider>
   );
 }
 

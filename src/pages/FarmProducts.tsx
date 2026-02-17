@@ -11,7 +11,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 export default function FarmProductsPage() {
   const { getFarmerId, user, loading: authLoading } = useAuth();
-  const [farmerId, setFarmerId] = useState<number | null>(null);
+  const [numericFarmerId, setNumericFarmerId] = useState<number | null>(null);
   const [fetchingFarmerId, setFetchingFarmerId] = useState(false);
 
   const [products, setProducts] = useState<PaginatedResponse<FarmProduct> | null>(
@@ -33,22 +33,22 @@ export default function FarmProductsPage() {
     undefined
   );
 
-  // Get numeric farmer ID from auth context
+  // Get numeric farmer ID from auth context when user is available
   useEffect(() => {
     const fetchNumericFarmerId = async () => {
       if (!user) {
-        setFarmerId(null);
+        setNumericFarmerId(null);
         return;
       }
 
       setFetchingFarmerId(true);
       try {
-        const numericId = await getFarmerId();
-        console.log("Retrieved numeric farmer ID:", numericId);
-        setFarmerId(numericId);
+        const id = await getFarmerId();
+        console.log("Retrieved numeric farmer ID:", id);
+        setNumericFarmerId(id);
       } catch (error) {
         console.error("Error fetching numeric farmer ID:", error);
-        setFarmerId(null);
+        setNumericFarmerId(null);
       } finally {
         setFetchingFarmerId(false);
       }
@@ -59,15 +59,15 @@ export default function FarmProductsPage() {
 
   // Load products
   const loadProducts = async () => {
-    if (!farmerId) {
-      console.warn("No farmer ID available yet");
+    if (!numericFarmerId) {
+      console.warn("No numeric farmer ID available yet");
       return;
     }
 
     setLoading(true);
     try {
       const res = await farmProductsApi.getFarmerProducts(
-        String(farmerId),
+        String(numericFarmerId),
         page,
         limit,
         {
@@ -85,10 +85,10 @@ export default function FarmProductsPage() {
   };
 
   useEffect(() => {
-    if (farmerId) {
+    if (numericFarmerId) {
       loadProducts();
     }
-  }, [farmerId, page, searchTerm, filterCategory, filterStatus]);
+  }, [numericFarmerId, page, searchTerm, filterCategory, filterStatus]);
 
   // Dynamic filter values
   const categories = useMemo(
@@ -107,7 +107,7 @@ export default function FarmProductsPage() {
   );
 
   const handleAddProduct = () => {
-    if (!farmerId) {
+    if (!numericFarmerId) {
       alert("Please log in to add products");
       return;
     }
@@ -116,7 +116,7 @@ export default function FarmProductsPage() {
   };
 
   const handleEditProduct = (product: FarmProduct) => {
-    if (!farmerId) {
+    if (!numericFarmerId) {
       alert("Please log in to edit products");
       return;
     }
@@ -138,7 +138,7 @@ export default function FarmProductsPage() {
     );
   }
 
-  if (!farmerId) {
+  if (!numericFarmerId) {
     return (
       <div className="p-6 text-center">
         <p className="text-red-500">Please log in to access farm products</p>
@@ -148,6 +148,12 @@ export default function FarmProductsPage() {
 
   return (
     <div className="p-6">
+      {/* Debug info - remove in production */}
+      <div className="mb-4 p-2 bg-blue-100 dark:bg-blue-900 rounded text-sm">
+        🔧 Using Numeric Farmer ID: <strong>{numericFarmerId}</strong> 
+        (type: {typeof numericFarmerId})
+      </div>
+
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-brand-dark dark:text-brand-apple">
           Farm Products
@@ -296,10 +302,10 @@ export default function FarmProductsPage() {
         </div>
       )}
 
-      {/* Modal */}
-      {showModal && farmerId && (
+      {/* Modal - Now passing the numeric ID */}
+      {showModal && numericFarmerId && (
         <ProductsModal
-          farmerId={farmerId}
+          farmerId={numericFarmerId}
           product={selectedProduct}
           onClose={() => setShowModal(false)}
           onProductAdded={loadProducts}

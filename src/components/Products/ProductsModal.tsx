@@ -32,6 +32,7 @@ export default function ProductsModal({
   product,
   mode = "inventory",
 }: ProductsModalProps) {
+  
   // Validate farmerId immediately
   const [validFarmerId, setValidFarmerId] = useState<number | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);

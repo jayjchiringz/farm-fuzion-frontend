@@ -60,6 +60,7 @@ export default function FarmProductsPage() {
           // Ensure it's a number
           const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
           if (!isNaN(numericId) && numericId > 0) {
+            console.log("✅ Valid numeric farmer ID:", numericId);
             setNumericFarmerId(numericId);
           } else {
             setError("Invalid farmer ID format");
@@ -76,7 +77,7 @@ export default function FarmProductsPage() {
     };
 
     fetchNumericFarmerId();
-  }, [user]);
+  }, [user, getFarmerId]);
 
   // Load products
   const loadProducts = async () => {
@@ -186,7 +187,7 @@ export default function FarmProductsPage() {
 
   return (
     <div className="p-6">
-      {/* Debug info */}
+      {/* Debug info - remove in production */}
       <div className="mb-4 p-3 bg-blue-100 dark:bg-blue-900 rounded text-sm">
         <p>🔧 Debug Info:</p>
         <p>Numeric Farmer ID: <strong>{numericFarmerId}</strong> (type: {typeof numericFarmerId})</p>
@@ -345,7 +346,7 @@ export default function FarmProductsPage() {
       {/* Modal - Now passing the numeric ID */}
       {showModal && numericFarmerId && (
         <ProductsModal
-          farmerId={numericFarmerId}
+          farmerId={numericFarmerId} // This is now a number!
           product={selectedProduct}
           onClose={() => setShowModal(false)}
           onProductAdded={loadProducts}

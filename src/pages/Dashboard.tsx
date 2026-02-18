@@ -167,8 +167,9 @@ export default function Dashboard() {
             />
             {marketsOpen && (
               <MarketsModal
+                farmerId={farmer?.id}  // Add this line
                 onClose={() => setMarketsOpen(false)}
-                onMarketAdded={refreshData} // ✅ match prop name
+                onMarketAdded={refreshData}
               />
             )}
             <Card

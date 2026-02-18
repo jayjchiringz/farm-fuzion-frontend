@@ -34,60 +34,84 @@ interface MarketPricesModalProps {
   onMarketAdded?: () => Promise<void> | void;
 }
 
-type TabType = "dashboard" | "market" | "add" | "insights" | "marketplace" | "cart" | "orders";
+type TabType = "dashboard" | "market" | "add" | "insights" | "marketplace" | "cart" | "orders" | "mylistings";
 
 export default function MarketPricesModal({
   farmerId,
   onClose,
   onMarketAdded,
 }: MarketPricesModalProps) {
-  const [loading, setLoading] = useState(false);
-  const [currentTab, setCurrentTab] = useState<TabType>("dashboard");
-  
-  // Summary data
-  const [summary, setSummary] = useState<MarketPrice[]>([]);
-  const [dashboardData, setDashboardData] = useState<any>(null);
-  
-  // Filters
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState("");
-  const [filterRegion, setFilterRegion] = useState("");
-  const [selectedCurrency, setSelectedCurrency] = useState<'KES' | 'USD' | 'UGX' | 'TZS'>('KES');
-  
-  // Add/Edit Form
-  const [formData, setFormData] = useState<Partial<MarketPrice>>({
-    product_name: "",
-    category: "",
-    region: "",
-    retail_price: 0,
-    farmgate_price: 0,
-    unit: `${selectedCurrency}/kg`,
-    benchmark: false,
-  });
-  const [editingId, setEditingId] = useState<string | number | null>(null);
+// ✅ ALL HOOKS AT TOP LEVEL
+const [loading, setLoading] = useState(false);
+const [currentTab, setCurrentTab] = useState<TabType>("dashboard");
 
-  // ✅ ALL MARKETPLACE HOOKS AT TOP LEVEL
-  const [marketplaceProducts, setMarketplaceProducts] = useState<MarketplaceProduct[]>([]);
-  const [marketplaceLoading, setMarketplaceLoading] = useState(false);
-  const [marketplaceFilters, setMarketplaceFilters] = useState({
-    category: '',
-    minPrice: '',
-    maxPrice: '',
-    location: '',
-    sort: 'newest',
-    search: '',
-  });
+// Summary data
+const [summary, setSummary] = useState<MarketPrice[]>([]);
+const [dashboardData, setDashboardData] = useState<any>(null);
 
-  // ✅ ALL CART HOOKS AT TOP LEVEL
-  const [cartData, setCartData] = useState<ShoppingCartType[]>([]);
-  const [cartLoading, setCartLoading] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+// Filters
+const [searchTerm, setSearchTerm] = useState("");
+const [filterCategory, setFilterCategory] = useState("");
+const [filterRegion, setFilterRegion] = useState("");
+const [selectedCurrency, setSelectedCurrency] = useState<'KES' | 'USD' | 'UGX' | 'TZS'>('KES');
 
-  // ✅ ALL ORDERS HOOKS AT TOP LEVEL
-  const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-  const [activeOrdersTab, setActiveOrdersTab] = useState<'buyer' | 'seller'>('buyer');
-  const [statusFilter, setStatusFilter] = useState('');
+// Add/Edit Form
+const [formData, setFormData] = useState<Partial<MarketPrice>>({
+  product_name: "",
+  category: "",
+  region: "",
+  retail_price: 0,
+  farmgate_price: 0,
+  unit: `${selectedCurrency}/kg`,
+  benchmark: false,
+});
+const [editingId, setEditingId] = useState<string | number | null>(null);
+
+// Marketplace
+const [marketplaceProducts, setMarketplaceProducts] = useState<MarketplaceProduct[]>([]);
+const [marketplaceLoading, setMarketplaceLoading] = useState(false);
+const [marketplaceFilters, setMarketplaceFilters] = useState({
+  category: '',
+  minPrice: '',
+  maxPrice: '',
+  location: '',
+  sort: 'newest',
+  search: '',
+});
+
+// Cart
+const [cartData, setCartData] = useState<ShoppingCartType[]>([]);
+const [cartLoading, setCartLoading] = useState(false);
+const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
+// Orders
+const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
+const [ordersLoading, setOrdersLoading] = useState(false);
+const [activeOrdersTab, setActiveOrdersTab] = useState<'buyer' | 'seller'>('buyer');
+const [statusFilter, setStatusFilter] = useState('');
+
+// My Listings
+const [myListings, setMyListings] = useState<MarketplaceProduct[]>([]);
+const [myListingsLoading, setMyListingsLoading] = useState(false);
+
+// Load my listings function
+const loadMyListings = async () => {
+  if (!farmerId) return;
+  
+  setMyListingsLoading(true);
+  try {
+    const response = await marketplaceApi.getProducts({
+      farmer_id: farmerId,
+      status: 'available',
+      limit: 100,
+    });
+    setMyListings(response.data || []);
+  } catch (error) {
+    console.error("Error loading my listings:", error);
+  } finally {
+    setMyListingsLoading(false);
+  }
+};
 
   // Load data based on tab
   const loadData = async () => {
@@ -1029,7 +1053,7 @@ export default function MarketPricesModal({
       <div className="mb-6">
         <h3 className="text-xl font-bold text-brand-dark dark:text-brand-apple">
           FarmFuzion Marketplace
-        </h3>renderMarketplace  {/* ← Remove this */}
+        </h3>
         <p className="text-gray-600 dark:text-gray-300 mt-1">
           Buy and sell farm products directly with other farmers
         </p>
@@ -1685,8 +1709,130 @@ export default function MarketPricesModal({
     );
   };
 
+  // ✅ Render My Listings Tab - NO HOOKS INSIDE
+  const renderMyListings = () => {
+    if (!farmerId) {
+      return (
+        <div className="mb-6">
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+              <Package className="text-gray-400" size={24} />
+            </div>
+            <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Please Sign In
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
+              You need to be logged in to view your listings
+            </p>
+            <button
+              onClick={() => setCurrentTab("marketplace")}
+              className="bg-brand-green hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+            >
+              Browse Marketplace
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mb-6">
+        <div className="mb-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h3 className="text-xl font-bold text-brand-dark dark:text-brand-apple">
+                📋 My Listings
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 mt-1">
+                Manage your farm products listed on the marketplace
+              </p>
+            </div>
+            <button
+              onClick={loadMyListings}
+              className="bg-brand-green hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <RefreshCw size={18} />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {myListingsLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green"></div>
+          </div>
+        ) : myListings.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+              <Package className="text-gray-400" size={24} />
+            </div>
+            <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
+              No listings yet
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
+              You haven't listed any products yet. Start selling on the marketplace!
+            </p>
+            <button
+              onClick={() => setCurrentTab("marketplace")}
+              className="bg-brand-green hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+            >
+              Go to Marketplace
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {myListings.map((product) => (
+              <div key={product.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h4 className="font-bold text-lg text-gray-900 dark:text-white">
+                      {product.product_name}
+                    </h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Listed {new Date(product.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <span className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 text-sm font-medium px-2 py-1 rounded">
+                    {formatCurrencyKES(product.price)}
+                  </span>
+                </div>
+                
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500 dark:text-gray-400">Quantity:</span>
+                    <span className="font-medium">{product.quantity} {product.unit}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500 dark:text-gray-400">Status:</span>
+                    <span className="font-medium text-green-600 dark:text-green-400">
+                      {product.status === 'available' ? '✓ Available' : 'Not Available'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500 dark:text-gray-400">Rating:</span>
+                    <span className="font-medium">{product.rating?.toFixed(1) || '0.0'} ⭐</span>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <button className="flex-1 text-brand-green border border-brand-green py-2 rounded hover:bg-brand-green/10 text-sm transition-colors">
+                    Edit
+                  </button>
+                  <button className="flex-1 text-red-600 border border-red-600 py-2 rounded hover:bg-red-50 dark:hover:bg-red-900/10 text-sm transition-colors">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+
   // Render current tab content
-  const renderTabContent = () => {
+  const renderTabContent = (): JSX.Element => {
     switch (currentTab) {
       case "dashboard": return renderDashboard();
       case "market": return renderMarketPrices();
@@ -1695,6 +1841,7 @@ export default function MarketPricesModal({
       case "marketplace": return renderMarketplace();
       case "cart": return renderCart();
       case "orders": return renderOrders();
+      case "mylistings": return renderMyListings();
       default: return renderDashboard();
     }
   };
@@ -1727,6 +1874,7 @@ export default function MarketPricesModal({
               { key: "orders", label: "Orders", icon: "📦" },
               { key: "add", label: editingId ? "Edit Price" : "Add Price", icon: editingId ? "✏️" : "➕" },
               { key: "insights", label: "AI Insights", icon: "🤖" },
+              { key: "mylistings", label: "My Listings", icon: "📋" },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -1787,3 +1935,9 @@ export default function MarketPricesModal({
     </div>
   );
 }
+
+
+function renderMyListings() {
+  throw new Error("Function not implemented.");
+}
+

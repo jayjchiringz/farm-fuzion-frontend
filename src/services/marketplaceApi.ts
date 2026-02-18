@@ -6,6 +6,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL ||
 
 // Types matching backend schemas
 export interface MarketplaceProduct {
+  external_sales: number;
   id: string;
   farm_product_id: string;
   farmer_id: string;

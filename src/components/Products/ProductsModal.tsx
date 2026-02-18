@@ -10,7 +10,8 @@ import { farmActivitiesApi, FarmSeason } from "../../services/farmActivitiesApi"
 import { FarmPlanner } from "../FarmActivities/FarmPlanner";
 import { FarmDiary } from "../FarmActivities/FarmDiary";
 import { SeasonOverview } from "../FarmActivities/SeasonOverview";
-import { Edit, Plus, Info } from "lucide-react";
+import { Edit, Plus, Info, ShoppingCart } from "lucide-react";
+import { marketplaceApi } from "../../services/marketplaceApi";
 
 export type FarmProduct = ApiFarmProduct & {
   id?: string | number;
@@ -313,6 +314,42 @@ export default function ProductsModal({
       <p>✅ Using numeric farmerId: {validFarmerId}</p>
     </div>
   );
+
+  const handlePublishToMarketplace = async (product: FarmProduct) => {
+    if (!farmerId) {
+      alert("Please log in to publish products");
+      return;
+    }
+
+    // Ask for listing price
+    const price = prompt(
+      `Enter listing price for ${product.product_name} (per ${product.unit}):`,
+      product.price?.toString() || "0"
+    );
+
+    if (price === null) return; // User cancelled
+
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      alert("Please enter a valid price");
+      return;
+    }
+
+    try {
+      await marketplaceApi.publishProduct({
+        farm_product_id: String(product.id),
+        price: numericPrice,
+        farmer_id: String(farmerId),
+      });
+      
+      alert(`✅ ${product.product_name} published to marketplace!`);
+      // Refresh your products list
+      if (onProductAdded) onProductAdded();
+    } catch (error: any) {
+      console.error("Error publishing product:", error);
+      alert(error.response?.data?.error || "Failed to publish product");
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -633,13 +670,25 @@ export default function ProductsModal({
                               </span>
                             </td>
                             <td className="px-3 py-2">
-                              <button
-                                className="text-blue-600 hover:text-blue-800 dark:text-blue-400"
-                                onClick={() => handleEditFromInventory(p)}
-                                title="Edit Product"
-                              >
-                                <Edit size={16} />
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                                  onClick={() => handleEditFromInventory(p)}
+                                  title="Edit Product"
+                                >
+                                  <Edit size={16} />
+                                </button>
+                                {/* Add Publish button - only show for available products not already published */}
+                                {p.status === 'available' && (
+                                  <button
+                                    onClick={() => handlePublishToMarketplace(p)}
+                                    className="text-green-600 hover:text-green-800 dark:text-green-400"
+                                    title="Publish to Marketplace"
+                                  >
+                                    <ShoppingCart size={16} />
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );

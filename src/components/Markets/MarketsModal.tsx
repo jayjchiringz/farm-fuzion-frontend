@@ -190,8 +190,14 @@ export default function MarketPricesModal({
     }
   };
 
-  // Add this state near other useState declarations
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
+
+  const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
+  const [selectedProductForAdjustment, setSelectedProductForAdjustment] = useState<MarketplaceProduct | null>(null);
+  const [adjustmentQuantity, setAdjustmentQuantity] = useState(0);
+  const [adjustmentReason, setAdjustmentReason] = useState<'external_sale' | 'inventory_correction' | 'damage' | 'other'>('external_sale');
+  const [adjustmentNotes, setAdjustmentNotes] = useState('');
+  const [adjustmentLoading, setAdjustmentLoading] = useState(false);
 
   // Update handleAddToCart to use selected quantity
   const handleAddToCart = async (product: MarketplaceProduct, quantity?: number) => {
@@ -248,6 +254,48 @@ export default function MarketPricesModal({
       alert(error.response?.data?.error || "Checkout failed. Please try again.");
     } finally {
       setCheckoutLoading(null);
+    }
+  };
+
+  // ✅ Manual adjustment function for external sales
+  const handleManualAdjustment = async () => {
+    if (!farmerId || !selectedProductForAdjustment) return;
+    
+    if (adjustmentQuantity === 0) {
+      alert("Please enter a quantity");
+      return;
+    }
+
+    // For external sales, quantity should be negative
+    const quantityChange = -Math.abs(adjustmentQuantity);
+
+    setAdjustmentLoading(true);
+    try {
+      // Actually call the API instead of mock alert
+      await marketplaceApi.adjustInventory({
+        marketplace_product_id: selectedProductForAdjustment.id,
+        quantity_change: quantityChange,
+        reason: adjustmentReason,
+        notes: adjustmentNotes,
+        farmer_id: farmerId,
+      });
+
+      alert(`External sale recorded! Inventory updated.`);
+      
+      // Refresh marketplace products to show updated quantity
+      loadMarketplaceProducts();
+      
+      // Close modal and reset
+      setShowAdjustmentModal(false);
+      setSelectedProductForAdjustment(null);
+      setAdjustmentQuantity(0);
+      setAdjustmentReason('external_sale');
+      setAdjustmentNotes('');
+    } catch (error) {
+      console.error("Error adjusting inventory:", error);
+      alert("Failed to record external sale. Please try again.");
+    } finally {
+      setAdjustmentLoading(false);
     }
   };
 
@@ -981,7 +1029,7 @@ export default function MarketPricesModal({
       <div className="mb-6">
         <h3 className="text-xl font-bold text-brand-dark dark:text-brand-apple">
           FarmFuzion Marketplace
-        </h3>
+        </h3>renderMarketplace  {/* ← Remove this */}
         <p className="text-gray-600 dark:text-gray-300 mt-1">
           Buy and sell farm products directly with other farmers
         </p>
@@ -1076,6 +1124,7 @@ export default function MarketPricesModal({
                 </div>
               </div>
               
+              {/* In the product card, add this button next to the Add to Cart button */}
               <div className="flex items-center gap-2 mb-3">
                 <input
                   type="number"
@@ -1095,8 +1144,100 @@ export default function MarketPricesModal({
                   Add to Cart
                 </button>
               </div>
+
+              {/* NEW: External Sale Button */}
+              {product.farmer_id === farmerId && (
+                <button
+                  onClick={() => {
+                    setSelectedProductForAdjustment(product);
+                    setAdjustmentQuantity(0);
+                    setShowAdjustmentModal(true);
+                  }}
+                  className="w-full mt-2 border border-brand-green text-brand-green py-2 rounded hover:bg-brand-green/10 transition-colors text-sm"
+                >
+                  Record External Sale
+                </button>
+              )}
+
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Manual Adjustment Modal - Moved outside the map */}
+      {showAdjustmentModal && selectedProductForAdjustment && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-brand-dark p-6 rounded-lg max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4">Record External Sale</h3>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                Product: <span className="font-medium">{selectedProductForAdjustment.product_name}</span>
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Current Quantity: <span className="font-medium">{selectedProductForAdjustment.quantity} {selectedProductForAdjustment.unit}</span>
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Quantity Sold *</label>
+                <input
+                  type="number"
+                  min="1"
+                  max={selectedProductForAdjustment.quantity}
+                  value={adjustmentQuantity}
+                  onChange={(e) => setAdjustmentQuantity(parseInt(e.target.value) || 0)}
+                  className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                  placeholder="Enter quantity"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Reason</label>
+                <select
+                  value={adjustmentReason}
+                  onChange={(e) => setAdjustmentReason(e.target.value as any)}
+                  className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                >
+                  <option value="external_sale">External Sale (outside marketplace)</option>
+                  <option value="inventory_correction">Inventory Correction</option>
+                  <option value="damage">Damage/Loss</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Notes (optional)</label>
+                <textarea
+                  value={adjustmentNotes}
+                  onChange={(e) => setAdjustmentNotes(e.target.value)}
+                  className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                  rows={3}
+                  placeholder="Add any additional notes..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowAdjustmentModal(false);
+                    setSelectedProductForAdjustment(null);
+                  }}
+                  className="px-4 py-2 bg-gray-300 dark:bg-gray-700 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleManualAdjustment}
+                  disabled={adjustmentLoading || adjustmentQuantity <= 0}
+                  className="px-4 py-2 bg-brand-green text-white rounded disabled:opacity-50"
+                >
+                  {adjustmentLoading ? "Processing..." : "Record Sale"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

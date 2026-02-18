@@ -209,4 +209,19 @@ export const marketplaceApi = {
     const res = await axios.post(`${API_BASE}/marketplace/orders/${orderId}/pay`, data);
     return res.data;
   },
+
+  // Add to marketplaceApi service
+  async adjustInventory(data: {
+    marketplace_product_id: string;
+    quantity_change: number;
+    reason: 'external_sale' | 'inventory_correction' | 'damage' | 'other';
+    notes?: string;
+    farmer_id: string;
+  }) {
+    const res = await axios.post(
+      `${API_BASE}/marketplace/products/${data.marketplace_product_id}/adjust`,
+      data
+    );
+    return res.data;
+  },
 };

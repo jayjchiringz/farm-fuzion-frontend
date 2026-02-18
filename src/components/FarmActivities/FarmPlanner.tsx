@@ -1,5 +1,7 @@
+// farm-fuzion-frontend/src/components/FarmActivities/FarmPlanner.tsx
 import React, { useState, useEffect } from "react";
 import { farmActivitiesApi, Crop, FarmSeason, SeasonActivity, CropPlanningRequest } from "../../services/farmActivitiesApi";
+import { counties, constituencies, wards } from "kenya-locations";
 
 interface FarmPlannerProps {
   farmerId: number;
@@ -31,6 +33,11 @@ export const FarmPlanner: React.FC<FarmPlannerProps> = ({
   } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Location state
+  const [selectedCounty, setSelectedCounty] = useState("");
+  const [selectedConstituency, setSelectedConstituency] = useState("");
+  const [selectedWard, setSelectedWard] = useState("");
+
   // Load crops on mount
   useEffect(() => {
     loadCrops();
@@ -54,9 +61,40 @@ export const FarmPlanner: React.FC<FarmPlannerProps> = ({
     setPlanRequest(prev => ({ ...prev, crop_name: cropName }));
   };
 
+  // Handle location changes
+  const handleCountyChange = (countyName: string) => {
+    setSelectedCounty(countyName);
+    setSelectedConstituency("");
+    setSelectedWard("");
+    setPlanRequest(prev => ({
+      ...prev,
+      county: countyName,
+      sub_county: "",
+      location: countyName // Default location to county name
+    }));
+  };
+
+  const handleConstituencyChange = (constituencyName: string) => {
+    setSelectedConstituency(constituencyName);
+    setSelectedWard("");
+    setPlanRequest(prev => ({
+      ...prev,
+      sub_county: constituencyName,
+      location: `${prev.county} - ${constituencyName}`
+    }));
+  };
+
+  const handleWardChange = (wardName: string) => {
+    setSelectedWard(wardName);
+    setPlanRequest(prev => ({
+      ...prev,
+      location: `${prev.county} - ${prev.sub_county} - ${wardName}`
+    }));
+  };
+
   const generatePlan = async () => {
-    if (!planRequest.crop_name || !planRequest.location || !planRequest.start_date || !planRequest.acreage) {
-      alert("Please fill in all required fields: Crop, Location, Start Date, and Acreage");
+    if (!planRequest.crop_name || !planRequest.county || !planRequest.start_date || !planRequest.acreage) {
+      alert("Please fill in all required fields: Crop, County, Start Date, and Acreage");
       return;
     }
 
@@ -151,35 +189,72 @@ export const FarmPlanner: React.FC<FarmPlannerProps> = ({
               </select>
             </div>
 
+            {/* County Selection */}
             <div>
-              <label className="block text-sm font-medium mb-1">Farm Location *</label>
-              <input
-                type="text"
-                placeholder="e.g., Nakuru, Eldoret, Kiambu"
-                value={planRequest.location}
-                onChange={(e) => setPlanRequest({ ...planRequest, location: e.target.value })}
+              <label className="block text-sm font-medium mb-1">County *</label>
+              <select
+                value={selectedCounty}
+                onChange={(e) => handleCountyChange(e.target.value)}
                 className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
-              />
+              >
+                <option value="">Select County</option>
+                {counties.map((county) => (
+                  <option key={county.name} value={county.name}>
+                    {county.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
+            {/* Constituency Selection */}
             <div>
-              <label className="block text-sm font-medium mb-1">County</label>
-              <input
-                type="text"
-                placeholder="e.g., Nakuru, Uasin Gishu"
-                value={planRequest.county}
-                onChange={(e) => setPlanRequest({ ...planRequest, county: e.target.value })}
+              <label className="block text-sm font-medium mb-1">Constituency</label>
+              <select
+                value={selectedConstituency}
+                onChange={(e) => handleConstituencyChange(e.target.value)}
                 className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
-              />
+                disabled={!selectedCounty}
+              >
+                <option value="">Select Constituency</option>
+                {constituencies
+                  .filter((c) => c.county === selectedCounty)
+                  .map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+              </select>
             </div>
 
+            {/* Ward Selection */}
             <div>
-              <label className="block text-sm font-medium mb-1">Sub-county</label>
+              <label className="block text-sm font-medium mb-1">Ward</label>
+              <select
+                value={selectedWard}
+                onChange={(e) => handleWardChange(e.target.value)}
+                className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                disabled={!selectedConstituency}
+              >
+                <option value="">Select Ward</option>
+                {wards
+                  .filter((w) => w.constituency === selectedConstituency)
+                  .map((w) => (
+                    <option key={w.name} value={w.name}>
+                      {w.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {/* Location Display */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Full Location</label>
               <input
                 type="text"
-                value={planRequest.sub_county}
-                onChange={(e) => setPlanRequest({ ...planRequest, sub_county: e.target.value })}
-                className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                placeholder="Auto-generated from selections"
+                value={planRequest.location || ""}
+                readOnly
+                className="w-full p-2 border rounded bg-gray-100 dark:bg-gray-700 dark:border-gray-600"
               />
             </div>
 
@@ -232,7 +307,7 @@ export const FarmPlanner: React.FC<FarmPlannerProps> = ({
 
           <button
             onClick={generatePlan}
-            disabled={generating || !planRequest.crop_name || !planRequest.location || !planRequest.start_date}
+            disabled={generating || !planRequest.crop_name || !selectedCounty || !planRequest.start_date}
             className="w-full bg-brand-green text-white py-2 px-4 rounded hover:bg-brand-dark disabled:opacity-50 transition-colors"
           >
             {generating ? "🤖 Generating Intelligent Plan..." : "🚜 Generate Farm Plan"}
@@ -249,6 +324,8 @@ export const FarmPlanner: React.FC<FarmPlannerProps> = ({
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div><span className="font-medium">Season:</span> {generatedPlan.season.season_name}</div>
               <div><span className="font-medium">Location:</span> {generatedPlan.season.location}</div>
+              <div><span className="font-medium">County:</span> {generatedPlan.season.county}</div>
+              <div><span className="font-medium">Sub-county:</span> {generatedPlan.season.sub_county}</div>
               <div><span className="font-medium">Acreage:</span> {generatedPlan.season.acreage} acres</div>
               <div><span className="font-medium">Start:</span> {generatedPlan.season.start_date}</div>
               <div><span className="font-medium">Expected Harvest:</span> {generatedPlan.season.expected_end_date}</div>

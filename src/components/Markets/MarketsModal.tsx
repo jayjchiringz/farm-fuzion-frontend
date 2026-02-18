@@ -79,6 +79,57 @@ const [marketplaceFilters, setMarketplaceFilters] = useState({
   search: '',
 });
 
+// Add this right after all your useState hooks (around line 60-70)
+const [isLoading, setIsLoading] = useState(true);
+
+useEffect(() => {
+  // If farmerId is provided, we're ready
+  if (farmerId) {
+    setIsLoading(false);
+  } else {
+    // Wait a bit for farmerId to be passed
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }
+}, [farmerId]);
+
+// If still loading, show loading state
+if (isLoading) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+      <div className="bg-white dark:bg-brand-dark p-6 rounded-lg max-w-md w-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green mx-auto mb-4"></div>
+          <h2 className="text-xl font-bold mb-2">Loading Marketplace</h2>
+          <p className="text-gray-600 dark:text-gray-400">Please wait while we load your profile...</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// If no farmerId after loading, show error
+if (!farmerId) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+      <div className="bg-white dark:bg-brand-dark p-6 rounded-lg max-w-md w-full">
+        <h2 className="text-xl font-bold text-red-600 mb-4">Error</h2>
+        <p className="text-gray-700 dark:text-gray-300 mb-4">
+          You need to be logged in to access the marketplace.
+        </p>
+        <button
+          onClick={onClose}
+          className="w-full px-4 py-2 rounded bg-brand-green text-white hover:bg-green-700"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Cart
 const [cartData, setCartData] = useState<ShoppingCartType[]>([]);
 const [cartLoading, setCartLoading] = useState(false);

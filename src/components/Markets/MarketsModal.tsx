@@ -190,21 +190,27 @@ export default function MarketPricesModal({
     }
   };
 
-  // ✅ Marketplace actions
-  const handleAddToCart = async (product: MarketplaceProduct) => {
+  // Add this state near other useState declarations
+  const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
+
+  // Update handleAddToCart to use selected quantity
+  const handleAddToCart = async (product: MarketplaceProduct, quantity?: number) => {
     if (!farmerId) {
       alert("Please login to add items to cart");
       return;
     }
 
+    const qty = quantity || selectedQuantities[product.id] || 1;
+    
     try {
       await marketplaceApi.addToCart({
         marketplace_product_id: product.id,
-        quantity: 1,
+        quantity: qty,
         buyer_id: farmerId,
       });
-      alert("Added to cart!");
-      // Refresh cart if we're on cart tab
+      alert(`Added ${qty} ${product.unit}(s) to cart!`);
+      // Clear selected quantity after adding
+      setSelectedQuantities(prev => ({ ...prev, [product.id]: 1 }));
       if (currentTab === "cart") {
         loadCart();
       }
@@ -1070,12 +1076,25 @@ export default function MarketPricesModal({
                 </div>
               </div>
               
-              <button
-                onClick={() => handleAddToCart(product)}
-                className="w-full bg-brand-green hover:bg-green-700 text-white py-2 rounded-lg font-medium transition-colors"
-              >
-                Add to Cart
-              </button>
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  type="number"
+                  min="1"
+                  max={product.quantity}
+                  value={selectedQuantities[product.id] || 1}
+                  onChange={(e) => setSelectedQuantities(prev => ({
+                    ...prev,
+                    [product.id]: parseInt(e.target.value) || 1
+                  }))}
+                  className="w-20 px-2 py-1 border rounded dark:bg-gray-800"
+                />
+                <button
+                  onClick={() => handleAddToCart(product, selectedQuantities[product.id])}
+                  className="flex-1 bg-brand-green text-white py-2 rounded hover:bg-brand-dark"
+                >
+                  Add to Cart
+                </button>
+              </div>
             </div>
           ))}
         </div>

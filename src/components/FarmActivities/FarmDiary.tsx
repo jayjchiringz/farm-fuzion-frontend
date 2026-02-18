@@ -19,9 +19,17 @@ interface ExpenseDetails {
 interface HarvestDetails {
   quantity?: number;
   unit?: string;
-  estimated_value?: number;
-  actual_sales?: number;
+  // Amount/Value tracking
+  estimated_value?: number;      // Expected value before harvest
+  actual_sales?: number;         // Actual money received from sales
+  direct_sales_amount?: number;  // Money from direct farmgate sales
+  market_sales_amount?: number;  // Money from market sales
+  cooperative_sales_amount?: number; // Money from cooperative sales
+  other_income?: number;         // Any other harvest-related income
+  total_harvest_value?: number;  // Calculated total value
   buyer?: string;
+  market_location?: string;
+  sale_date?: string;
 }
 
 export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) => {
@@ -35,7 +43,9 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
     totalExpenses: 0,
     totalHarvestValue: 0,
     totalSales: 0,
-    netProfit: 0
+    netProfit: 0,
+    totalEstimatedValue: 0,
+    pendingSales: 0
   });
 
   const [newEntry, setNewEntry] = useState<Partial<FarmDiaryEntry> & {
@@ -57,7 +67,14 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
       unit: "kg",
       estimated_value: 0,
       actual_sales: 0,
-      buyer: ""
+      direct_sales_amount: 0,
+      market_sales_amount: 0,
+      cooperative_sales_amount: 0,
+      other_income: 0,
+      total_harvest_value: 0,
+      buyer: "",
+      market_location: "",
+      sale_date: new Date().toISOString().split('T')[0]
     }
   });
 
@@ -88,18 +105,47 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
     let expenses = 0;
     let harvestValue = 0;
     let sales = 0;
+    let estimatedValue = 0;
+    let pendingSales = 0;
 
     entries.forEach(entry => {
       if (entry.metadata) {
+        // Calculate expenses
         if (entry.entry_type === 'expense' && entry.metadata.amount) {
           expenses += Number(entry.metadata.amount);
         }
+        
+        // Calculate harvest values
         if (entry.entry_type === 'harvest') {
+          // Estimated value
           if (entry.metadata.estimated_value) {
+            estimatedValue += Number(entry.metadata.estimated_value);
             harvestValue += Number(entry.metadata.estimated_value);
           }
+          
+          // Actual sales from various sources
+          let totalSales = 0;
           if (entry.metadata.actual_sales) {
-            sales += Number(entry.metadata.actual_sales);
+            totalSales += Number(entry.metadata.actual_sales);
+          }
+          if (entry.metadata.direct_sales_amount) {
+            totalSales += Number(entry.metadata.direct_sales_amount);
+          }
+          if (entry.metadata.market_sales_amount) {
+            totalSales += Number(entry.metadata.market_sales_amount);
+          }
+          if (entry.metadata.cooperative_sales_amount) {
+            totalSales += Number(entry.metadata.cooperative_sales_amount);
+          }
+          if (entry.metadata.other_income) {
+            totalSales += Number(entry.metadata.other_income);
+          }
+          
+          sales += totalSales;
+          
+          // Calculate pending sales (estimated - actual)
+          if (entry.metadata.estimated_value && totalSales < entry.metadata.estimated_value) {
+            pendingSales += (entry.metadata.estimated_value - totalSales);
           }
         }
       }
@@ -109,8 +155,20 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
       totalExpenses: expenses,
       totalHarvestValue: harvestValue,
       totalSales: sales,
-      netProfit: sales - expenses
+      netProfit: sales - expenses,
+      totalEstimatedValue: estimatedValue,
+      pendingSales: pendingSales
     });
+  };
+
+  const calculateHarvestTotal = (details: HarvestDetails): number => {
+    const direct = details.direct_sales_amount || 0;
+    const market = details.market_sales_amount || 0;
+    const coop = details.cooperative_sales_amount || 0;
+    const other = details.other_income || 0;
+    const actual = details.actual_sales || 0;
+    
+    return direct + market + coop + other + actual;
   };
 
   const handleEdit = (entry: FarmDiaryEntry) => {
@@ -164,11 +222,21 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
     }
     
     if (newEntry.entry_type === 'harvest' && newEntry.harvest_details) {
+      // Calculate total harvest value
+      const totalValue = calculateHarvestTotal(newEntry.harvest_details);
+      
       metadata.quantity = newEntry.harvest_details.quantity;
       metadata.unit = newEntry.harvest_details.unit;
       metadata.estimated_value = newEntry.harvest_details.estimated_value;
       metadata.actual_sales = newEntry.harvest_details.actual_sales;
+      metadata.direct_sales_amount = newEntry.harvest_details.direct_sales_amount;
+      metadata.market_sales_amount = newEntry.harvest_details.market_sales_amount;
+      metadata.cooperative_sales_amount = newEntry.harvest_details.cooperative_sales_amount;
+      metadata.other_income = newEntry.harvest_details.other_income;
+      metadata.total_harvest_value = totalValue;
       metadata.buyer = newEntry.harvest_details.buyer;
+      metadata.market_location = newEntry.harvest_details.market_location;
+      metadata.sale_date = newEntry.harvest_details.sale_date;
     }
 
     try {
@@ -212,7 +280,14 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
         unit: "kg",
         estimated_value: 0,
         actual_sales: 0,
-        buyer: ""
+        direct_sales_amount: 0,
+        market_sales_amount: 0,
+        cooperative_sales_amount: 0,
+        other_income: 0,
+        total_harvest_value: 0,
+        buyer: "",
+        market_location: "",
+        sale_date: new Date().toISOString().split('T')[0]
       }
     });
   };
@@ -252,6 +327,10 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
     "kg", "bags", "crates", "pieces", "tonnes", "litres", "other"
   ];
 
+  const marketLocations = [
+    "farmgate", "local_market", "wholesale", "cooperative", "direct_buyer", "other"
+  ];
+
   const renderEditForm = () => {
     if (!editingEntry) return null;
 
@@ -288,7 +367,7 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
                 value={editingEntry.metadata.amount || ''}
                 onChange={(e) => setEditingEntry({
                   ...editingEntry,
-                  metadata: { ...editingEntry.metadata, amount: parseFloat(e.target.value) }
+                  metadata: { ...editingEntry.metadata, amount: parseFloat(e.target.value) } as any
                 })}
                 placeholder="Amount"
                 className="p-2 border rounded dark:bg-gray-800"
@@ -297,7 +376,7 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
                 value={editingEntry.metadata.category || 'inputs'}
                 onChange={(e) => setEditingEntry({
                   ...editingEntry,
-                  metadata: { ...editingEntry.metadata, category: e.target.value }
+                  metadata: { ...editingEntry.metadata, category: e.target.value } as any
                 })}
                 className="p-2 border rounded dark:bg-gray-800"
               >
@@ -309,27 +388,98 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
           )}
 
           {editingEntry.entry_type === 'harvest' && editingEntry.metadata && (
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="number"
-                value={editingEntry.metadata.quantity || ''}
-                onChange={(e) => setEditingEntry({
-                  ...editingEntry,
-                  metadata: { ...editingEntry.metadata, quantity: parseFloat(e.target.value) }
-                })}
-                placeholder="Quantity"
-                className="p-2 border rounded dark:bg-gray-800"
-              />
-              <input
-                type="number"
-                value={editingEntry.metadata.actual_sales || ''}
-                onChange={(e) => setEditingEntry({
-                  ...editingEntry,
-                  metadata: { ...editingEntry.metadata, actual_sales: parseFloat(e.target.value) }
-                })}
-                placeholder="Sales amount"
-                className="p-2 border rounded dark:bg-gray-800"
-              />
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="number"
+                  value={editingEntry.metadata.quantity || ''}
+                  onChange={(e) => setEditingEntry({
+                    ...editingEntry,
+                    metadata: { ...editingEntry.metadata, quantity: parseFloat(e.target.value) } as any
+                  })}
+                  placeholder="Quantity"
+                  className="p-2 border rounded dark:bg-gray-800"
+                />
+                <select
+                  value={editingEntry.metadata.unit || 'kg'}
+                  onChange={(e) => setEditingEntry({
+                    ...editingEntry,
+                    metadata: { ...editingEntry.metadata, unit: e.target.value } as any
+                  })}
+                  className="p-2 border rounded dark:bg-gray-800"
+                >
+                  {harvestUnits.map(unit => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="number"
+                  value={editingEntry.metadata.estimated_value || ''}
+                  onChange={(e) => setEditingEntry({
+                    ...editingEntry,
+                    metadata: { ...editingEntry.metadata, estimated_value: parseFloat(e.target.value) } as any
+                  })}
+                  placeholder="Estimated Value (Ksh)"
+                  className="p-2 border rounded dark:bg-gray-800"
+                />
+                <input
+                  type="number"
+                  value={editingEntry.metadata.actual_sales || ''}
+                  onChange={(e) => setEditingEntry({
+                    ...editingEntry,
+                    metadata: { ...editingEntry.metadata, actual_sales: parseFloat(e.target.value) } as any
+                  })}
+                  placeholder="Actual Sales (Ksh)"
+                  className="p-2 border rounded dark:bg-gray-800"
+                />
+              </div>
+
+              <h5 className="font-medium text-sm text-gray-600 dark:text-gray-400 mt-2">Sales Breakdown</h5>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="number"
+                  value={editingEntry.metadata.direct_sales_amount || ''}
+                  onChange={(e) => setEditingEntry({
+                    ...editingEntry,
+                    metadata: { ...editingEntry.metadata, direct_sales_amount: parseFloat(e.target.value) } as any
+                  })}
+                  placeholder="Direct Sales"
+                  className="p-2 border rounded dark:bg-gray-800"
+                />
+                <input
+                  type="number"
+                  value={editingEntry.metadata.market_sales_amount || ''}
+                  onChange={(e) => setEditingEntry({
+                    ...editingEntry,
+                    metadata: { ...editingEntry.metadata, market_sales_amount: parseFloat(e.target.value) } as any
+                  })}
+                  placeholder="Market Sales"
+                  className="p-2 border rounded dark:bg-gray-800"
+                />
+                <input
+                  type="number"
+                  value={editingEntry.metadata.cooperative_sales_amount || ''}
+                  onChange={(e) => setEditingEntry({
+                    ...editingEntry,
+                    metadata: { ...editingEntry.metadata, cooperative_sales_amount: parseFloat(e.target.value) } as any
+                  })}
+                  placeholder="Cooperative Sales"
+                  className="p-2 border rounded dark:bg-gray-800"
+                />
+                <input
+                  type="number"
+                  value={editingEntry.metadata.other_income || ''}
+                  onChange={(e) => setEditingEntry({
+                    ...editingEntry,
+                    metadata: { ...editingEntry.metadata, other_income: parseFloat(e.target.value) } as any
+                  })}
+                  placeholder="Other Income"
+                  className="p-2 border rounded dark:bg-gray-800"
+                />
+              </div>
             </div>
           )}
 
@@ -369,34 +519,45 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
         </button>
       </div>
 
-      {/* Financial Summary Cards */}
+      {/* Enhanced Financial Summary Cards */}
       {entries.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded">
-            <div className="text-xs text-gray-600 dark:text-gray-400">Total Expenses</div>
-            <div className="text-lg font-semibold text-red-600 dark:text-red-400">
-              {formatCurrency(financialSummary.totalExpenses)}
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded">
+              <div className="text-xs text-gray-600 dark:text-gray-400">Total Expenses</div>
+              <div className="text-lg font-semibold text-red-600 dark:text-red-400">
+                {formatCurrency(financialSummary.totalExpenses)}
+              </div>
+            </div>
+            <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded">
+              <div className="text-xs text-gray-600 dark:text-gray-400">Harvest Value</div>
+              <div className="text-lg font-semibold text-green-600 dark:text-green-400">
+                {formatCurrency(financialSummary.totalHarvestValue)}
+              </div>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
+              <div className="text-xs text-gray-600 dark:text-gray-400">Actual Sales</div>
+              <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                {formatCurrency(financialSummary.totalSales)}
+              </div>
+            </div>
+            <div className={`${financialSummary.netProfit >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'} p-3 rounded`}>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Net Profit/Loss</div>
+              <div className={`text-lg font-semibold ${financialSummary.netProfit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {formatCurrency(financialSummary.netProfit)}
+              </div>
             </div>
           </div>
-          <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded">
-            <div className="text-xs text-gray-600 dark:text-gray-400">Harvest Value</div>
-            <div className="text-lg font-semibold text-green-600 dark:text-green-400">
-              {formatCurrency(financialSummary.totalHarvestValue)}
+
+          {/* Additional Harvest Insights */}
+          {financialSummary.pendingSales > 0 && (
+            <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded">
+              <div className="text-sm text-yellow-800 dark:text-yellow-200">
+                ⚠️ Pending Sales: {formatCurrency(financialSummary.pendingSales)} worth of harvest not yet sold
+              </div>
             </div>
-          </div>
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
-            <div className="text-xs text-gray-600 dark:text-gray-400">Actual Sales</div>
-            <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-              {formatCurrency(financialSummary.totalSales)}
-            </div>
-          </div>
-          <div className={`${financialSummary.netProfit >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'} p-3 rounded`}>
-            <div className="text-xs text-gray-600 dark:text-gray-400">Net Profit/Loss</div>
-            <div className={`text-lg font-semibold ${financialSummary.netProfit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-              {formatCurrency(financialSummary.netProfit)}
-            </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
 
       {seasons.length > 0 && (
@@ -419,7 +580,6 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
       {/* New Entry Form */}
       {showNewEntry && (
         <div className="border rounded p-4 mb-4 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-          {/* ... your existing new entry form ... */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <select
               value={newEntry.entry_type}
@@ -494,49 +654,221 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
             </div>
           )}
 
-          {/* Harvest fields */}
+          {/* Enhanced Harvest fields with amount tracking */}
           {newEntry.entry_type === 'harvest' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3 p-3 bg-white dark:bg-gray-900 rounded border">
-              <h4 className="col-span-2 font-medium text-sm text-brand-green">🌾 Harvest Details</h4>
-              <div>
-                <label className="block text-xs mb-1">Quantity</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="e.g. 100"
-                  value={newEntry.harvest_details?.quantity || ''}
-                  onChange={(e) => setNewEntry({
-                    ...newEntry,
-                    harvest_details: {
-                      ...newEntry.harvest_details,
-                      quantity: parseFloat(e.target.value) || 0
-                    }
-                  })}
-                  className="w-full p-2 border rounded text-sm dark:bg-gray-800"
-                />
+            <div className="space-y-3 mb-3 p-3 bg-white dark:bg-gray-900 rounded border">
+              <h4 className="font-medium text-sm text-brand-green">🌾 Harvest Details</h4>
+              
+              {/* Basic harvest info */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs mb-1">Quantity</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g. 100"
+                    value={newEntry.harvest_details?.quantity || ''}
+                    onChange={(e) => setNewEntry({
+                      ...newEntry,
+                      harvest_details: {
+                        ...newEntry.harvest_details,
+                        quantity: parseFloat(e.target.value) || 0
+                      }
+                    })}
+                    className="w-full p-2 border rounded text-sm dark:bg-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Unit</label>
+                  <select
+                    value={newEntry.harvest_details?.unit}
+                    onChange={(e) => setNewEntry({
+                      ...newEntry,
+                      harvest_details: {
+                        ...newEntry.harvest_details,
+                        unit: e.target.value
+                      }
+                    })}
+                    className="w-full p-2 border rounded text-sm dark:bg-gray-800"
+                  >
+                    {harvestUnits.map(unit => (
+                      <option key={unit} value={unit}>{unit}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs mb-1">Unit</label>
-                <select
-                  value={newEntry.harvest_details?.unit}
-                  onChange={(e) => setNewEntry({
-                    ...newEntry,
-                    harvest_details: {
-                      ...newEntry.harvest_details,
-                      unit: e.target.value
-                    }
-                  })}
-                  className="w-full p-2 border rounded text-sm dark:bg-gray-800"
-                >
-                  {harvestUnits.map(unit => (
-                    <option key={unit} value={unit}>{unit}</option>
-                  ))}
-                </select>
+
+              {/* Value estimates */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs mb-1">Estimated Value (Ksh)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g. 50000"
+                    value={newEntry.harvest_details?.estimated_value || ''}
+                    onChange={(e) => setNewEntry({
+                      ...newEntry,
+                      harvest_details: {
+                        ...newEntry.harvest_details,
+                        estimated_value: parseFloat(e.target.value) || 0
+                      }
+                    })}
+                    className="w-full p-2 border rounded text-sm dark:bg-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Total Actual Sales (Ksh)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Auto-calculated"
+                    value={calculateHarvestTotal(newEntry.harvest_details || {})}
+                    className="w-full p-2 border rounded text-sm bg-gray-100 dark:bg-gray-700"
+                    readOnly
+                  />
+                </div>
+              </div>
+
+              {/* Sales breakdown */}
+              <h5 className="font-medium text-xs text-gray-600 dark:text-gray-400 mt-2">Sales Breakdown</h5>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs mb-1">Direct Farmgate Sales</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    value={newEntry.harvest_details?.direct_sales_amount || ''}
+                    onChange={(e) => setNewEntry({
+                      ...newEntry,
+                      harvest_details: {
+                        ...newEntry.harvest_details,
+                        direct_sales_amount: parseFloat(e.target.value) || 0
+                      }
+                    })}
+                    className="w-full p-2 border rounded text-sm dark:bg-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Market Sales</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    value={newEntry.harvest_details?.market_sales_amount || ''}
+                    onChange={(e) => setNewEntry({
+                      ...newEntry,
+                      harvest_details: {
+                        ...newEntry.harvest_details,
+                        market_sales_amount: parseFloat(e.target.value) || 0
+                      }
+                    })}
+                    className="w-full p-2 border rounded text-sm dark:bg-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Cooperative Sales</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    value={newEntry.harvest_details?.cooperative_sales_amount || ''}
+                    onChange={(e) => setNewEntry({
+                      ...newEntry,
+                      harvest_details: {
+                        ...newEntry.harvest_details,
+                        cooperative_sales_amount: parseFloat(e.target.value) || 0
+                      }
+                    })}
+                    className="w-full p-2 border rounded text-sm dark:bg-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Other Income</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    value={newEntry.harvest_details?.other_income || ''}
+                    onChange={(e) => setNewEntry({
+                      ...newEntry,
+                      harvest_details: {
+                        ...newEntry.harvest_details,
+                        other_income: parseFloat(e.target.value) || 0
+                      }
+                    })}
+                    className="w-full p-2 border rounded text-sm dark:bg-gray-800"
+                  />
+                </div>
+              </div>
+
+              {/* Sale details */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs mb-1">Buyer</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. John's Store"
+                    value={newEntry.harvest_details?.buyer || ''}
+                    onChange={(e) => setNewEntry({
+                      ...newEntry,
+                      harvest_details: {
+                        ...newEntry.harvest_details,
+                        buyer: e.target.value
+                      }
+                    })}
+                    className="w-full p-2 border rounded text-sm dark:bg-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Market Location</label>
+                  <select
+                    value={newEntry.harvest_details?.market_location || 'farmgate'}
+                    onChange={(e) => setNewEntry({
+                      ...newEntry,
+                      harvest_details: {
+                        ...newEntry.harvest_details,
+                        market_location: e.target.value
+                      }
+                    })}
+                    className="w-full p-2 border rounded text-sm dark:bg-gray-800"
+                  >
+                    {marketLocations.map(loc => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs mb-1">Sale Date</label>
+                  <input
+                    type="date"
+                    value={newEntry.harvest_details?.sale_date || new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setNewEntry({
+                      ...newEntry,
+                      harvest_details: {
+                        ...newEntry.harvest_details,
+                        sale_date: e.target.value
+                      }
+                    })}
+                    className="w-full p-2 border rounded text-sm dark:bg-gray-800"
+                  />
+                </div>
               </div>
             </div>
           )}
 
+          {/* Common fields */}
           <input
             type="text"
             placeholder="Title (optional)"
@@ -654,7 +986,7 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
               )}
               
               <div className="flex justify-between items-start mb-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xl">{getEntryIcon(entry.entry_type)}</span>
                   <span className="font-medium">{entry.title || entry.entry_type}</span>
                   {entry.metadata && entry.entry_type === 'expense' && entry.metadata.amount && (
@@ -663,9 +995,20 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
                     </span>
                   )}
                   {entry.metadata && entry.entry_type === 'harvest' && (
-                    <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                      {entry.metadata.quantity} {entry.metadata.unit}
-                    </span>
+                    <>
+                      <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                        {entry.metadata.quantity} {entry.metadata.unit}
+                      </span>
+                      {entry.metadata.total_harvest_value ? (
+                        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                          {formatCurrency(entry.metadata.total_harvest_value)}
+                        </span>
+                      ) : entry.metadata.actual_sales ? (
+                        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                          {formatCurrency(entry.metadata.actual_sales)}
+                        </span>
+                      ) : null}
+                    </>
                   )}
                 </div>
                 <span className="text-xs text-gray-500">{entry.entry_date}</span>
@@ -690,18 +1033,50 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
                 </div>
               )}
 
-              {/* Display harvest details */}
+              {/* Enhanced harvest details display */}
               {entry.metadata && entry.entry_type === 'harvest' && (
                 <div className="mt-2 text-xs bg-green-50 dark:bg-green-900/20 p-2 rounded">
                   <div className="grid grid-cols-2 gap-2">
+                    {entry.metadata.quantity && (
+                      <div><span className="font-medium">Quantity:</span> {entry.metadata.quantity} {entry.metadata.unit}</div>
+                    )}
                     {entry.metadata.estimated_value && (
                       <div><span className="font-medium">Est. Value:</span> {formatCurrency(entry.metadata.estimated_value)}</div>
                     )}
-                    {entry.metadata.actual_sales && (
-                      <div><span className="font-medium">Sales:</span> {formatCurrency(entry.metadata.actual_sales)}</div>
-                    )}
+                    
+                    {/* Sales breakdown */}
+                    {entry.metadata.direct_sales_amount ? (
+                      <div><span className="font-medium">Direct Sales:</span> {formatCurrency(entry.metadata.direct_sales_amount)}</div>
+                    ) : null}
+                    {entry.metadata.market_sales_amount ? (
+                      <div><span className="font-medium">Market Sales:</span> {formatCurrency(entry.metadata.market_sales_amount)}</div>
+                    ) : null}
+                    {entry.metadata.cooperative_sales_amount ? (
+                      <div><span className="font-medium">Co-op Sales:</span> {formatCurrency(entry.metadata.cooperative_sales_amount)}</div>
+                    ) : null}
+                    {entry.metadata.other_income ? (
+                      <div><span className="font-medium">Other Income:</span> {formatCurrency(entry.metadata.other_income)}</div>
+                    ) : null}
+                    
+                    {/* Total sales */}
+                    {entry.metadata.total_harvest_value ? (
+                      <div className="col-span-2 font-semibold">
+                        <span className="font-medium">Total Sales:</span> {formatCurrency(entry.metadata.total_harvest_value)}
+                      </div>
+                    ) : entry.metadata.actual_sales ? (
+                      <div className="col-span-2 font-semibold">
+                        <span className="font-medium">Total Sales:</span> {formatCurrency(entry.metadata.actual_sales)}
+                      </div>
+                    ) : null}
+                    
                     {entry.metadata.buyer && (
                       <div><span className="font-medium">Buyer:</span> {entry.metadata.buyer}</div>
+                    )}
+                    {entry.metadata.market_location && (
+                      <div><span className="font-medium">Market:</span> {entry.metadata.market_location}</div>
+                    )}
+                    {entry.metadata.sale_date && (
+                      <div><span className="font-medium">Sale Date:</span> {entry.metadata.sale_date}</div>
                     )}
                   </div>
                 </div>

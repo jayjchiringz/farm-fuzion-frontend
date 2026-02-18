@@ -64,6 +64,13 @@ export type FarmDiaryEntry = {
   tags?: string[];
   images_urls?: string[];
   metadata?: {
+    direct_sales_amount: any;
+    market_sales_amount: any;
+    cooperative_sales_amount: any;
+    other_income: any;
+    total_harvest_value: any;
+    market_location: any;
+    sale_date: any;
     // Expense fields
     amount?: number;
     category?: string;

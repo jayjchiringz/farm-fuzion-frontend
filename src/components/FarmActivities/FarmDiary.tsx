@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useMemo } from "react";
+// farm-fuzion-frontend/src/components/FarmActivities/FarmDiary.tsx
+import React, { useState, useEffect } from "react";
 import { farmActivitiesApi, FarmDiaryEntry, FarmSeason } from "../../services/farmActivitiesApi";
+import { Edit, Trash2, X, Check, Save } from "lucide-react";
 
 interface FarmDiaryProps {
   farmerId: number;
   seasons?: FarmSeason[];
 }
 
-// Extended type for expense entries
 interface ExpenseDetails {
   amount?: number;
   category?: string;
@@ -24,19 +25,12 @@ interface HarvestDetails {
 }
 
 export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) => {
-  // Validate farmerId
-  const validFarmerId = useMemo(() => {
-    if (!farmerId || isNaN(farmerId) || farmerId <= 0) {
-      console.error("Invalid farmerId in FarmDiary:", farmerId);
-      return null;
-    }
-    return farmerId;
-  }, [farmerId]);
-
   const [entries, setEntries] = useState<FarmDiaryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewEntry, setShowNewEntry] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<FarmDiaryEntry | null>(null);
   const [selectedSeason, setSelectedSeason] = useState<number | undefined>();
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [financialSummary, setFinancialSummary] = useState({
     totalExpenses: 0,
     totalHarvestValue: 0,
@@ -67,26 +61,18 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
     }
   });
 
-  // Update the useEffect dependencies
   useEffect(() => {
-    if (validFarmerId) {
-      loadEntries();
-    }
-  }, [validFarmerId, selectedSeason]);
+    loadEntries();
+  }, [farmerId, selectedSeason]);
 
   useEffect(() => {
     calculateFinancialSummary();
   }, [entries]);
 
   const loadEntries = async () => {
-    if (!validFarmerId) {
-      console.error("Cannot load entries: Invalid farmerId");
-      setLoading(false);
-      return;
-    }
     try {
       setLoading(true);
-      const response = await farmActivitiesApi.getFarmerDiaryEntries(validFarmerId, {
+      const response = await farmActivitiesApi.getFarmerDiaryEntries(farmerId, {
         season_id: selectedSeason,
         limit: 50
       });
@@ -104,7 +90,6 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
     let sales = 0;
 
     entries.forEach(entry => {
-      // Parse metadata if it exists
       if (entry.metadata) {
         if (entry.entry_type === 'expense' && entry.metadata.amount) {
           expenses += Number(entry.metadata.amount);
@@ -128,43 +113,67 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
     });
   };
 
-  const createEntry = async () => {
-    if (!validFarmerId) {
-      alert("Invalid farmer ID. Please try again.");
-      return;
-    }
+  const handleEdit = (entry: FarmDiaryEntry) => {
+    setEditingEntry(entry);
+    setShowNewEntry(false);
+    setDeleteConfirm(null);
+  };
 
+  const handleCancelEdit = () => {
+    setEditingEntry(null);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingEntry) return;
+    
+    try {
+      await farmActivitiesApi.updateDiaryEntry(editingEntry.id!, editingEntry);
+      setEditingEntry(null);
+      loadEntries();
+    } catch (error) {
+      console.error("Error updating entry:", error);
+      alert("Failed to update entry");
+    }
+  };
+
+  const handleDelete = async (entryId: number) => {
+    try {
+      await farmActivitiesApi.deleteDiaryEntry(entryId);
+      setDeleteConfirm(null);
+      loadEntries();
+    } catch (error) {
+      console.error("Error deleting entry:", error);
+      alert("Failed to delete entry");
+    }
+  };
+
+  const createEntry = async () => {
     if (!newEntry.content) {
       alert("Please enter diary content");
       return;
     }
 
-    // Prepare metadata based on entry type
-    let metadata = {};
-
+    const metadata: any = {};
+    
     if (newEntry.entry_type === 'expense' && newEntry.expense_details) {
-      metadata = {
-        amount: newEntry.expense_details.amount || 0,
-        category: newEntry.expense_details.category || 'other',
-        payment_method: newEntry.expense_details.payment_method || 'cash',
-        vendor: newEntry.expense_details.vendor || '',
-        notes: newEntry.expense_details.notes || ''
-      };
+      metadata.amount = newEntry.expense_details.amount;
+      metadata.category = newEntry.expense_details.category;
+      metadata.payment_method = newEntry.expense_details.payment_method;
+      metadata.vendor = newEntry.expense_details.vendor;
+      metadata.notes = newEntry.expense_details.notes;
     }
     
     if (newEntry.entry_type === 'harvest' && newEntry.harvest_details) {
-      metadata = {
-        quantity: newEntry.harvest_details.quantity || 0,
-        unit: newEntry.harvest_details.unit || 'kg',
-        estimated_value: newEntry.harvest_details.estimated_value || 0,
-        actual_sales: newEntry.harvest_details.actual_sales || 0,
-        buyer: newEntry.harvest_details.buyer || ''
-      };
+      metadata.quantity = newEntry.harvest_details.quantity;
+      metadata.unit = newEntry.harvest_details.unit;
+      metadata.estimated_value = newEntry.harvest_details.estimated_value;
+      metadata.actual_sales = newEntry.harvest_details.actual_sales;
+      metadata.buyer = newEntry.harvest_details.buyer;
     }
 
     try {
       await farmActivitiesApi.createDiaryEntry({
-        farmer_id: validFarmerId, 
+        farmer_id: farmerId,
         season_id: newEntry.season_id,
         entry_date: newEntry.entry_date,
         title: newEntry.title,
@@ -174,34 +183,38 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
         temperature: newEntry.temperature,
         rainfall_mm: newEntry.rainfall_mm,
         tags: newEntry.tags || [],
-        metadata: metadata // Use the prepared metadata object
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined
       });
 
       setShowNewEntry(false);
-      setNewEntry({
-        farmer_id: farmerId,
-        entry_type: "observation",
-        content: "",
-        entry_date: new Date().toISOString().split('T')[0],
-        expense_details: {
-          amount: 0,
-          category: "inputs",
-          payment_method: "cash",
-          vendor: ""
-        },
-        harvest_details: {
-          quantity: 0,
-          unit: "kg",
-          estimated_value: 0,
-          actual_sales: 0,
-          buyer: ""
-        }
-      });
+      resetNewEntry();
       loadEntries();
     } catch (error) {
       console.error("Error creating diary entry:", error);
       alert("Failed to save diary entry");
     }
+  };
+
+  const resetNewEntry = () => {
+    setNewEntry({
+      farmer_id: farmerId,
+      entry_type: "observation",
+      content: "",
+      entry_date: new Date().toISOString().split('T')[0],
+      expense_details: {
+        amount: 0,
+        category: "inputs",
+        payment_method: "cash",
+        vendor: ""
+      },
+      harvest_details: {
+        quantity: 0,
+        unit: "kg",
+        estimated_value: 0,
+        actual_sales: 0,
+        buyer: ""
+      }
+    });
   };
 
   const getEntryIcon = (type: string) => {
@@ -239,6 +252,106 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
     "kg", "bags", "crates", "pieces", "tonnes", "litres", "other"
   ];
 
+  const renderEditForm = () => {
+    if (!editingEntry) return null;
+
+    return (
+      <div className="border-2 border-blue-300 rounded p-4 mb-4 bg-blue-50 dark:bg-blue-900/20">
+        <div className="flex justify-between items-center mb-3">
+          <h4 className="font-medium text-blue-600 dark:text-blue-400">Edit Entry</h4>
+          <button onClick={handleCancelEdit} className="text-gray-500 hover:text-gray-700">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <input
+            type="text"
+            value={editingEntry.title || ''}
+            onChange={(e) => setEditingEntry({ ...editingEntry, title: e.target.value })}
+            placeholder="Title"
+            className="w-full p-2 border rounded dark:bg-gray-800"
+          />
+          
+          <textarea
+            value={editingEntry.content}
+            onChange={(e) => setEditingEntry({ ...editingEntry, content: e.target.value })}
+            placeholder="Content"
+            rows={3}
+            className="w-full p-2 border rounded dark:bg-gray-800"
+          />
+
+          {editingEntry.entry_type === 'expense' && editingEntry.metadata && (
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                value={editingEntry.metadata.amount || ''}
+                onChange={(e) => setEditingEntry({
+                  ...editingEntry,
+                  metadata: { ...editingEntry.metadata, amount: parseFloat(e.target.value) }
+                })}
+                placeholder="Amount"
+                className="p-2 border rounded dark:bg-gray-800"
+              />
+              <select
+                value={editingEntry.metadata.category || 'inputs'}
+                onChange={(e) => setEditingEntry({
+                  ...editingEntry,
+                  metadata: { ...editingEntry.metadata, category: e.target.value }
+                })}
+                className="p-2 border rounded dark:bg-gray-800"
+              >
+                {expenseCategories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {editingEntry.entry_type === 'harvest' && editingEntry.metadata && (
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                value={editingEntry.metadata.quantity || ''}
+                onChange={(e) => setEditingEntry({
+                  ...editingEntry,
+                  metadata: { ...editingEntry.metadata, quantity: parseFloat(e.target.value) }
+                })}
+                placeholder="Quantity"
+                className="p-2 border rounded dark:bg-gray-800"
+              />
+              <input
+                type="number"
+                value={editingEntry.metadata.actual_sales || ''}
+                onChange={(e) => setEditingEntry({
+                  ...editingEntry,
+                  metadata: { ...editingEntry.metadata, actual_sales: parseFloat(e.target.value) }
+                })}
+                placeholder="Sales amount"
+                className="p-2 border rounded dark:bg-gray-800"
+              />
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleUpdate}
+              className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2"
+            >
+              <Save size={16} /> Update
+            </button>
+            <button
+              onClick={handleCancelEdit}
+              className="flex-1 bg-gray-400 text-white py-2 rounded hover:bg-gray-500"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="farm-diary p-4">
       <div className="flex justify-between items-center mb-4">
@@ -246,7 +359,10 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
           📓 Farm Diary
         </h3>
         <button
-          onClick={() => setShowNewEntry(!showNewEntry)}
+          onClick={() => {
+            setShowNewEntry(!showNewEntry);
+            setEditingEntry(null);
+          }}
           className="bg-brand-green text-white px-3 py-1 rounded text-sm hover:bg-brand-dark"
         >
           {showNewEntry ? "✕ Cancel" : "+ New Entry"}
@@ -300,8 +416,10 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
         </div>
       )}
 
+      {/* New Entry Form */}
       {showNewEntry && (
         <div className="border rounded p-4 mb-4 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          {/* ... your existing new entry form ... */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <select
               value={newEntry.entry_type}
@@ -310,7 +428,6 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
                 setNewEntry({ 
                   ...newEntry, 
                   entry_type: type,
-                  // Reset details when changing type
                   expense_details: type === 'expense' ? newEntry.expense_details : undefined,
                   harvest_details: type === 'harvest' ? newEntry.harvest_details : undefined
                 });
@@ -334,7 +451,7 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
             />
           </div>
 
-          {/* Expense-specific fields */}
+          {/* Expense fields */}
           {newEntry.entry_type === 'expense' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3 p-3 bg-white dark:bg-gray-900 rounded border">
               <h4 className="col-span-2 font-medium text-sm text-brand-green">💰 Expense Details</h4>
@@ -374,44 +491,10 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs mb-1">Payment Method</label>
-                <select
-                  value={newEntry.expense_details?.payment_method}
-                  onChange={(e) => setNewEntry({
-                    ...newEntry,
-                    expense_details: {
-                      ...newEntry.expense_details,
-                      payment_method: e.target.value
-                    }
-                  })}
-                  className="w-full p-2 border rounded text-sm dark:bg-gray-800"
-                >
-                  {paymentMethods.map(method => (
-                    <option key={method} value={method}>{method}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs mb-1">Vendor/Payee</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Agrovet, Worker"
-                  value={newEntry.expense_details?.vendor || ''}
-                  onChange={(e) => setNewEntry({
-                    ...newEntry,
-                    expense_details: {
-                      ...newEntry.expense_details,
-                      vendor: e.target.value
-                    }
-                  })}
-                  className="w-full p-2 border rounded text-sm dark:bg-gray-800"
-                />
-              </div>
             </div>
           )}
 
-          {/* Harvest-specific fields */}
+          {/* Harvest fields */}
           {newEntry.entry_type === 'harvest' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3 p-3 bg-white dark:bg-gray-900 rounded border">
               <h4 className="col-span-2 font-medium text-sm text-brand-green">🌾 Harvest Details</h4>
@@ -451,62 +534,9 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs mb-1">Estimated Value (Ksh)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="e.g. 50000"
-                  value={newEntry.harvest_details?.estimated_value || ''}
-                  onChange={(e) => setNewEntry({
-                    ...newEntry,
-                    harvest_details: {
-                      ...newEntry.harvest_details,
-                      estimated_value: parseFloat(e.target.value) || 0
-                    }
-                  })}
-                  className="w-full p-2 border rounded text-sm dark:bg-gray-800"
-                />
-              </div>
-              <div>
-                <label className="block text-xs mb-1">Actual Sales (Ksh)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="e.g. 45000"
-                  value={newEntry.harvest_details?.actual_sales || ''}
-                  onChange={(e) => setNewEntry({
-                    ...newEntry,
-                    harvest_details: {
-                      ...newEntry.harvest_details,
-                      actual_sales: parseFloat(e.target.value) || 0
-                    }
-                  })}
-                  className="w-full p-2 border rounded text-sm dark:bg-gray-800"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs mb-1">Buyer</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Cereal Board, Local Market"
-                  value={newEntry.harvest_details?.buyer || ''}
-                  onChange={(e) => setNewEntry({
-                    ...newEntry,
-                    harvest_details: {
-                      ...newEntry.harvest_details,
-                      buyer: e.target.value
-                    }
-                  })}
-                  className="w-full p-2 border rounded text-sm dark:bg-gray-800"
-                />
-              </div>
             </div>
           )}
 
-          {/* Common fields */}
           <input
             type="text"
             placeholder="Title (optional)"
@@ -556,6 +586,36 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
         </div>
       )}
 
+      {/* Edit Form */}
+      {renderEditForm()}
+
+      {/* Delete Confirmation */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-brand-dark p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h3 className="text-xl font-bold text-red-600 mb-4">Confirm Delete</h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              Are you sure you want to delete this diary entry? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 rounded bg-gray-400 text-white hover:bg-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteConfirm)}
+                className="flex-1 px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Entries List */}
       {loading ? (
         <div className="flex justify-center items-center py-8 text-gray-500">
           <svg className="animate-spin h-6 w-6 mr-2 text-brand-green" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -573,7 +633,26 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
       ) : (
         <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
           {entries.map((entry) => (
-            <div key={entry.id} className="border rounded p-3 dark:border-gray-700 hover:shadow-sm transition-shadow">
+            <div key={entry.id} className="border rounded p-3 dark:border-gray-700 hover:shadow-sm transition-shadow relative group">
+              {!editingEntry && (
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => handleEdit(entry)}
+                    className="p-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400"
+                    title="Edit"
+                  >
+                    <Edit size={14} />
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirm(entry.id!)}
+                    className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400"
+                    title="Delete"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              )}
+              
               <div className="flex justify-between items-start mb-1">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">{getEntryIcon(entry.entry_type)}</span>
@@ -607,9 +686,6 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
                     {entry.metadata.vendor && (
                       <div><span className="font-medium">Vendor:</span> {entry.metadata.vendor}</div>
                     )}
-                    {entry.metadata.notes && (
-                      <div className="col-span-2"><span className="font-medium">Notes:</span> {entry.metadata.notes}</div>
-                    )}
                   </div>
                 </div>
               )}
@@ -618,9 +694,6 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
               {entry.metadata && entry.entry_type === 'harvest' && (
                 <div className="mt-2 text-xs bg-green-50 dark:bg-green-900/20 p-2 rounded">
                   <div className="grid grid-cols-2 gap-2">
-                    {entry.metadata.quantity && (
-                      <div><span className="font-medium">Quantity:</span> {entry.metadata.quantity} {entry.metadata.unit}</div>
-                    )}
                     {entry.metadata.estimated_value && (
                       <div><span className="font-medium">Est. Value:</span> {formatCurrency(entry.metadata.estimated_value)}</div>
                     )}
@@ -634,7 +707,7 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
                 </div>
               )}
 
-              {/* Display weather info if available */}
+              {/* Weather info */}
               {(entry.weather_condition || entry.temperature || entry.rainfall_mm) && (
                 <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
                   ☁️ {entry.weather_condition} 

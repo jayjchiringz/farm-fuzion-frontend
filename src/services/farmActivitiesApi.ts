@@ -257,6 +257,25 @@ export const farmActivitiesApi = {
   },
 
   // ============================================
+  // FARM DIARY - ADD UPDATE AND DELETE
+  // ============================================
+
+  async updateDiaryEntry(entryId: number, updates: Partial<FarmDiaryEntry>): Promise<FarmDiaryEntry> {
+    const res = await axios.put(`${API_BASE}/farm-activities/diary/${entryId}`, updates);
+    return res.data;
+  },
+
+  async deleteDiaryEntry(entryId: number): Promise<{ success: boolean }> {
+    const res = await axios.delete(`${API_BASE}/farm-activities/diary/${entryId}`);
+    return res.data;
+  },
+
+  async getDiaryEntry(entryId: number): Promise<FarmDiaryEntry> {
+    const res = await axios.get(`${API_BASE}/farm-activities/diary/${entryId}`);
+    return res.data;
+  },
+
+  // ============================================
   // ALERTS
   // ============================================
   async getFarmerAlerts(

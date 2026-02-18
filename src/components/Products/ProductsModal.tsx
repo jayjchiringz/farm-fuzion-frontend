@@ -256,7 +256,7 @@ export default function ProductsModal({
       } else {
         // Use the numeric ID (validFarmerId) for farm-products API
         console.log("Saving product with farmer_id (numeric):", validFarmerId);
-        await farmProductsApi.add({ ...payload, farmer_id: String(validFarmerId) } as FarmProduct);
+        await farmProductsApi.add({ ...payload, farmer_id: validFarmerId } as FarmProduct);
       }
 
       onProductAdded();

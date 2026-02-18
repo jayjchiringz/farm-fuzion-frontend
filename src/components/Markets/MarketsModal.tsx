@@ -1941,8 +1941,3 @@ console.log("MarketsModal received farmerId:", farmerId, "type:", typeof farmerI
   );
 }
 
-
-function renderMyListings() {
-  throw new Error("Function not implemented.");
-}
-

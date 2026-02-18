@@ -251,16 +251,11 @@ export default function ProductsModal({
         price: unitPrice * (form.quantity ?? 0),
       } as FarmProduct;
 
-      console.log("Saving product with farmer_id:", validFarmerId);
-
       if (product?.id || form.id) {
         await farmProductsApi.update(String(product?.id || form.id), payload);
       } else {
-        // Send the numeric ID - backend will handle the conversion
-        await farmProductsApi.add({ 
-          ...payload, 
-          farmer_id: String(validFarmerId) 
-        } as FarmProduct);
+        // Use the original farmerId (UUID) for farm-products API, not the numeric ID
+        await farmProductsApi.add({ ...payload, farmer_id: String(farmerId) } as FarmProduct);
       }
 
       onProductAdded();

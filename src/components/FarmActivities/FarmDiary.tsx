@@ -185,12 +185,29 @@ export const FarmDiary: React.FC<FarmDiaryProps> = ({ farmerId, seasons = [] }) 
     if (!editingEntry) return;
     
     try {
-      await farmActivitiesApi.updateDiaryEntry(editingEntry.id!, editingEntry);
+      console.log("Updating entry:", editingEntry);
+      
+      // Prepare the update payload
+      const updatePayload: any = {
+        title: editingEntry.title,
+        content: editingEntry.content,
+        entry_date: editingEntry.entry_date,
+        entry_type: editingEntry.entry_type,
+        metadata: editingEntry.metadata
+      };
+      
+      // Remove undefined values
+      Object.keys(updatePayload).forEach(key => 
+        updatePayload[key] === undefined && delete updatePayload[key]
+      );
+      
+      await farmActivitiesApi.updateDiaryEntry(editingEntry.id!, updatePayload);
       setEditingEntry(null);
       loadEntries();
+      alert("Entry updated successfully!");
     } catch (error) {
       console.error("Error updating entry:", error);
-      alert("Failed to update entry");
+      alert("Failed to update entry. Please check the data and try again.");
     }
   };
 

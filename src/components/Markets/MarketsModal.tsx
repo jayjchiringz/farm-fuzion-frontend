@@ -113,6 +113,8 @@ const loadMyListings = async () => {
   }
 };
 
+console.log("MarketsModal received farmerId:", farmerId, "type:", typeof farmerId);
+
   // Load data based on tab
   const loadData = async () => {
     setLoading(true);
@@ -225,7 +227,10 @@ const loadMyListings = async () => {
 
   // Update handleAddToCart to use selected quantity
   const handleAddToCart = async (product: MarketplaceProduct, quantity?: number) => {
+    console.log("handleAddToCart called with farmerId:", farmerId, "product:", product.id);
+    
     if (!farmerId) {
+      console.error("No farmerId available in handleAddToCart");
       alert("Please login to add items to cart");
       return;
     }
@@ -233,13 +238,13 @@ const loadMyListings = async () => {
     const qty = quantity || selectedQuantities[product.id] || 1;
     
     try {
+      console.log("Adding to cart with buyer_id:", farmerId);
       await marketplaceApi.addToCart({
         marketplace_product_id: product.id,
         quantity: qty,
         buyer_id: farmerId,
       });
       alert(`Added ${qty} ${product.unit}(s) to cart!`);
-      // Clear selected quantity after adding
       setSelectedQuantities(prev => ({ ...prev, [product.id]: 1 }));
       if (currentTab === "cart") {
         loadCart();

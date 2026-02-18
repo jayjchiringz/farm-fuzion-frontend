@@ -243,7 +243,6 @@ export default function ProductsModal({
     );
   }
 
-  // Handlers
   const handleSave = async () => {
     try {
       setLoading(true);
@@ -252,10 +251,16 @@ export default function ProductsModal({
         price: unitPrice * (form.quantity ?? 0),
       } as FarmProduct;
 
+      console.log("Saving product with farmer_id:", validFarmerId);
+
       if (product?.id || form.id) {
         await farmProductsApi.update(String(product?.id || form.id), payload);
       } else {
-        await farmProductsApi.add({ ...payload, farmer_id: String(validFarmerId) } as FarmProduct);
+        // Send the numeric ID - backend will handle the conversion
+        await farmProductsApi.add({ 
+          ...payload, 
+          farmer_id: String(validFarmerId) 
+        } as FarmProduct);
       }
 
       onProductAdded();

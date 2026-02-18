@@ -2,11 +2,17 @@
 import React, { useState, useEffect } from "react";
 import { farmActivitiesApi, Crop, FarmSeason, SeasonActivity, CropPlanningRequest } from "../../services/farmActivitiesApi";
 import { counties, constituencies, wards } from "kenya-locations";
+import { Edit2, Save, X, Plus, Trash2, Calendar, DollarSign } from "lucide-react";
 
 interface FarmPlannerProps {
   farmerId: number;
   onPlanCreated?: (seasonId: number) => void;
   onClose?: () => void;
+}
+
+interface EditableActivity extends SeasonActivity {
+  isEditing?: boolean;
+  tempData?: Partial<SeasonActivity>;
 }
 
 export const FarmPlanner: React.FC<FarmPlannerProps> = ({ 
@@ -29,9 +35,10 @@ export const FarmPlanner: React.FC<FarmPlannerProps> = ({
   });
   const [generatedPlan, setGeneratedPlan] = useState<{
     season: FarmSeason;
-    activities: SeasonActivity[];
+    activities: EditableActivity[];
   } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingActivityIndex, setEditingActivityIndex] = useState<number | null>(null);
 
   // Location state
   const [selectedCounty, setSelectedCounty] = useState("");
@@ -70,7 +77,7 @@ export const FarmPlanner: React.FC<FarmPlannerProps> = ({
       ...prev,
       county: countyName,
       sub_county: "",
-      location: countyName // Default location to county name
+      location: countyName
     }));
   };
 
@@ -101,7 +108,15 @@ export const FarmPlanner: React.FC<FarmPlannerProps> = ({
     try {
       setGenerating(true);
       const plan = await farmActivitiesApi.generatePlan(planRequest as CropPlanningRequest);
-      setGeneratedPlan(plan);
+      // Add editable flag to activities
+      const editableActivities = plan.activities.map(activity => ({
+        ...activity,
+        isEditing: false
+      }));
+      setGeneratedPlan({
+        season: plan.season,
+        activities: editableActivities
+      });
     } catch (error) {
       console.error("Error generating plan:", error);
       alert("Failed to generate farm plan. Please try again.");
@@ -120,7 +135,7 @@ export const FarmPlanner: React.FC<FarmPlannerProps> = ({
           ...generatedPlan.season,
           farmer_id: farmerId
         },
-        activities: generatedPlan.activities
+        activities: generatedPlan.activities.map(({ isEditing, tempData, ...activity }) => activity)
       });
       
       alert(`Season created successfully! Season ID: ${result.season_id}`);
@@ -134,20 +149,126 @@ export const FarmPlanner: React.FC<FarmPlannerProps> = ({
     }
   };
 
-  const updateActivityDate = (index: number, field: string, value: string) => {
-    if (!generatedPlan) return;
-    
-    const updatedActivities = [...generatedPlan.activities];
+  // Activity editing functions
+  const startEditingActivity = (index: number) => {
+    const updatedActivities = [...generatedPlan!.activities];
     updatedActivities[index] = {
       ...updatedActivities[index],
+      isEditing: true,
+      tempData: { ...updatedActivities[index] }
+    };
+    setGeneratedPlan({
+      ...generatedPlan!,
+      activities: updatedActivities
+    });
+    setEditingActivityIndex(index);
+  };
+
+  const cancelEditingActivity = (index: number) => {
+    const updatedActivities = [...generatedPlan!.activities];
+    updatedActivities[index] = {
+      ...updatedActivities[index],
+      isEditing: false,
+      tempData: undefined
+    };
+    setGeneratedPlan({
+      ...generatedPlan!,
+      activities: updatedActivities
+    });
+    setEditingActivityIndex(null);
+  };
+
+  const updateActivityField = (index: number, field: keyof SeasonActivity, value: any) => {
+    const updatedActivities = [...generatedPlan!.activities];
+    if (!updatedActivities[index].tempData) {
+      updatedActivities[index].tempData = {};
+    }
+    updatedActivities[index].tempData = {
+      ...updatedActivities[index].tempData,
       [field]: value
     };
-    
     setGeneratedPlan({
-      ...generatedPlan,
+      ...generatedPlan!,
       activities: updatedActivities
     });
   };
+
+  const saveActivityChanges = (index: number) => {
+    const updatedActivities = [...generatedPlan!.activities];
+    const activity = updatedActivities[index];
+    
+    if (activity.tempData) {
+      // Apply changes
+      updatedActivities[index] = {
+        ...activity,
+        ...activity.tempData,
+        isEditing: false,
+        tempData: undefined
+      };
+      
+      // Recalculate deadline if planned date changed
+      if (activity.tempData.planned_date && activity.tempData.planned_date !== activity.planned_date) {
+        // You might want to add logic here to adjust deadline based on new planned date
+        // For now, we'll keep the original deadline calculation
+      }
+    }
+    
+    setGeneratedPlan({
+      ...generatedPlan!,
+      activities: updatedActivities
+    });
+    setEditingActivityIndex(null);
+  };
+
+  const deleteActivity = (index: number) => {
+    if (window.confirm("Are you sure you want to delete this activity?")) {
+      const updatedActivities = generatedPlan!.activities.filter((_, i) => i !== index);
+      setGeneratedPlan({
+        ...generatedPlan!,
+        activities: updatedActivities
+      });
+    }
+  };
+
+  const addNewActivity = () => {
+    const newActivity: EditableActivity = {
+      activity_type: "monitoring",
+      activity_name: "New Activity",
+      description: "Custom activity",
+      planned_date: new Date().toISOString().split('T')[0],
+      deadline_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      priority: "medium",
+      cost_estimate: 0,
+      completion_percentage: 0,
+      status: "pending",
+      isEditing: true,
+      tempData: {}
+    };
+
+    setGeneratedPlan({
+      ...generatedPlan!,
+      activities: [...generatedPlan!.activities, newActivity]
+    });
+    setEditingActivityIndex(generatedPlan!.activities.length);
+  };
+
+  const updateSeasonField = (field: keyof FarmSeason, value: any) => {
+    if (!generatedPlan) return;
+    setGeneratedPlan({
+      ...generatedPlan,
+      season: {
+        ...generatedPlan.season,
+        [field]: value
+      }
+    });
+  };
+
+  const activityTypeOptions = [
+    "land_preparation", "planting", "fertilizer_application", "pest_control",
+    "weeding", "irrigation", "harvesting", "post_harvest", "monitoring"
+  ];
+
+  const priorityOptions = ["low", "medium", "high", "critical"];
 
   return (
     <div className="farm-planner p-4">
@@ -314,85 +435,261 @@ export const FarmPlanner: React.FC<FarmPlannerProps> = ({
           </button>
         </div>
       ) : (
-        // Step 2: Review & Customize Plan
+        // Step 2: Review & Edit Plan
         <div>
-          <h3 className="text-lg font-semibold mb-2 text-brand-dark dark:text-brand-apple">
-            📅 Your Farm Plan: {generatedPlan.season.season_name}
-          </h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-brand-dark dark:text-brand-apple">
+              📅 Edit Your Farm Plan
+            </h3>
+            <button
+              onClick={() => setGeneratedPlan(null)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <X size={20} />
+            </button>
+          </div>
           
-          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded mb-4">
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div><span className="font-medium">Season:</span> {generatedPlan.season.season_name}</div>
-              <div><span className="font-medium">Location:</span> {generatedPlan.season.location}</div>
-              <div><span className="font-medium">County:</span> {generatedPlan.season.county}</div>
-              <div><span className="font-medium">Sub-county:</span> {generatedPlan.season.sub_county}</div>
-              <div><span className="font-medium">Acreage:</span> {generatedPlan.season.acreage} acres</div>
-              <div><span className="font-medium">Start:</span> {generatedPlan.season.start_date}</div>
-              <div><span className="font-medium">Expected Harvest:</span> {generatedPlan.season.expected_end_date}</div>
+          {/* Season Details */}
+          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded mb-4">
+            <h4 className="font-medium mb-3 flex items-center gap-2">
+              <Calendar size={16} /> Season Details
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+              <div>
+                <span className="font-medium block text-xs text-gray-500">Season Name</span>
+                <input
+                  type="text"
+                  value={generatedPlan.season.season_name}
+                  onChange={(e) => updateSeasonField('season_name', e.target.value)}
+                  className="w-full p-1 border rounded dark:bg-gray-700 dark:border-gray-600"
+                />
+              </div>
+              <div>
+                <span className="font-medium block text-xs text-gray-500">Crop</span>
+                <input
+                  type="text"
+                  value={generatedPlan.season.target_crop}
+                  onChange={(e) => updateSeasonField('target_crop', e.target.value)}
+                  className="w-full p-1 border rounded dark:bg-gray-700 dark:border-gray-600"
+                />
+              </div>
+              <div>
+                <span className="font-medium block text-xs text-gray-500">Location</span>
+                <input
+                  type="text"
+                  value={generatedPlan.season.location || ''}
+                  onChange={(e) => updateSeasonField('location', e.target.value)}
+                  className="w-full p-1 border rounded dark:bg-gray-700 dark:border-gray-600"
+                />
+              </div>
+              <div>
+                <span className="font-medium block text-xs text-gray-500">Acreage</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={generatedPlan.season.acreage}
+                  onChange={(e) => updateSeasonField('acreage', parseFloat(e.target.value))}
+                  className="w-full p-1 border rounded dark:bg-gray-700 dark:border-gray-600"
+                />
+              </div>
+              <div>
+                <span className="font-medium block text-xs text-gray-500">Start Date</span>
+                <input
+                  type="date"
+                  value={generatedPlan.season.start_date}
+                  onChange={(e) => updateSeasonField('start_date', e.target.value)}
+                  className="w-full p-1 border rounded dark:bg-gray-700 dark:border-gray-600"
+                />
+              </div>
+              <div>
+                <span className="font-medium block text-xs text-gray-500">Expected End</span>
+                <input
+                  type="date"
+                  value={generatedPlan.season.expected_end_date}
+                  onChange={(e) => updateSeasonField('expected_end_date', e.target.value)}
+                  className="w-full p-1 border rounded dark:bg-gray-700 dark:border-gray-600"
+                />
+              </div>
             </div>
           </div>
 
-          <h4 className="font-medium mb-2">📋 Recommended Activities (You can adjust dates)</h4>
-          
-          <div className="space-y-3 max-h-96 overflow-y-auto mb-4">
-            {generatedPlan.activities.map((activity, index) => (
-              <div key={index} className="border rounded p-3 dark:border-gray-700">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <span className="font-medium">{activity.activity_name}</span>
-                    <span className={`ml-2 text-xs px-2 py-0.5 rounded ${
-                      activity.priority === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                      activity.priority === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
-                      activity.priority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                      'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                    }`}>
-                      {activity.priority}
-                    </span>
-                  </div>
-                  <span className="text-sm">Ksh {activity.cost_estimate?.toLocaleString()}</span>
+          {/* Activities */}
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-3">
+              <h4 className="font-medium flex items-center gap-2">
+                <Edit2 size={16} /> Activities ({generatedPlan.activities.length})
+              </h4>
+              <button
+                onClick={addNewActivity}
+                className="flex items-center gap-1 text-sm bg-brand-green text-white px-3 py-1 rounded hover:bg-brand-dark"
+              >
+                <Plus size={14} /> Add Activity
+              </button>
+            </div>
+            
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {generatedPlan.activities.map((activity, index) => (
+                <div key={index} className="border rounded p-3 dark:border-gray-700">
+                  {activity.isEditing ? (
+                    // Edit Mode
+                    <div>
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <div>
+                          <label className="block text-xs text-gray-500">Activity Name</label>
+                          <input
+                            type="text"
+                            value={activity.tempData?.activity_name || activity.activity_name}
+                            onChange={(e) => updateActivityField(index, 'activity_name', e.target.value)}
+                            className="w-full p-1 text-sm border rounded dark:bg-gray-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500">Type</label>
+                          <select
+                            value={activity.tempData?.activity_type || activity.activity_type}
+                            onChange={(e) => updateActivityField(index, 'activity_type', e.target.value)}
+                            className="w-full p-1 text-sm border rounded dark:bg-gray-800"
+                          >
+                            {activityTypeOptions.map(type => (
+                              <option key={type} value={type}>{type.replace('_', ' ')}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500">Planned Date</label>
+                          <input
+                            type="date"
+                            value={activity.tempData?.planned_date || activity.planned_date}
+                            onChange={(e) => updateActivityField(index, 'planned_date', e.target.value)}
+                            className="w-full p-1 text-sm border rounded dark:bg-gray-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500">Deadline</label>
+                          <input
+                            type="date"
+                            value={activity.tempData?.deadline_date || activity.deadline_date}
+                            onChange={(e) => updateActivityField(index, 'deadline_date', e.target.value)}
+                            className="w-full p-1 text-sm border rounded dark:bg-gray-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500">Priority</label>
+                          <select
+                            value={activity.tempData?.priority || activity.priority}
+                            onChange={(e) => updateActivityField(index, 'priority', e.target.value)}
+                            className="w-full p-1 text-sm border rounded dark:bg-gray-800"
+                          >
+                            {priorityOptions.map(priority => (
+                              <option key={priority} value={priority}>{priority}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500">Cost (Ksh)</label>
+                          <input
+                            type="number"
+                            value={activity.tempData?.cost_estimate || activity.cost_estimate || 0}
+                            onChange={(e) => updateActivityField(index, 'cost_estimate', parseFloat(e.target.value))}
+                            className="w-full p-1 text-sm border rounded dark:bg-gray-800"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs text-gray-500">Description</label>
+                          <input
+                            type="text"
+                            value={activity.tempData?.description || activity.description || ''}
+                            onChange={(e) => updateActivityField(index, 'description', e.target.value)}
+                            className="w-full p-1 text-sm border rounded dark:bg-gray-800"
+                            placeholder="Activity description"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 mt-2">
+                        <button
+                          onClick={() => cancelEditingActivity(index)}
+                          className="px-2 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 dark:bg-gray-700 dark:text-white"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => saveActivityChanges(index)}
+                          className="px-2 py-1 text-sm bg-brand-green text-white rounded hover:bg-brand-dark"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    // View Mode
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">{activity.activity_name}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded ${
+                              activity.priority === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                              activity.priority === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                              activity.priority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                              'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                            }`}>
+                              {activity.priority}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                            <div className="text-gray-600 dark:text-gray-400">
+                              📅 {activity.planned_date}
+                              {activity.deadline_date && ` → ${activity.deadline_date}`}
+                            </div>
+                            <div className="text-gray-600 dark:text-gray-400">
+                              💰 Ksh {activity.cost_estimate?.toLocaleString() || 0}
+                            </div>
+                            {activity.description && (
+                              <div className="col-span-2 text-xs text-gray-500">
+                                {activity.description}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-1 ml-2">
+                          <button
+                            onClick={() => startEditingActivity(index)}
+                            className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                            title="Edit"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => deleteActivity(index)}
+                            className="p-1 text-red-600 hover:text-red-800 dark:text-red-400"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <label className="block text-xs text-gray-500">Planned Date</label>
-                    <input
-                      type="date"
-                      value={activity.planned_date}
-                      onChange={(e) => updateActivityDate(index, 'planned_date', e.target.value)}
-                      className="w-full p-1 text-sm border rounded dark:bg-gray-800"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500">Deadline</label>
-                    <input
-                      type="date"
-                      value={activity.deadline_date}
-                      onChange={(e) => updateActivityDate(index, 'deadline_date', e.target.value)}
-                      className="w-full p-1 text-sm border rounded dark:bg-gray-800"
-                    />
-                  </div>
-                </div>
-                
-                {activity.description && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{activity.description}</p>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
-          <div className="flex gap-3">
+          {/* Action Buttons */}
+          <div className="flex gap-3 mt-6">
             <button
               onClick={savePlan}
               disabled={isSaving}
-              className="flex-1 bg-brand-green text-white py-2 px-4 rounded hover:bg-brand-dark disabled:opacity-50"
+              className="flex-1 bg-brand-green text-white py-2 px-4 rounded hover:bg-brand-dark disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {isSaving ? "💾 Saving..." : "✅ Save Season Plan"}
+              <Save size={16} />
+              {isSaving ? "Saving..." : "Save Season Plan"}
             </button>
             <button
               onClick={() => setGeneratedPlan(null)}
               className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded hover:bg-gray-300 dark:bg-gray-700 dark:text-white"
             >
-              🔄 Adjust
+              Back to Planning
             </button>
           </div>
         </div>

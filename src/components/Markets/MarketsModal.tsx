@@ -41,130 +41,119 @@ export default function MarketPricesModal({
   onClose,
   onMarketAdded,
 }: MarketPricesModalProps) {
-// ✅ ALL HOOKS AT TOP LEVEL
-const [loading, setLoading] = useState(false);
-const [currentTab, setCurrentTab] = useState<TabType>("dashboard");
+  // ✅ ALL HOOKS AT TOP LEVEL - in the same order every time
+  const [loading, setLoading] = useState(false);
+  const [currentTab, setCurrentTab] = useState<TabType>("dashboard");
+  
+  // Summary data
+  const [summary, setSummary] = useState<MarketPrice[]>([]);
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  
+  // Filters
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterRegion, setFilterRegion] = useState("");
+  const [selectedCurrency, setSelectedCurrency] = useState<'KES' | 'USD' | 'UGX' | 'TZS'>('KES');
+  
+  // Add/Edit Form
+  const [formData, setFormData] = useState<Partial<MarketPrice>>({
+    product_name: "",
+    category: "",
+    region: "",
+    retail_price: 0,
+    farmgate_price: 0,
+    unit: `${selectedCurrency}/kg`,
+    benchmark: false,
+  });
+  const [editingId, setEditingId] = useState<string | number | null>(null);
 
-// Summary data
-const [summary, setSummary] = useState<MarketPrice[]>([]);
-const [dashboardData, setDashboardData] = useState<any>(null);
+  // Marketplace
+  const [marketplaceProducts, setMarketplaceProducts] = useState<MarketplaceProduct[]>([]);
+  const [marketplaceLoading, setMarketplaceLoading] = useState(false);
+  const [marketplaceFilters, setMarketplaceFilters] = useState({
+    category: '',
+    minPrice: '',
+    maxPrice: '',
+    location: '',
+    sort: 'newest',
+    search: '',
+  });
 
-// Filters
-const [searchTerm, setSearchTerm] = useState("");
-const [filterCategory, setFilterCategory] = useState("");
-const [filterRegion, setFilterRegion] = useState("");
-const [selectedCurrency, setSelectedCurrency] = useState<'KES' | 'USD' | 'UGX' | 'TZS'>('KES');
+  // Cart
+  const [cartData, setCartData] = useState<ShoppingCartType[]>([]);
+  const [cartLoading, setCartLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
-// Add/Edit Form
-const [formData, setFormData] = useState<Partial<MarketPrice>>({
-  product_name: "",
-  category: "",
-  region: "",
-  retail_price: 0,
-  farmgate_price: 0,
-  unit: `${selectedCurrency}/kg`,
-  benchmark: false,
-});
-const [editingId, setEditingId] = useState<string | number | null>(null);
+  // Orders
+  const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [activeOrdersTab, setActiveOrdersTab] = useState<'buyer' | 'seller'>('buyer');
+  const [statusFilter, setStatusFilter] = useState('');
 
-// Marketplace
-const [marketplaceProducts, setMarketplaceProducts] = useState<MarketplaceProduct[]>([]);
-const [marketplaceLoading, setMarketplaceLoading] = useState(false);
-const [marketplaceFilters, setMarketplaceFilters] = useState({
-  category: '',
-  minPrice: '',
-  maxPrice: '',
-  location: '',
-  sort: 'newest',
-  search: '',
-});
+  // My Listings
+  const [myListings, setMyListings] = useState<MarketplaceProduct[]>([]);
+  const [myListingsLoading, setMyListingsLoading] = useState(false);
 
-// Add this right after all your useState hooks (around line 60-70)
-const [isLoading, setIsLoading] = useState(true);
+  const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
 
-useEffect(() => {
-  // If farmerId is provided, we're ready
-  if (farmerId) {
-    setIsLoading(false);
-  } else {
-    // Wait a bit for farmerId to be passed
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
-    return () => clearTimeout(timer);
+  const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
+  const [selectedProductForAdjustment, setSelectedProductForAdjustment] = useState<MarketplaceProduct | null>(null);
+  const [adjustmentQuantity, setAdjustmentQuantity] = useState(0);
+  const [adjustmentReason, setAdjustmentReason] = useState<'external_sale' | 'inventory_correction' | 'damage' | 'other'>('external_sale');
+  const [adjustmentNotes, setAdjustmentNotes] = useState('');
+  const [adjustmentLoading, setAdjustmentLoading] = useState(false);
+
+  // Add a mounted state to prevent hydration issues
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
+  // Log farmerId inside useEffect, not at top level
+  useEffect(() => {
+    console.log("MarketsModal received farmerId:", farmerId, "type:", typeof farmerId);
+  }, [farmerId]);
+
+  // If not mounted yet, don't render
+  if (!isMounted) {
+    return null;
   }
-}, [farmerId]);
 
-// If still loading, show loading state
-if (isLoading) {
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      <div className="bg-white dark:bg-brand-dark p-6 rounded-lg max-w-md w-full">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green mx-auto mb-4"></div>
-          <h2 className="text-xl font-bold mb-2">Loading Marketplace</h2>
-          <p className="text-gray-600 dark:text-gray-400">Please wait while we load your profile...</p>
+  // If no farmerId, show loading
+  if (!farmerId) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+        <div className="bg-white dark:bg-brand-dark p-6 rounded-lg max-w-md w-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green mx-auto mb-4"></div>
+            <h2 className="text-xl font-bold mb-2">Loading Marketplace</h2>
+            <p className="text-gray-600 dark:text-gray-400">Please wait while we load your profile...</p>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-// If no farmerId after loading, show error
-if (!farmerId) {
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      <div className="bg-white dark:bg-brand-dark p-6 rounded-lg max-w-md w-full">
-        <h2 className="text-xl font-bold text-red-600 mb-4">Error</h2>
-        <p className="text-gray-700 dark:text-gray-300 mb-4">
-          You need to be logged in to access the marketplace.
-        </p>
-        <button
-          onClick={onClose}
-          className="w-full px-4 py-2 rounded bg-brand-green text-white hover:bg-green-700"
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// Cart
-const [cartData, setCartData] = useState<ShoppingCartType[]>([]);
-const [cartLoading, setCartLoading] = useState(false);
-const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
-
-// Orders
-const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
-const [ordersLoading, setOrdersLoading] = useState(false);
-const [activeOrdersTab, setActiveOrdersTab] = useState<'buyer' | 'seller'>('buyer');
-const [statusFilter, setStatusFilter] = useState('');
-
-// My Listings
-const [myListings, setMyListings] = useState<MarketplaceProduct[]>([]);
-const [myListingsLoading, setMyListingsLoading] = useState(false);
-
-// Load my listings function
-const loadMyListings = async () => {
-  if (!farmerId) return;
-  
-  setMyListingsLoading(true);
-  try {
-    const response = await marketplaceApi.getProducts({
-      farmer_id: farmerId,
-      status: 'available',
-      limit: 100,
-    });
-    setMyListings(response.data || []);
-  } catch (error) {
-    console.error("Error loading my listings:", error);
-  } finally {
-    setMyListingsLoading(false);
+    );
   }
-};
 
-console.log("MarketsModal received farmerId:", farmerId, "type:", typeof farmerId);
+  // Load my listings function
+  const loadMyListings = async () => {
+    if (!farmerId) return;
+    
+    setMyListingsLoading(true);
+    try {
+      const response = await marketplaceApi.getProducts({
+        farmer_id: farmerId,
+        status: 'available',
+        limit: 100,
+      });
+      setMyListings(response.data || []);
+    } catch (error) {
+      console.error("Error loading my listings:", error);
+    } finally {
+      setMyListingsLoading(false);
+    }
+  };
 
   // Load data based on tab
   const loadData = async () => {
@@ -267,15 +256,6 @@ console.log("MarketsModal received farmerId:", farmerId, "type:", typeof farmerI
     }
   };
 
-  const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
-
-  const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
-  const [selectedProductForAdjustment, setSelectedProductForAdjustment] = useState<MarketplaceProduct | null>(null);
-  const [adjustmentQuantity, setAdjustmentQuantity] = useState(0);
-  const [adjustmentReason, setAdjustmentReason] = useState<'external_sale' | 'inventory_correction' | 'damage' | 'other'>('external_sale');
-  const [adjustmentNotes, setAdjustmentNotes] = useState('');
-  const [adjustmentLoading, setAdjustmentLoading] = useState(false);
-
   // Update handleAddToCart to use selected quantity
   const handleAddToCart = async (product: MarketplaceProduct, quantity?: number) => {
     console.log("handleAddToCart called with farmerId:", farmerId, "product:", product.id);
@@ -351,7 +331,6 @@ console.log("MarketsModal received farmerId:", farmerId, "type:", typeof farmerI
 
     setAdjustmentLoading(true);
     try {
-      // Actually call the API instead of mock alert
       await marketplaceApi.adjustInventory({
         marketplace_product_id: selectedProductForAdjustment.id,
         quantity_change: quantityChange,
@@ -1886,7 +1865,6 @@ console.log("MarketsModal received farmerId:", farmerId, "type:", typeof farmerI
     );
   };
 
-
   // Render current tab content
   const renderTabContent = (): JSX.Element => {
     switch (currentTab) {
@@ -1991,4 +1969,3 @@ console.log("MarketsModal received farmerId:", farmerId, "type:", typeof farmerI
     </div>
   );
 }
-

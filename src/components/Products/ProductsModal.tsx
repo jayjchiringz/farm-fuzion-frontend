@@ -254,9 +254,9 @@ export default function ProductsModal({
       if (product?.id || form.id) {
         await farmProductsApi.update(String(product?.id || form.id), payload);
       } else {
-        // Use the original UUID (farmerId) for farm-products API
-        console.log("Saving product with farmer_id (UUID):", farmerId);
-        await farmProductsApi.add({ ...payload, farmer_id: String(farmerId) } as FarmProduct);
+        // Use the numeric ID (validFarmerId) for farm-products API
+        console.log("Saving product with farmer_id (numeric):", validFarmerId);
+        await farmProductsApi.add({ ...payload, farmer_id: String(validFarmerId) } as FarmProduct);
       }
 
       onProductAdded();

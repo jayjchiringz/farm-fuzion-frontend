@@ -32,7 +32,7 @@ interface MarketPricesModalProps {
 
 type TabType = "dashboard" | "market" | "add" | "insights" | "marketplace" | "cart" | "orders" | "mylistings";
 
-// Add this new component before the main MarketPricesModal component
+// Update the MiniCart component itself
 const MiniCart = ({ 
   items, 
   total, 
@@ -55,6 +55,11 @@ const MiniCart = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   
+  // Calculate total from items if props.total is 0
+  const calculatedTotal = total > 0 ? total : items.reduce((sum, item) => {
+    return sum + (item.item_total || (item.quantity * item.unit_price));
+  }, 0);
+  
   if (items.length === 0) return null;
   
   return (
@@ -67,7 +72,7 @@ const MiniCart = ({
         <ShoppingCart size={20} />
         <span className="font-medium">{items.length} item{items.length !== 1 ? 's' : ''}</span>
         <span className="bg-white text-brand-green rounded-full px-2 py-0.5 text-sm font-bold">
-          {formatCurrencyKES(total)}
+          {formatCurrencyKES(calculatedTotal)}
         </span>
         <ChevronRight 
           size={16} 
@@ -93,28 +98,31 @@ const MiniCart = ({
           </div>
           
           <div className="max-h-96 overflow-y-auto p-4 space-y-3">
-            {items.map((item) => (
-              <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900 dark:text-white">
-                    {item.product_name}
+            {items.map((item) => {
+              const itemTotal = item.item_total || (item.quantity * item.unit_price);
+              return (
+                <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {item.product_name}
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      {item.quantity} × {formatCurrencyKES(item.unit_price)}/{item.unit}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {item.quantity} × {formatCurrencyKES(item.unit_price)}/{item.unit}
+                  <div className="font-bold text-brand-green">
+                    {formatCurrencyKES(itemTotal)}
                   </div>
                 </div>
-                <div className="font-bold text-brand-green">
-                  {formatCurrencyKES(item.item_total)}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           
           <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
             <div className="flex justify-between items-center mb-4">
               <span className="font-medium text-gray-700 dark:text-gray-300">Total:</span>
               <span className="text-2xl font-bold text-brand-green dark:text-brand-apple">
-                {formatCurrencyKES(total)}
+                {formatCurrencyKES(calculatedTotal)}
               </span>
             </div>
             
@@ -263,20 +271,29 @@ export default function MarketPricesModal({
     }
   }, [currentTab, farmerId, activeOrdersTab, statusFilter]);
 
+  // Update the useEffect that populates miniCartItems
   useEffect(() => {
     if (cartData.length > 0) {
-      // Flatten all cart items into a single array for mini-cart
-      const allItems = cartData.flatMap(cart => 
-        cart.items.map(item => ({
-          id: item.id,
-          product_name: item.product_name,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          item_total: item.item_total,
-          unit: item.unit,
-          cart_id: cart.id
-        }))
-      );
+      // Flatten all cart items with CORRECT total calculation
+      const allItems = cartData.flatMap(cart => {
+        // Calculate cart items with proper totals
+        return cart.items.map(item => {
+          // Ensure item_total is calculated correctly
+          const itemTotal = item.item_total || (item.quantity * item.unit_price);
+          
+          return {
+            id: item.id,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            item_total: itemTotal,
+            unit: item.unit,
+            cart_id: cart.id
+          };
+        });
+      });
+      
+      console.log("🛒 Updating mini-cart with items:", allItems);
       setMiniCartItems(allItems);
     } else {
       setMiniCartItems([]);
@@ -2254,7 +2271,13 @@ export default function MarketPricesModal({
       {currentTab !== "cart" && miniCartItems.length > 0 && (
         <MiniCart
           items={miniCartItems}
-          total={cartData.reduce((sum, cart) => sum + cart.total, 0)}
+          total={cartData.reduce((sum, cart) => {
+            // Calculate total properly
+            const cartTotal = cart.total || cart.items.reduce((s, item) => {
+              return s + (item.item_total || (item.quantity * item.unit_price));
+            }, 0);
+            return sum + cartTotal;
+          }, 0)}
           onViewCart={() => setCurrentTab("cart")}
           onCheckout={() => {
             if (cartData.length > 0 && cartData[0]?.id) {

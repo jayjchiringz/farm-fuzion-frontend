@@ -175,26 +175,6 @@ export default function MarketPricesModal({
     [summary]
   );
 
-  // If not mounted yet, don't render
-  if (!isMounted) {
-    return null;
-  }
-
-  // If no farmerId, show loading
-  if (!farmerId) {
-    return (
-      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-        <div className="bg-white dark:bg-brand-dark p-6 rounded-lg max-w-md w-full">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green mx-auto mb-4"></div>
-            <h2 className="text-xl font-bold mb-2">Loading Marketplace</h2>
-            <p className="text-gray-600 dark:text-gray-400">Please wait while we load your profile...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Load my listings function
   const loadMyListings = async () => {
     if (!farmerId) return;
@@ -708,6 +688,26 @@ export default function MarketPricesModal({
       </div>
     </>
   );
+
+  // If not mounted yet, don't render
+  if (!isMounted) {
+    return null;
+  }
+
+  // If no farmerId, show loading
+  if (!farmerId) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+        <div className="bg-white dark:bg-brand-dark p-6 rounded-lg max-w-md w-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green mx-auto mb-4"></div>
+            <h2 className="text-xl font-bold mb-2">Loading Marketplace</h2>
+            <p className="text-gray-600 dark:text-gray-400">Please wait while we load your profile...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Render Market Prices Tab
   const renderMarketPrices = () => (

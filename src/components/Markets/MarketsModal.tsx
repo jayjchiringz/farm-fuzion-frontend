@@ -283,6 +283,17 @@ export default function MarketPricesModal({
     }
   }, [cartData]);
 
+  // Add this temporary debug effect
+  useEffect(() => {
+    if (farmerId) {
+      console.log("🛒 Testing cart API directly...");
+      fetch(`https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/marketplace/cart/${farmerId}`)
+        .then(res => res.json())
+        .then(data => console.log("🛒 Direct API cart response:", data))
+        .catch(err => console.error("🛒 Direct API error:", err));
+    }
+  }, [farmerId]);  
+
   // Calculate market metrics
   const marketMetrics = useMemo(() => {
     if (summary.length === 0) return null;
@@ -403,16 +414,28 @@ export default function MarketPricesModal({
     }
   };
 
-  // ✅ Cart loading function
+  // ✅ Fix the loadCart function
   const loadCart = async () => {
     if (!farmerId) return;
     
     setCartLoading(true);
     try {
       const response = await marketplaceApi.getCart(farmerId);
-      setCartData(response.carts || []);
+      console.log("Raw cart response:", response); // Add this for debugging
+      
+      // The API returns cart data directly, not wrapped in a 'carts' property
+      // It might return a single cart object or an array of carts
+      if (Array.isArray(response)) {
+        setCartData(response);
+      } else if (response && typeof response === 'object') {
+        // If it's a single cart object, wrap it in an array
+        setCartData([response]);
+      } else {
+        setCartData([]);
+      }
     } catch (error) {
       console.error("Error loading cart:", error);
+      setCartData([]);
     } finally {
       setCartLoading(false);
     }
@@ -454,7 +477,6 @@ export default function MarketPricesModal({
 
     const qty = quantity || selectedQuantities[product.id] || 1;
     
-    // Check if trying to add more than available
     if (qty > product.quantity) {
       alert(`❌ Only ${product.quantity} ${product.unit}(s) available in stock`);
       return;
@@ -468,25 +490,30 @@ export default function MarketPricesModal({
         buyer_id: farmerId,
       });
       
-      // Show success message with cart summary
-      const total = response.cart_total || (qty * product.price);
-      alert(`✅ Added to cart!\n\n${qty} × ${product.product_name}\nTotal: ${formatCurrencyKES(total)}\nRemaining: ${product.quantity - qty} ${product.unit}`);
+      console.log("Add to cart response:", response); // Debug
+      
+      // Calculate total from response or fallback
+      let total = response.cart_total;
+      if (!total && response.cart?.total) {
+        total = response.cart.total;
+      } else {
+        total = qty * product.price;
+      }
+      
+      alert(`✅ Added to cart!\n\n${qty} × ${product.product_name}\nTotal: ${formatCurrencyKES(total)}`);
       
       setSelectedQuantities(prev => ({ ...prev, [product.id]: 1 }));
       
-      // Refresh both cart and marketplace products to update stock levels
-      if (currentTab === "cart") {
-        loadCart();
-      } else {
-        await Promise.all([
-          loadCart(),
-          loadMarketplaceProducts() // Refresh to show updated stock
-        ]);
+      // Refresh cart immediately to update mini-cart
+      await loadCart();
+      
+      // Also refresh marketplace products to update stock levels
+      if (currentTab === "marketplace") {
+        loadMarketplaceProducts();
       }
     } catch (error: any) {
       console.error("Error adding to cart:", error);
       
-      // Handle specific error messages from backend
       if (error.response?.data?.error) {
         alert(`❌ ${error.response.data.error}`);
       } else {
@@ -573,7 +600,8 @@ export default function MarketPricesModal({
     if (confirm("Remove this item from cart?")) {
       try {
         await marketplaceApi.removeCartItem(itemId, farmerId);
-        loadCart(); // Refresh cart
+        await loadCart(); // Refresh cart and wait for it
+        alert("Item removed from cart");
       } catch (error) {
         console.error("Error removing item:", error);
         alert("Failed to remove item");

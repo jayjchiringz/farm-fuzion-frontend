@@ -24,7 +24,7 @@ export const marketPricesApi = {
   async getAll(
     page: number = 1,
     limit: number = 10,
-    filters?: { product?: string; region?: string; category?: string }
+    filters?: { product?: string; region?: string; category?: string; currency?: string }
   ): Promise<PaginatedResponse<MarketPrice>> {
     try {
       const params = new URLSearchParams();
@@ -33,6 +33,7 @@ export const marketPricesApi = {
       if (filters?.product) params.append("product", filters.product);
       if (filters?.region) params.append("region", filters.region);
       if (filters?.category) params.append("category", filters.category);
+      if (filters?.currency) params.append("currency", filters.currency);
 
       const res = await axios.get<PaginatedResponse<MarketPrice>>(
         `${API_BASE}/market-prices`,
@@ -83,49 +84,24 @@ export const marketPricesApi = {
   },
 
   // 🔹 Get summary (latest per product)
-  async getSummary(selectedCurrency: string): Promise<MarketPrice[]> {
+  async getSummary(selectedCurrency?: string): Promise<MarketPrice[]> {
+    const params = new URLSearchParams();
+    if (selectedCurrency) params.append('currency', selectedCurrency);
+    
     const res = await axios.get<{ data: MarketPrice[] }>(
-      `${API_BASE}/market-prices/summary`
+      `${API_BASE}/market-prices/summary`,
+      { params }
     );
     return res.data.data;
   },
 
-};
-
-// Add to your marketPricesApi.ts
-export const getMarketDashboard = async (region?: string, limit?: number) => {
-  const params = new URLSearchParams();
-  if (region) params.append('region', region);
-  if (limit) params.append('limit', limit.toString());
-  
-  const response = await fetch(`${API_BASE}/market-prices/dashboard?${params}`);
-  return await response.json();
-};
-
-// In marketPricesApi.ts
-export const getSummary = async (currency?: string) => {
-  const params = new URLSearchParams();
-  if (currency) params.append('currency', currency);
-  
-  const response = await fetch(`${API_BASE}/market-prices/summary?${params}`);
-  const data = await response.json();
-  return data.data;
-};
-
-export const getAll = async (
-  page: number, 
-  limit: number, 
-  filters?: { product?: string; region?: string; currency?: string }
-) => {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString(),
-  });
-  
-  if (filters?.product) params.append('product', filters.product);
-  if (filters?.region) params.append('region', filters.region);
-  if (filters?.currency) params.append('currency', filters.currency);
-  
-  const response = await fetch(`${API_BASE}/market-prices?${params}`);
-  return await response.json();
+  // 📊 Get market dashboard
+  async getDashboard(region?: string, limit?: number): Promise<any> {
+    const params = new URLSearchParams();
+    if (region) params.append('region', region);
+    if (limit) params.append('limit', limit.toString());
+    
+    const res = await axios.get(`${API_BASE}/market-prices/dashboard`, { params });
+    return res.data;
+  }
 };

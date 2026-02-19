@@ -1,10 +1,6 @@
 // farm-fuzion-frontend/src/components/Markets/MarketPricesModal.tsx
 import React, { useEffect, useState, useMemo } from "react";
-import {
-  marketPricesApi,
-  MarketPrice,
-  API_BASE,
-} from "../../services/marketPricesApi";
+import { marketPricesApi, MarketPrice, API_BASE } from "../../services/marketPricesApi";
 import { formatCurrency } from "../../utils/format";
 import {
   TrendingUp,

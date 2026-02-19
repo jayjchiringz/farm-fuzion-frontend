@@ -442,7 +442,7 @@ export default function MarketPricesModal({
     }
   };
 
-  // Update handleAddToCart to use selected quantity and show feedback
+  // Update handleAddToCart with proper stock validation
   const handleAddToCart = async (product: MarketplaceProduct, quantity?: number) => {
     console.log("handleAddToCart called with farmerId:", farmerId, "product:", product.id);
     
@@ -454,6 +454,12 @@ export default function MarketPricesModal({
 
     const qty = quantity || selectedQuantities[product.id] || 1;
     
+    // Check if trying to add more than available
+    if (qty > product.quantity) {
+      alert(`❌ Only ${product.quantity} ${product.unit}(s) available in stock`);
+      return;
+    }
+    
     try {
       console.log("Adding to cart with buyer_id:", farmerId);
       const response = await marketplaceApi.addToCart({
@@ -464,18 +470,28 @@ export default function MarketPricesModal({
       
       // Show success message with cart summary
       const total = response.cart_total || (qty * product.price);
-      alert(`✅ Added to cart!\n\n${qty} × ${product.product_name}\nTotal: ${formatCurrencyKES(total)}`);
+      alert(`✅ Added to cart!\n\n${qty} × ${product.product_name}\nTotal: ${formatCurrencyKES(total)}\nRemaining: ${product.quantity - qty} ${product.unit}`);
       
       setSelectedQuantities(prev => ({ ...prev, [product.id]: 1 }));
+      
+      // Refresh both cart and marketplace products to update stock levels
       if (currentTab === "cart") {
         loadCart();
       } else {
-        // Refresh cart data in background
-        loadCart();
+        await Promise.all([
+          loadCart(),
+          loadMarketplaceProducts() // Refresh to show updated stock
+        ]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding to cart:", error);
-      alert("Failed to add to cart");
+      
+      // Handle specific error messages from backend
+      if (error.response?.data?.error) {
+        alert(`❌ ${error.response.data.error}`);
+      } else {
+        alert("Failed to add to cart. Please try again.");
+      }
     }
   };
 
@@ -618,6 +634,16 @@ export default function MarketPricesModal({
       case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
       case 'failed': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+    }
+  };
+
+  const getStockStatus = (quantity: number, unit: string) => {
+    if (quantity === 0) {
+      return { text: 'Out of Stock', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' };
+    } else if (quantity <= 5) {
+      return { text: `Low Stock (${quantity} ${unit})`, color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' };
+    } else {
+      return { text: `${quantity} ${unit} available`, color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' };
     }
   };
 
@@ -1311,15 +1337,24 @@ export default function MarketPricesModal({
                     By {product.first_name} {product.last_name}
                   </p>
                 </div>
-                <span className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 text-sm font-medium px-2 py-1 rounded">
-                  {formatCurrencyKES(product.price)}
-                </span>
-              </div>
+                <div className="flex flex-col items-end gap-2">
+                  <span className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 text-sm font-medium px-2 py-1 rounded">
+                    {formatCurrencyKES(product.price)}
+                  </span>
+                  {/* ✅ ADD THE STOCK BADGE HERE - RIGHT AFTER THE PRICE */}
+                  <span className={`text-xs font-medium px-2 py-1 rounded ${getStockStatus(product.quantity, product.unit).color}`}>
+                    {getStockStatus(product.quantity, product.unit).text}
+                  </span>
+                </div>
+              </div>  
               
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">Quantity:</span>
-                  <span className="font-medium">{product.quantity} {product.unit}</span>
+                  <span className="text-gray-500 dark:text-gray-400">Available:</span>
+                  <span className={`font-medium ${product.quantity <= 5 ? 'text-orange-600' : 'text-green-600'}`}>
+                    {product.quantity} {product.unit}
+                    {product.quantity <= 5 && ' ⚠️ Low stock'}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500 dark:text-gray-400">Location:</span>
@@ -1331,7 +1366,7 @@ export default function MarketPricesModal({
                 </div>
               </div>
               
-              {/* In the product card, add this button next to the Add to Cart button */}
+              {/* Quantity Selector with Stock Limit */}
               <div className="flex items-center gap-2 mb-3">
                 <div className="flex items-center border rounded-lg dark:border-gray-700">
                   <button
@@ -1344,7 +1379,8 @@ export default function MarketPricesModal({
                         }));
                       }
                     }}
-                    className="px-2 py-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
+                    disabled={(selectedQuantities[product.id] || 1) <= 1}
+                    className="px-2 py-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     -
                   </button>
@@ -1357,7 +1393,7 @@ export default function MarketPricesModal({
                       const val = parseInt(e.target.value) || 1;
                       setSelectedQuantities(prev => ({
                         ...prev,
-                        [product.id]: Math.min(val, product.quantity)
+                        [product.id]: Math.min(Math.max(1, val), product.quantity)
                       }));
                     }}
                     className="w-16 text-center px-1 py-1 border-0 focus:ring-0 bg-transparent"
@@ -1372,26 +1408,34 @@ export default function MarketPricesModal({
                         }));
                       }
                     }}
-                    className="px-2 py-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
+                    disabled={(selectedQuantities[product.id] || 1) >= product.quantity}
+                    className="px-2 py-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     +
                   </button>
                 </div>
                 <button
                   onClick={() => handleAddToCart(product, selectedQuantities[product.id])}
-                  className="flex-1 bg-brand-green hover:bg-green-700 text-white py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  disabled={product.quantity === 0}
+                  className={`flex-1 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                    product.quantity === 0
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-brand-green hover:bg-green-700 text-white'
+                  }`}
                 >
                   <ShoppingCart size={16} />
-                  Add
+                  {product.quantity === 0 ? 'Out of Stock' : 'Add'}
                 </button>
               </div>
 
               {/* Quick price estimate */}
-              <div className="text-xs text-gray-500 dark:text-gray-400 text-right">
-                Est. total: {formatCurrencyKES((selectedQuantities[product.id] || 1) * product.price)}
-              </div>
+              {product.quantity > 0 && (
+                <div className="text-xs text-gray-500 dark:text-gray-400 text-right">
+                  Est. total: {formatCurrencyKES((selectedQuantities[product.id] || 1) * product.price)}
+                </div>
+              )}
 
-              {/* NEW: External Sale Button */}
+              {/* External Sale Button */}
               {product.farmer_id === farmerId && (
                 <button
                   onClick={() => {
@@ -1404,7 +1448,6 @@ export default function MarketPricesModal({
                   Record External Sale
                 </button>
               )}
-
             </div>
           ))}
         </div>

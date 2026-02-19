@@ -1581,7 +1581,7 @@ export default function MarketPricesModal({
     </div>
   );
 
-  // ✅ Render Cart Tab - NO HOOKS INSIDE
+  // In renderCart() function, update the cart display
   const renderCart = () => {
     if (!farmerId) {
       return (
@@ -1642,85 +1642,97 @@ export default function MarketPricesModal({
           </div>
         ) : (
           <div className="space-y-6">
-            {cartData.map((cart) => (
-              <div key={cart.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                {/* Cart Header */}
-                <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                      <h4 className="font-bold text-lg text-gray-900 dark:text-white">
-                        Order from {cart.seller?.first_name} {cart.seller?.last_name}
-                      </h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {cart.seller?.mobile ? `Contact: ${cart.seller.mobile}` : ''}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-brand-green dark:text-brand-apple">
-                        {formatCurrencyKES(cart.total)}
+            {cartData.map((cart) => {
+              // Calculate cart total if not provided by API
+              const cartTotal = cart.total || cart.items.reduce((sum, item) => 
+                sum + (item.quantity * item.unit_price), 0
+              );
+              
+              return (
+                <div key={cart.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                  {/* Cart Header */}
+                  <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div>
+                        <h4 className="font-bold text-lg text-gray-900 dark:text-white">
+                          Order from {cart.seller?.first_name} {cart.seller?.last_name || 'Farm'}
+                        </h4>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {cart.seller?.mobile ? `Contact: ${cart.seller.mobile}` : ''}
+                        </p>
                       </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        Total for {cart.items.length} item{cart.items.length !== 1 ? 's' : ''}
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-brand-green dark:text-brand-apple">
+                          {formatCurrencyKES(cartTotal)}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          Total for {cart.items.length} item{cart.items.length !== 1 ? 's' : ''}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Cart Items */}
-                <div className="p-4">
-                  <div className="space-y-4">
-                    {cart.items.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
+                  {/* Cart Items */}
+                  <div className="p-4">
+                    <div className="space-y-4">
+                      {cart.items.map((item) => {
+                        const itemTotal = item.item_total || (item.quantity * item.unit_price);
+                        return (
+                          <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
                             <div className="flex-1">
-                              <h5 className="font-medium text-gray-900 dark:text-white">
-                                {item.product_name}
-                              </h5>
-                              <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                <span>{item.quantity} × {formatCurrencyKES(item.unit_price)}</span>
-                                <span>Total: {formatCurrencyKES(item.item_total)}</span>
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1">
+                                  <h5 className="font-medium text-gray-900 dark:text-white">
+                                    {item.product_name}
+                                  </h5>
+                                  <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                    <span>{item.quantity} × {formatCurrencyKES(item.unit_price)}/{item.unit}</span>
+                                    <span className="font-medium text-brand-green">
+                                      = {formatCurrencyKES(itemTotal)}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
                             </div>
+                            <button
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 ml-4"
+                              title="Remove item"
+                            >
+                              <Trash2 size={18} />
+                            </button>
                           </div>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 ml-4"
-                          title="Remove item"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Cart Actions */}
-                  <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Items will be reserved for 24 hours after checkout
+                        );
+                      })}
                     </div>
-                    <button
-                      onClick={() => handleCheckout(cart.id)}
-                      disabled={checkoutLoading === cart.id}
-                      className="bg-brand-green hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {checkoutLoading === cart.id ? (
-                        <>
-                          <RefreshCw size={18} className="animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingCart size={18} />
-                          Checkout Now
-                        </>
-                      )}
-                    </button>
+
+                    {/* Cart Actions */}
+                    <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        Items will be reserved for 24 hours after checkout
+                      </div>
+                      <button
+                        onClick={() => handleCheckout(cart.id)}
+                        disabled={checkoutLoading === cart.id}
+                        className="bg-brand-green hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {checkoutLoading === cart.id ? (
+                          <>
+                            <RefreshCw size={18} className="animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart size={18} />
+                            Checkout Now • {formatCurrencyKES(cartTotal)}
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* Cart Summary */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 p-6 rounded-xl border border-blue-100 dark:border-gray-700">
@@ -1735,25 +1747,16 @@ export default function MarketPricesModal({
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {formatCurrencyKES(cartData.reduce((sum, cart) => sum + cart.total, 0))}
+                    {formatCurrencyKES(cartData.reduce((sum, cart) => {
+                      const cartTotal = cart.total || cart.items.reduce((s, item) => 
+                        s + (item.quantity * item.unit_price), 0
+                      );
+                      return sum + cartTotal;
+                    }, 0))}
                   </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
                     Total across all carts
                   </div>
-                </div>
-              </div>
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Payment Method</div>
-                  <div className="font-medium">FarmFuzion Wallet</div>
-                </div>
-                <div className="p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Escrow Protection</div>
-                  <div className="font-medium text-green-600">✅ Active</div>
-                </div>
-                <div className="p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Delivery</div>
-                  <div className="font-medium">Arrange with Seller</div>
                 </div>
               </div>
             </div>

@@ -133,10 +133,9 @@ export const marketplaceApi = {
     return res.data;
   },
 
-  // Shopping Cart
   getCart: async (buyerId: string) => {
     const res = await axios.get(`${API_BASE}/marketplace/cart/${buyerId}`);
-    return res.data;
+    return res.data; // Now returns array directly, not {carts: [...]}
   },
 
   addToCart: async (data: {

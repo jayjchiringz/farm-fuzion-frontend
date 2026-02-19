@@ -414,27 +414,48 @@ export default function MarketPricesModal({
     }
   };
 
-  // ✅ Fix the loadCart function
+  // ✅ Update loadCart with better error handling
   const loadCart = async () => {
     if (!farmerId) return;
     
     setCartLoading(true);
     try {
+      console.log("🛒 Loading cart for farmer:", farmerId);
       const response = await marketplaceApi.getCart(farmerId);
-      console.log("Raw cart response:", response); // Add this for debugging
+      console.log("✅ Raw cart response:", response);
       
-      // The API returns cart data directly, not wrapped in a 'carts' property
-      // It might return a single cart object or an array of carts
+      // Handle different response structures
       if (Array.isArray(response)) {
         setCartData(response);
       } else if (response && typeof response === 'object') {
-        // If it's a single cart object, wrap it in an array
-        setCartData([response]);
+        // Check if it's a single cart object
+        if (response.id && response.items) {
+          setCartData([response]);
+        } 
+        // Check if it's wrapped in a data property
+        else if (response.data) {
+          if (Array.isArray(response.data)) {
+            setCartData(response.data);
+          } else {
+            setCartData([response.data]);
+          }
+        }
+        else {
+          console.warn("Unexpected cart response format:", response);
+          setCartData([]);
+        }
       } else {
         setCartData([]);
       }
-    } catch (error) {
-      console.error("Error loading cart:", error);
+    } catch (error: any) {
+      console.error("❌ Error loading cart:", error);
+      
+      // Show user-friendly message
+      if (error.response?.status === 500) {
+        console.log("Cart service is temporarily unavailable");
+        // Don't show alert to user, just log it
+      }
+      
       setCartData([]);
     } finally {
       setCartLoading(false);

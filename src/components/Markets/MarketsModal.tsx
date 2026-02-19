@@ -32,6 +32,123 @@ interface MarketPricesModalProps {
 
 type TabType = "dashboard" | "market" | "add" | "insights" | "marketplace" | "cart" | "orders" | "mylistings";
 
+// Add this new component before the main MarketPricesModal component
+const MiniCart = ({ 
+  items, 
+  total, 
+  onViewCart, 
+  onCheckout,
+  className = "" 
+}: { 
+  items: Array<{ 
+    id: string; 
+    product_name: string; 
+    quantity: number; 
+    unit_price: number; 
+    item_total: number;
+    unit: string;
+  }>;
+  total: number;
+  onViewCart: () => void;
+  onCheckout: () => void;
+  className?: string;
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  if (items.length === 0) return null;
+  
+  return (
+    <div className={`fixed bottom-4 right-4 z-[70] ${className}`}>
+      {/* Mini Cart Button */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="bg-brand-green hover:bg-green-700 text-white rounded-full shadow-lg flex items-center gap-2 px-4 py-3 transition-all duration-300 group"
+      >
+        <ShoppingCart size={20} />
+        <span className="font-medium">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+        <span className="bg-white text-brand-green rounded-full px-2 py-0.5 text-sm font-bold">
+          {formatCurrencyKES(total)}
+        </span>
+        <ChevronRight 
+          size={16} 
+          className={`transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} 
+        />
+      </button>
+      
+      {/* Expanded Cart Preview */}
+      {isExpanded && (
+        <div className="absolute bottom-full right-0 mb-2 w-96 bg-white dark:bg-brand-dark rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white">
+                🛒 Cart Summary
+              </h3>
+              <button
+                onClick={() => setIsExpanded(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+          
+          <div className="max-h-96 overflow-y-auto p-4 space-y-3">
+            {items.map((item) => (
+              <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
+                <div className="flex-1">
+                  <div className="font-medium text-gray-900 dark:text-white">
+                    {item.product_name}
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {item.quantity} × {formatCurrencyKES(item.unit_price)}/{item.unit}
+                  </div>
+                </div>
+                <div className="font-bold text-brand-green">
+                  {formatCurrencyKES(item.item_total)}
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+            <div className="flex justify-between items-center mb-4">
+              <span className="font-medium text-gray-700 dark:text-gray-300">Total:</span>
+              <span className="text-2xl font-bold text-brand-green dark:text-brand-apple">
+                {formatCurrencyKES(total)}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  onViewCart();
+                  setIsExpanded(false);
+                }}
+                className="px-4 py-2 border border-brand-green text-brand-green rounded-lg hover:bg-brand-green/10 transition-colors"
+              >
+                View Cart
+              </button>
+              <button
+                onClick={() => {
+                  onCheckout();
+                  setIsExpanded(false);
+                }}
+                className="px-4 py-2 bg-brand-green text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Checkout
+              </button>
+            </div>
+            
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
+              Items are reserved for 24 hours
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function MarketPricesModal({
   farmerId,
   onClose,
@@ -100,6 +217,16 @@ export default function MarketPricesModal({
   const [adjustmentNotes, setAdjustmentNotes] = useState('');
   const [adjustmentLoading, setAdjustmentLoading] = useState(false);
 
+  const [miniCartItems, setMiniCartItems] = useState<Array<{
+    id: string;
+    product_name: string;
+    quantity: number;
+    unit_price: number;
+    item_total: number;
+    unit: string;
+    cart_id?: string;
+  }>>([]);
+
   useEffect(() => {
     setIsMounted(true);
     return () => setIsMounted(false);
@@ -135,6 +262,26 @@ export default function MarketPricesModal({
       loadOrders();
     }
   }, [currentTab, farmerId, activeOrdersTab, statusFilter]);
+
+  useEffect(() => {
+    if (cartData.length > 0) {
+      // Flatten all cart items into a single array for mini-cart
+      const allItems = cartData.flatMap(cart => 
+        cart.items.map(item => ({
+          id: item.id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          item_total: item.item_total,
+          unit: item.unit,
+          cart_id: cart.id
+        }))
+      );
+      setMiniCartItems(allItems);
+    } else {
+      setMiniCartItems([]);
+    }
+  }, [cartData]);
 
   // Calculate market metrics
   const marketMetrics = useMemo(() => {
@@ -295,7 +442,7 @@ export default function MarketPricesModal({
     }
   };
 
-  // Update handleAddToCart to use selected quantity
+  // Update handleAddToCart to use selected quantity and show feedback
   const handleAddToCart = async (product: MarketplaceProduct, quantity?: number) => {
     console.log("handleAddToCart called with farmerId:", farmerId, "product:", product.id);
     
@@ -309,14 +456,21 @@ export default function MarketPricesModal({
     
     try {
       console.log("Adding to cart with buyer_id:", farmerId);
-      await marketplaceApi.addToCart({
+      const response = await marketplaceApi.addToCart({
         marketplace_product_id: product.id,
         quantity: qty,
         buyer_id: farmerId,
       });
-      alert(`Added ${qty} ${product.unit}(s) to cart!`);
+      
+      // Show success message with cart summary
+      const total = response.cart_total || (qty * product.price);
+      alert(`✅ Added to cart!\n\n${qty} × ${product.product_name}\nTotal: ${formatCurrencyKES(total)}`);
+      
       setSelectedQuantities(prev => ({ ...prev, [product.id]: 1 }));
       if (currentTab === "cart") {
+        loadCart();
+      } else {
+        // Refresh cart data in background
         loadCart();
       }
     } catch (error) {
@@ -1179,23 +1333,62 @@ export default function MarketPricesModal({
               
               {/* In the product card, add this button next to the Add to Cart button */}
               <div className="flex items-center gap-2 mb-3">
-                <input
-                  type="number"
-                  min="1"
-                  max={product.quantity}
-                  value={selectedQuantities[product.id] || 1}
-                  onChange={(e) => setSelectedQuantities(prev => ({
-                    ...prev,
-                    [product.id]: parseInt(e.target.value) || 1
-                  }))}
-                  className="w-20 px-2 py-1 border rounded dark:bg-gray-800"
-                />
+                <div className="flex items-center border rounded-lg dark:border-gray-700">
+                  <button
+                    onClick={() => {
+                      const currentQty = selectedQuantities[product.id] || 1;
+                      if (currentQty > 1) {
+                        setSelectedQuantities(prev => ({
+                          ...prev,
+                          [product.id]: currentQty - 1
+                        }));
+                      }
+                    }}
+                    className="px-2 py-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max={product.quantity}
+                    value={selectedQuantities[product.id] || 1}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 1;
+                      setSelectedQuantities(prev => ({
+                        ...prev,
+                        [product.id]: Math.min(val, product.quantity)
+                      }));
+                    }}
+                    className="w-16 text-center px-1 py-1 border-0 focus:ring-0 bg-transparent"
+                  />
+                  <button
+                    onClick={() => {
+                      const currentQty = selectedQuantities[product.id] || 1;
+                      if (currentQty < product.quantity) {
+                        setSelectedQuantities(prev => ({
+                          ...prev,
+                          [product.id]: currentQty + 1
+                        }));
+                      }
+                    }}
+                    className="px-2 py-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
+                  >
+                    +
+                  </button>
+                </div>
                 <button
                   onClick={() => handleAddToCart(product, selectedQuantities[product.id])}
-                  className="flex-1 bg-brand-green text-white py-2 rounded hover:bg-brand-dark"
+                  className="flex-1 bg-brand-green hover:bg-green-700 text-white py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
-                  Add to Cart
+                  <ShoppingCart size={16} />
+                  Add
                 </button>
+              </div>
+
+              {/* Quick price estimate */}
+              <div className="text-xs text-gray-500 dark:text-gray-400 text-right">
+                Est. total: {formatCurrencyKES((selectedQuantities[product.id] || 1) * product.price)}
               </div>
 
               {/* NEW: External Sale Button */}
@@ -1878,88 +2071,103 @@ export default function MarketPricesModal({
   const isSubmitDisabled = currentTab === "add" && (!formData.product_name || !formData.retail_price);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      <div className="bg-white dark:bg-brand-dark rounded-lg w-[95%] max-w-6xl shadow-xl flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-brand-green dark:text-brand-apple">
-            🛒 Market Intelligence
-          </h2>
-          <button onClick={onClose} className="text-gray-500 hover:underline">
-            <X size={24} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {/* Tabs */}
-          <div className="flex gap-2 mb-6">
-            {[
-              { key: "dashboard", label: "Dashboard", icon: "📊" },
-              { key: "market", label: "Market Prices", icon: "💰" },
-              { key: "marketplace", label: "Marketplace", icon: "🛒" },
-              { key: "cart", label: "My Cart", icon: "🛍️" },
-              { key: "orders", label: "Orders", icon: "📦" },
-              { key: "add", label: editingId ? "Edit Price" : "Add Price", icon: editingId ? "✏️" : "➕" },
-              { key: "insights", label: "AI Insights", icon: "🤖" },
-              { key: "mylistings", label: "My Listings", icon: "📋" },
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => {
-                  if (tab.key === "add") {
-                    setFormData({
-                      product_name: "",
-                      category: "",
-                      region: "",
-                      retail_price: 0,
-                      farmgate_price: 0,
-                      unit: `${selectedCurrency}/kg`,
-                      benchmark: false,
-                    });
-                    setEditingId(null);
-                  }
-                  setCurrentTab(tab.key as TabType);
-                }}
-                className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-all duration-300 ${
-                  currentTab === tab.key
-                    ? "bg-brand-green text-white shadow-lg"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                }`}
-              >
-                <span>{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
+    <>
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+        <div className="bg-white dark:bg-brand-dark rounded-lg w-[95%] max-w-6xl shadow-xl flex flex-col max-h-[90vh]">
+          {/* Header */}
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-brand-green dark:text-brand-apple">
+              🛒 Market Intelligence
+            </h2>
+            <button onClick={onClose} className="text-gray-500 hover:underline">
+              <X size={24} />
+            </button>
           </div>
 
-          {renderTabContent()}
-        </div>
-
-        {/* Footer */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-between gap-4">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            Cancel
-          </button>
-          
-          {currentTab === "add" ? (
-            <button
-              onClick={handleSubmit}
-              className="bg-brand-green hover:bg-green-700 text-white px-6 py-2 rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isSubmitDisabled || loading}
-            >
-              {loading ? "Saving..." : editingId ? "Update Price" : "Add Price"}
-            </button>
-          ) : (
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              Showing {summary.length} products • Currency: {selectedCurrency}
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {/* Tabs */}
+            <div className="flex gap-2 mb-6">
+              {[
+                { key: "dashboard", label: "Dashboard", icon: "📊" },
+                { key: "market", label: "Market Prices", icon: "💰" },
+                { key: "marketplace", label: "Marketplace", icon: "🛒" },
+                { key: "cart", label: "My Cart", icon: "🛍️" },
+                { key: "orders", label: "Orders", icon: "📦" },
+                { key: "add", label: editingId ? "Edit Price" : "Add Price", icon: editingId ? "✏️" : "➕" },
+                { key: "insights", label: "AI Insights", icon: "🤖" },
+                { key: "mylistings", label: "My Listings", icon: "📋" },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => {
+                    if (tab.key === "add") {
+                      setFormData({
+                        product_name: "",
+                        category: "",
+                        region: "",
+                        retail_price: 0,
+                        farmgate_price: 0,
+                        unit: `${selectedCurrency}/kg`,
+                        benchmark: false,
+                      });
+                      setEditingId(null);
+                    }
+                    setCurrentTab(tab.key as TabType);
+                  }}
+                  className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-all duration-300 ${
+                    currentTab === tab.key
+                      ? "bg-brand-green text-white shadow-lg"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  <span>{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
             </div>
-          )}
+
+            {renderTabContent()}
+          </div>
+
+          {/* Footer */}
+          <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-between gap-4">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              Cancel
+            </button>
+            
+            {currentTab === "add" ? (
+              <button
+                onClick={handleSubmit}
+                className="bg-brand-green hover:bg-green-700 text-white px-6 py-2 rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isSubmitDisabled || loading}
+              >
+                {loading ? "Saving..." : editingId ? "Update Price" : "Add Price"}
+              </button>
+            ) : (
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Showing {summary.length} products • Currency: {selectedCurrency}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+      {/* Mini Cart - Only show if there are items and not on cart tab */}
+      {currentTab !== "cart" && miniCartItems.length > 0 && (
+        <MiniCart
+          items={miniCartItems}
+          total={cartData.reduce((sum, cart) => sum + cart.total, 0)}
+          onViewCart={() => setCurrentTab("cart")}
+          onCheckout={() => {
+            if (cartData.length > 0 && cartData[0]?.id) {
+              handleCheckout(cartData[0].id);
+            }
+          }}
+        />
+      )}
+    </>
   );
 }

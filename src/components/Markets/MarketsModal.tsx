@@ -44,7 +44,8 @@ export default function MarketPricesModal({
   // ✅ ALL HOOKS AT TOP LEVEL - in the same order every time
   const [loading, setLoading] = useState(false);
   const [currentTab, setCurrentTab] = useState<TabType>("dashboard");
-  
+  const [isMounted, setIsMounted] = useState(false);
+
   // Summary data
   const [summary, setSummary] = useState<MarketPrice[]>([]);
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -103,9 +104,6 @@ export default function MarketPricesModal({
   const [adjustmentNotes, setAdjustmentNotes] = useState('');
   const [adjustmentLoading, setAdjustmentLoading] = useState(false);
 
-  // Add a mounted state to prevent hydration issues
-  const [isMounted, setIsMounted] = useState(false);
-
   useEffect(() => {
     setIsMounted(true);
     return () => setIsMounted(false);
@@ -115,6 +113,71 @@ export default function MarketPricesModal({
   useEffect(() => {
     console.log("MarketsModal received farmerId:", farmerId, "type:", typeof farmerId);
   }, [farmerId]);
+
+  // Main useEffect for summary data
+  useEffect(() => {
+    loadData();
+  }, [currentTab, searchTerm, filterCategory, filterRegion, selectedCurrency]);
+
+  // ✅ Marketplace useEffect
+  useEffect(() => {
+    if (currentTab === "marketplace") {
+      loadMarketplaceProducts();
+    }
+  }, [currentTab, marketplaceFilters]);
+
+  // ✅ Cart useEffect
+  useEffect(() => {
+    if (currentTab === "cart" && farmerId) {
+      loadCart();
+    }
+  }, [currentTab, farmerId]);
+
+  // ✅ Orders useEffect
+  useEffect(() => {
+    if (currentTab === "orders" && farmerId) {
+      loadOrders();
+    }
+  }, [currentTab, farmerId, activeOrdersTab, statusFilter]);
+
+  // Calculate market metrics
+  const marketMetrics = useMemo(() => {
+    if (summary.length === 0) return null;
+    
+    const prices = summary.map(p => p.retail_price || 0).filter(p => p > 0);
+    const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+    const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+    const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+    const volatileProducts = summary.filter(p => {
+      const volatility = p.volatility?.toLowerCase();
+      return volatility === 'high' || volatility === 'medium' || volatility === 'volatile';
+    }).length;
+
+    return {
+      avgPrice,
+      maxPrice,
+      minPrice,
+      volatileProducts,
+      totalProducts: summary.length,
+      priceRange: maxPrice - minPrice,
+    };
+  }, [summary]);
+
+  // Dynamic filter values
+  const categories = useMemo(
+    () => Array.from(new Set(summary.map((p) => p.category).filter(Boolean) ?? [])),
+    [summary]
+  );
+
+  const regions = useMemo(
+    () =>
+      Array.from(new Set(
+        summary
+          .map((p) => p.region)
+          .filter(Boolean)
+      )),
+    [summary]
+  );
 
   // If not mounted yet, don't render
   if (!isMounted) {
@@ -427,71 +490,6 @@ export default function MarketPricesModal({
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
     }
   };
-
-  // Main useEffect for summary data
-  useEffect(() => {
-    loadData();
-  }, [currentTab, searchTerm, filterCategory, filterRegion, selectedCurrency]);
-
-  // ✅ Marketplace useEffect
-  useEffect(() => {
-    if (currentTab === "marketplace") {
-      loadMarketplaceProducts();
-    }
-  }, [currentTab, marketplaceFilters]);
-
-  // ✅ Cart useEffect
-  useEffect(() => {
-    if (currentTab === "cart" && farmerId) {
-      loadCart();
-    }
-  }, [currentTab, farmerId]);
-
-  // ✅ Orders useEffect
-  useEffect(() => {
-    if (currentTab === "orders" && farmerId) {
-      loadOrders();
-    }
-  }, [currentTab, farmerId, activeOrdersTab, statusFilter]);
-
-  // Calculate market metrics
-  const marketMetrics = useMemo(() => {
-    if (summary.length === 0) return null;
-    
-    const prices = summary.map(p => p.retail_price || 0).filter(p => p > 0);
-    const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-    const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
-    const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-    const volatileProducts = summary.filter(p => {
-      const volatility = p.volatility?.toLowerCase();
-      return volatility === 'high' || volatility === 'medium' || volatility === 'volatile';
-    }).length;
-
-    return {
-      avgPrice,
-      maxPrice,
-      minPrice,
-      volatileProducts,
-      totalProducts: summary.length,
-      priceRange: maxPrice - minPrice,
-    };
-  }, [summary]);
-
-  // Dynamic filter values
-  const categories = useMemo(
-    () => Array.from(new Set(summary.map((p) => p.category).filter(Boolean) ?? [])),
-    [summary]
-  );
-
-  const regions = useMemo(
-    () =>
-      Array.from(new Set(
-        summary
-          .map((p) => p.region)
-          .filter(Boolean)
-      )),
-    [summary]
-  );
 
   // Form submission
   const handleSubmit = async () => {

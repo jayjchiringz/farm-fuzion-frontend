@@ -31,13 +31,15 @@ export default function TransactionTable({
         `/wallet/${farmerId}/transactions?${params.toString()}`
       );
       
-      // ✅ FIX: Ensure transactions is always an array
-      const transactionsData = res.data || [];
+      console.log("📊 Transaction response:", res.data); // Add this for debugging
+      
+      // ✅ FIX: Access the transactions array from the response
+      const transactionsData = res.data?.transactions || [];
       setTransactions(Array.isArray(transactionsData) ? transactionsData : []);
       setPage(1);
     } catch (err) {
       console.error("Failed to fetch transactions", err);
-      setTransactions([]); // ✅ Set to empty array on error
+      setTransactions([]);
     } finally {
       setLoading(false);
     }

@@ -35,8 +35,14 @@ export default function WalletModal({
   const triggerRefresh = () => setRefreshKey((k) => k + 1);
 
   const fetchBalance = async () => {
-    const res = await api.get(`/wallet/${farmerId}/balance`);
-    setBalance(res.data.balance);
+    try {
+      const res = await api.get(`/wallet/${farmerId}/balance`);
+      // The balance endpoint might return { balance: 7000 } or just the number
+      setBalance(res.data?.balance || res.data || 0);
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+      setBalance(0);
+    }
   };
 
   // 🔍 search farmers

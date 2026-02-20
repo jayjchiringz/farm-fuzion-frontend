@@ -670,15 +670,26 @@ export default function MarketPricesModal({
     if (!farmerId) return;
     
     try {
+      setCheckoutLoading(orderId); // Reuse loading state
+      
       await marketplaceApi.processPayment(orderId, {
         payment_method: "wallet",
         buyer_id: farmerId,
+        // Add optional fields if needed
+        phone_number: undefined,
+        account_number: undefined
       });
-      alert("Payment processed successfully!");
+      
+      alert("✅ Payment processed successfully!");
       loadOrders(); // Refresh orders
-    } catch (error) {
+    } catch (error: any) {
       console.error("Payment error:", error);
-      alert("Payment failed");
+      const errorMessage = error.response?.data?.error || 
+                          error.response?.data?.details ||
+                          "Payment failed";
+      alert(`❌ ${errorMessage}`);
+    } finally {
+      setCheckoutLoading(null);
     }
   };
 

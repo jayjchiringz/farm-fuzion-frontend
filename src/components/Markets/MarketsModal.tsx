@@ -666,27 +666,39 @@ export default function MarketPricesModal({
     }
   };
 
+  // In MarketsModal.tsx - update handlePayment
   const handlePayment = async (orderId: string) => {
     if (!farmerId) return;
     
     try {
-      setCheckoutLoading(orderId); // Reuse loading state
+      setCheckoutLoading(orderId);
       
-      await marketplaceApi.processPayment(orderId, {
+      // Add a timeout to the API call
+      const paymentPromise = marketplaceApi.processPayment(orderId, {
         payment_method: "wallet",
         buyer_id: farmerId,
-        // Add optional fields if needed
-        phone_number: undefined,
-        account_number: undefined
       });
       
+      // Race between payment and timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Payment timeout")), 15000);
+      });
+      
+      const result = await Promise.race([paymentPromise, timeoutPromise]);
+      
+      console.log("Payment result:", result);
       alert("✅ Payment processed successfully!");
-      loadOrders(); // Refresh orders
+      loadOrders();
     } catch (error: any) {
       console.error("Payment error:", error);
-      const errorMessage = error.response?.data?.error || 
-                          error.response?.data?.details ||
-                          "Payment failed";
+      
+      let errorMessage = "Payment failed";
+      if (error.message === "Payment timeout") {
+        errorMessage = "Payment is taking too long. Please check your orders later.";
+      } else {
+        errorMessage = error.response?.data?.error || error.message;
+      }
+      
       alert(`❌ ${errorMessage}`);
     } finally {
       setCheckoutLoading(null);

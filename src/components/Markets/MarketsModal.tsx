@@ -30,7 +30,7 @@ interface MarketPricesModalProps {
   onMarketAdded?: () => Promise<void> | void;
 }
 
-type TabType = "dashboard" | "market" | "add" | "insights" | "marketplace" | "cart" | "orders" | "mylistings";
+type TabType = "dashboard" | "market" | "insights" | "marketplace" | "cart" | "orders" | "mylistings";
 
 // Update the MiniCart component itself
 const MiniCart = ({ 
@@ -773,13 +773,6 @@ export default function MarketPricesModal({
     }
   };
 
-  // Handle edit
-  const handleEdit = (price: MarketPrice) => {
-    setFormData(price);
-    setEditingId(price.id!);
-    setCurrentTab("add");
-  };
-
   // Handle delete
   const handleDelete = async (id: string | number) => {
     if (confirm("Are you sure you want to delete this market price?")) {
@@ -1148,13 +1141,6 @@ export default function MarketPricesModal({
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleEdit(p)}
-                              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                              title="Edit"
-                            >
-                              <Edit size={16} />
-                            </button>
                             <button
                               onClick={() => handleDelete(p.id!)}
                               className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
@@ -2192,7 +2178,6 @@ export default function MarketPricesModal({
     switch (currentTab) {
       case "dashboard": return renderDashboard();
       case "market": return renderMarketPrices();
-      case "add": return renderAddEdit();
       case "insights": return renderInsights();
       case "marketplace": return renderMarketplace();
       case "cart": return renderCart();
@@ -2202,9 +2187,6 @@ export default function MarketPricesModal({
     }
   };
   
-  // Check if submit button should be enabled
-  const isSubmitDisabled = currentTab === "add" && (!formData.product_name || !formData.retail_price);
-
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
@@ -2229,7 +2211,6 @@ export default function MarketPricesModal({
                 { key: "marketplace", label: "Marketplace", icon: "🛒" },
                 { key: "cart", label: "My Cart", icon: "🛍️" },
                 { key: "orders", label: "Orders", icon: "📦" },
-                { key: "add", label: editingId ? "Edit Price" : "Add Price", icon: editingId ? "✏️" : "➕" },
                 { key: "insights", label: "AI Insights", icon: "🤖" },
                 { key: "mylistings", label: "My Listings", icon: "📋" },
               ].map((tab) => (
@@ -2274,19 +2255,9 @@ export default function MarketPricesModal({
               Cancel
             </button>
             
-            {currentTab === "add" ? (
-              <button
-                onClick={handleSubmit}
-                className="bg-brand-green hover:bg-green-700 text-white px-6 py-2 rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isSubmitDisabled || loading}
-              >
-                {loading ? "Saving..." : editingId ? "Update Price" : "Add Price"}
-              </button>
-            ) : (
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Showing {summary.length} products • Currency: {selectedCurrency}
-              </div>
-            )}
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Showing {summary.length} products • Currency: {selectedCurrency}
+            </div>
           </div>
         </div>
       </div>

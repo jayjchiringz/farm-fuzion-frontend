@@ -172,16 +172,18 @@ export default function ProductsModal({
     }
   }, [validFarmerId, activeTab]);
 
-  // Load inventory when activeTab or filters change
+  // Load inventory when activeTab or filters change - WITH BETTER ERROR HANDLING
   useEffect(() => {
     const loadInventory = async () => {
-      if (!validFarmerId || activeTab !== "inventory") return;
+      if (!farmerId || activeTab !== "inventory") return;
       
       setLoadingInventory(true);
       try {
-        console.log("Loading inventory for farmer:", validFarmerId);
+        console.log("📦 Loading inventory for farmer (UUID):", farmerId);
+        console.log("📊 With filters:", { currentPage, searchTerm, filterCategory, filterStatus });
+        
         const data = await farmProductsApi.getFarmerProducts(
-          String(validFarmerId),
+          String(farmerId),
           currentPage,
           itemsPerPage,
           {
@@ -190,16 +192,29 @@ export default function ProductsModal({
             status: filterStatus || undefined,
           }
         );
+        
+        console.log("✅ Inventory data received:", data);
         setInventory(data);
-      } catch (err) {
-        console.error("Error loading inventory:", err);
+      } catch (err: any) {
+        console.error("❌ Error loading inventory:", err);
+        if (err.response) {
+          console.error("Response data:", err.response.data);
+          console.error("Response status:", err.response.status);
+        }
+        // Set empty inventory on error to prevent UI from breaking
+        setInventory({
+          data: [],
+          total: 0,
+          page: currentPage,
+          limit: itemsPerPage
+        });
       } finally {
         setLoadingInventory(false);
       }
     };
 
     loadInventory();
-  }, [activeTab, refreshKey, currentPage, searchTerm, filterCategory, filterStatus, validFarmerId]);
+  }, [activeTab, refreshKey, currentPage, searchTerm, filterCategory, filterStatus, farmerId]);
 
   // Conditional returns AFTER all hooks
   if (!isMounted) {
@@ -310,8 +325,12 @@ export default function ProductsModal({
   const totalPages = Math.ceil((inventory?.total ?? 0) / itemsPerPage);
 
   const DebugInfo = () => (
-    <div className="mb-2 p-2 bg-green-100 dark:bg-green-900 text-xs rounded">
-      <p>✅ Using numeric farmerId: {validFarmerId}</p>
+    <div className="mb-2 p-2 bg-green-100 dark:bg-green-900 text-xs rounded space-y-1">
+      <p>✅ UUID farmerId: <span className="font-mono">{farmerId}</span></p>
+      <p>✅ Numeric farmerId: <span className="font-mono">{validFarmerId}</span></p>
+      <p className="text-yellow-600 dark:text-yellow-400 text-[10px]">
+        ℹ️ UUID used for fetching inventory, numeric ID used for saving products
+      </p>
     </div>
   );
 

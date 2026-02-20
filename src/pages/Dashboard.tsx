@@ -106,10 +106,16 @@ export default function Dashboard() {
         setTotalSales(sales);
       }
 
-      // Process market prices
+      // Process market prices - FIXED
       if (pricesRes.status === 'fulfilled') {
         const data = await pricesRes.value.json();
-        setMarketPrices(data.slice(0, 5)); // Top 5 prices
+        // Ensure data is an array before slicing
+        if (Array.isArray(data)) {
+          setMarketPrices(data.slice(0, 5));
+        } else {
+          console.warn("Market prices data is not an array:", data);
+          setMarketPrices([]);
+        }
       }
 
       // In your loadDashboardData function, replace the inventory processing:
@@ -137,10 +143,11 @@ export default function Dashboard() {
         });
       }
 
-      // Process recent transactions
+      // Process recent transactions - FIXED
       if (transactionsRes.status === 'fulfilled') {
         const data = await transactionsRes.value.json();
-        setRecentTransactions(data.transactions?.slice(0, 3) || []);
+        // Check if data.transactions is an array
+        setRecentTransactions(Array.isArray(data.transactions) ? data.transactions.slice(0, 3) : []);
       }
 
     } catch (error) {
@@ -366,18 +373,22 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {/* Sample chart - replace with real data when available */}
+                {/* Market Price Trends Chart - FIXED */}
                 <div className="bg-white dark:bg-[#0a3d32] p-6 rounded-lg shadow-md border border-slate-200 dark:border-slate-700">
                   <h3 className="text-lg font-bold mb-4">📈 Market Price Trends</h3>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={marketPrices.slice(0, 5)} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="product_name" stroke="#8dc71d" />
-                      <YAxis stroke="#8dc71d" />
-                      <Tooltip />
-                      <Bar dataKey="retail_price" fill="#8dc71d" radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {Array.isArray(marketPrices) && marketPrices.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={marketPrices.slice(0, 5)} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="product_name" stroke="#8dc71d" />
+                        <YAxis stroke="#8dc71d" />
+                        <Tooltip />
+                        <Bar dataKey="retail_price" fill="#8dc71d" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <p className="text-gray-500 text-center py-8">No market price data available</p>
+                  )}
                 </div>
               </div>
             </>

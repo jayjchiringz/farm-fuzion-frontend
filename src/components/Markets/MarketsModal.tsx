@@ -736,6 +736,69 @@ export default function MarketPricesModal({
     }
   };
 
+  // Add this to your MarketsModal.tsx or create a new Wallet component
+  const WalletSummary = ({ farmerId }: { farmerId: string }) => {
+    const [balance, setBalance] = useState(0);
+    const [transactions, setTransactions] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+      if (farmerId) {
+        loadWalletData();
+      }
+    }, [farmerId]);
+
+    const loadWalletData = async () => {
+      setLoading(true);
+      try {
+        const [balanceRes, txnsRes] = await Promise.all([
+          fetch(`https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/wallet/${farmerId}/balance`),
+          fetch(`https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/wallet/${farmerId}/transactions?limit=10`)
+        ]);
+        
+        const balanceData = await balanceRes.json();
+        const txnsData = await txnsRes.json();
+        
+        setBalance(balanceData.balance);
+        setTransactions(txnsData.transactions || []);
+      } catch (error) {
+        console.error("Error loading wallet:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+        <h3 className="text-lg font-bold mb-4">💰 My Wallet</h3>
+        
+        <div className="mb-6">
+          <p className="text-sm text-gray-500">Available Balance</p>
+          <p className="text-3xl font-bold text-brand-green">
+            {formatCurrencyKES(balance)}
+          </p>
+        </div>
+
+        <h4 className="font-medium mb-3">Recent Transactions</h4>
+        <div className="space-y-3">
+          {transactions.map((tx: any) => (
+            <div key={tx.id} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-900/30 rounded">
+              <div>
+                <p className="font-medium text-sm">{tx.description}</p>
+                <p className="text-xs text-gray-500">
+                  {new Date(tx.created_at).toLocaleDateString()}
+                </p>
+              </div>
+              <span className={tx.direction === 'in' ? 'text-green-600' : 'text-red-600'}>
+                {tx.direction === 'in' ? '+' : '-'}{formatCurrencyKES(tx.amount)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };  
+
   // Form submission
   const handleSubmit = async () => {
     if (!formData.product_name || !formData.retail_price) {

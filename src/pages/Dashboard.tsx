@@ -100,7 +100,6 @@ export default function Dashboard() {
       if (listingsRes.status === 'fulfilled') {
         const data = await listingsRes.value.json();
         setActiveListings(data.data?.length || 0);
-        // Calculate total sales value
         const sales = data.data?.reduce((sum: number, item: any) => 
           sum + (item.price * item.quantity), 0) || 0;
         setTotalSales(sales);
@@ -108,21 +107,22 @@ export default function Dashboard() {
 
       // Process market prices - FIXED
       if (pricesRes.status === 'fulfilled') {
-        const data = await pricesRes.value.json();
-        // Ensure data is an array before slicing
-        if (Array.isArray(data)) {
-          setMarketPrices(data.slice(0, 5));
+        const response = await pricesRes.value.json();
+        console.log("Market prices response:", response);
+        
+        // The API returns { data: [...], currency, fx_rates, total_products }
+        if (response && Array.isArray(response.data)) {
+          setMarketPrices(response.data.slice(0, 5));
         } else {
-          console.warn("Market prices data is not an array:", data);
+          console.warn("Market prices data is not in expected format:", response);
           setMarketPrices([]);
         }
       }
 
-      // In your loadDashboardData function, replace the inventory processing:
+      // Process inventory
       if (inventoryRes.status === 'fulfilled') {
         const data = await inventoryRes.value.json();
         
-        // Safely process categories with proper typing
         const categoryCounts: Record<string, number> = {};
         
         if (data.data && Array.isArray(data.data)) {
@@ -134,7 +134,7 @@ export default function Dashboard() {
         
         const categories = Object.entries(categoryCounts).map(([name, value]) => ({ 
           name, 
-          value // value is already a number from our counting
+          value
         }));
         
         setInventoryStats({
@@ -145,9 +145,16 @@ export default function Dashboard() {
 
       // Process recent transactions - FIXED
       if (transactionsRes.status === 'fulfilled') {
-        const data = await transactionsRes.value.json();
-        // Check if data.transactions is an array
-        setRecentTransactions(Array.isArray(data.transactions) ? data.transactions.slice(0, 3) : []);
+        const response = await transactionsRes.value.json();
+        console.log("Transactions response:", response);
+        
+        // Based on your wallet endpoint, it returns { success, balance, transactions, pagination }
+        if (response && response.success && Array.isArray(response.transactions)) {
+          setRecentTransactions(response.transactions.slice(0, 3));
+        } else {
+          console.warn("Transactions data is not in expected format:", response);
+          setRecentTransactions([]);
+        }
       }
 
     } catch (error) {

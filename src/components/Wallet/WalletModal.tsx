@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api } from "../../services/api";
 import OtpModal from "./OtpModal";
 import TransactionTable from "./TransactionTable";
+import { formatCurrencyKES } from "../../utils/format";
 
 export default function WalletModal({
   farmerId,
@@ -25,19 +26,18 @@ export default function WalletModal({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
 
-  // 👇 NEW pay type states
+  // Pay type states
   const [payType, setPayType] = useState<"till" | "paybill">("till");
   const [paybillNo, setPaybillNo] = useState("");
   const [accNo, setAccNo] = useState("");
 
-  // 👇 refreshKey state for ledger refresh
+  // Refresh key for ledger refresh
   const [refreshKey, setRefreshKey] = useState(0);
   const triggerRefresh = () => setRefreshKey((k) => k + 1);
 
   const fetchBalance = async () => {
     try {
       const res = await api.get(`/wallet/${farmerId}/balance`);
-      // The balance endpoint might return { balance: 7000 } or just the number
       setBalance(res.data?.balance || res.data || 0);
     } catch (error) {
       console.error("Error fetching balance:", error);
@@ -45,7 +45,7 @@ export default function WalletModal({
     }
   };
 
-  // 🔍 search farmers
+  // Search farmers for transfer
   const searchFarmers = async (q: string) => {
     if (!q.trim()) {
       setSearchResults([]);
@@ -67,10 +67,11 @@ export default function WalletModal({
     fetchBalance();
   }, []);
 
-  // Define the action type at the top
   type WalletAction = "deposit" | "withdraw" | "transfer" | "pay";
 
   const handleSubmit = () => {
+    setLoading(true);
+    
     if (action === "deposit") {
       api
         .post(`/wallet/topup/${method}`, {
@@ -78,11 +79,13 @@ export default function WalletModal({
           amount: Number(amount),
         })
         .then(() => {
-          alert("Top-up successful!");
+          alert("✅ Top-up successful!");
           fetchBalance();
           triggerRefresh();
+          setAmount("");
         })
-        .catch(() => alert("Top-up failed"));
+        .catch(() => alert("❌ Top-up failed"))
+        .finally(() => setLoading(false));
     } else if (action === "withdraw") {
       api
         .post(`/wallet/withdraw/${method}`, {
@@ -91,11 +94,14 @@ export default function WalletModal({
           destination,
         })
         .then(() => {
-          alert("Withdrawal successful!");
+          alert("✅ Withdrawal successful!");
           fetchBalance();
           triggerRefresh();
+          setAmount("");
+          setDestination("");
         })
-        .catch(() => alert("Withdrawal failed"));
+        .catch(() => alert("❌ Withdrawal failed"))
+        .finally(() => setLoading(false));
     } else if (action === "transfer") {
       if (!transferPreview) {
         api
@@ -111,7 +117,8 @@ export default function WalletModal({
               alert("Unexpected response");
             }
           })
-          .catch(() => alert("Transfer preview failed"));
+          .catch(() => alert("❌ Transfer preview failed"))
+          .finally(() => setLoading(false));
       } else {
         api
           .post("/wallet/transfer", {
@@ -121,7 +128,7 @@ export default function WalletModal({
             confirm: true,
           })
           .then(() => {
-            alert("Transfer successful");
+            alert("✅ Transfer successful!");
             fetchBalance();
             triggerRefresh();
             setTransferPreview(null);
@@ -129,7 +136,8 @@ export default function WalletModal({
             setDestination("");
             setSearchQuery("");
           })
-          .catch(() => alert("Transfer failed"));
+          .catch(() => alert("❌ Transfer failed"))
+          .finally(() => setLoading(false));
       }
     } else if (action === "pay") {
       let finalDestination = "";
@@ -148,7 +156,7 @@ export default function WalletModal({
           mock: true,
         })
         .then(() => {
-          alert("Payment successful!");
+          alert("✅ Payment successful!");
           fetchBalance();
           triggerRefresh();
           setAmount("");
@@ -156,7 +164,8 @@ export default function WalletModal({
           setPaybillNo("");
           setAccNo("");
         })
-        .catch(() => alert("Payment failed"));
+        .catch(() => alert("❌ Payment failed"))
+        .finally(() => setLoading(false));
     }
   };
 
@@ -165,20 +174,22 @@ export default function WalletModal({
       <div className="flex gap-3 mb-4">
         <input
           type="number"
-          placeholder="Enter amount"
+          placeholder={`Enter amount to ${action}`}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="border p-2 rounded w-full"
+          className="flex-1 border p-3 rounded-lg focus:ring-2 focus:ring-brand-green focus:border-transparent outline-none"
+          min="1"
+          step="0.01"
         />
 
         {(action === "deposit" || action === "withdraw") && (
           <select
             value={method}
             onChange={(e) => setMethod(e.target.value as "mpesa" | "airtel")}
-            className="border p-2 rounded"
+            className="border p-3 rounded-lg min-w-[120px] bg-white dark:bg-gray-800 focus:ring-2 focus:ring-brand-green outline-none"
           >
-            <option value="mpesa">MPESA</option>
-            <option value="airtel">Airtel</option>
+            <option value="mpesa">📱 MPESA</option>
+            <option value="airtel">📞 Airtel</option>
           </select>
         )}
       </div>
@@ -186,21 +197,27 @@ export default function WalletModal({
       {/* Transfer: searchable farmer select */}
       {action === "transfer" && (
         <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">Select Recipient Farmer</label>
           <input
             type="text"
-            placeholder="Search farmer by name or phone"
+            placeholder="Search by name or phone number..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
               searchFarmers(e.target.value);
             }}
-            className="border p-2 rounded w-full mb-2"
+            className="border p-3 rounded-lg w-full mb-2 focus:ring-2 focus:ring-brand-green outline-none"
           />
 
-          {searching && <p className="text-sm text-gray-500">Searching...</p>}
+          {searching && (
+            <div className="flex items-center gap-2 text-sm text-gray-500 p-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-green"></div>
+              Searching...
+            </div>
+          )}
 
           {searchResults.length > 0 && (
-            <ul className="border rounded max-h-40 overflow-y-auto bg-white">
+            <ul className="border rounded-lg max-h-40 overflow-y-auto bg-white dark:bg-gray-800 shadow-lg">
               {searchResults.map((farmer) => (
                 <li
                   key={farmer.id}
@@ -211,9 +228,10 @@ export default function WalletModal({
                     );
                     setSearchResults([]);
                   }}
-                  className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                  className="p-3 hover:bg-brand-green hover:text-white cursor-pointer text-sm border-b last:border-b-0 transition-colors"
                 >
-                  {farmer.first_name} {farmer.last_name} — {farmer.mobile}
+                  <div className="font-medium">{farmer.first_name} {farmer.last_name}</div>
+                  <div className="text-xs opacity-75">{farmer.mobile}</div>
                 </li>
               ))}
             </ul>
@@ -224,53 +242,55 @@ export default function WalletModal({
       {/* Pay: Till vs PayBill */}
       {action === "pay" && (
         <div className="mb-4">
-          <div className="flex gap-4 mb-2">
-            <label className="flex items-center gap-2">
+          <label className="block text-sm font-medium mb-2">Payment Method</label>
+          <div className="flex gap-6 mb-4">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="radio"
                 value="till"
                 checked={payType === "till"}
                 onChange={() => setPayType("till")}
+                className="w-4 h-4 text-brand-green"
               />
-              Till Number
+              <span>Till Number</span>
             </label>
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="radio"
                 value="paybill"
                 checked={payType === "paybill"}
                 onChange={() => setPayType("paybill")}
+                className="w-4 h-4 text-brand-green"
               />
-              PayBill
+              <span>PayBill</span>
             </label>
           </div>
 
           {payType === "till" && (
             <input
               type="text"
-              placeholder="Till Number"
+              placeholder="Enter Till Number"
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
-              className="border p-2 rounded w-full"
+              className="border p-3 rounded-lg w-full focus:ring-2 focus:ring-brand-green outline-none"
             />
           )}
 
           {payType === "paybill" && (
-            <div className="flex flex-col gap-2">
+            <div className="space-y-3">
               <input
                 type="text"
                 placeholder="PayBill Number"
                 value={paybillNo}
                 onChange={(e) => setPaybillNo(e.target.value)}
-                className="border p-2 rounded w-full"
+                className="border p-3 rounded-lg w-full focus:ring-2 focus:ring-brand-green outline-none"
               />
               <input
                 type="text"
                 placeholder="Account Number"
                 value={accNo}
                 onChange={(e) => setAccNo(e.target.value)}
-                className="border p-2 rounded w-full"
-                pattern="[A-Za-z0-9]+"
+                className="border p-3 rounded-lg w-full focus:ring-2 focus:ring-brand-green outline-none"
               />
             </div>
           )}
@@ -279,13 +299,17 @@ export default function WalletModal({
 
       {/* Withdraw destination input */}
       {action === "withdraw" && (
-        <input
-          type="text"
-          placeholder="Destination Phone/ID"
-          value={destination}
-          onChange={(e) => setDestination(e.target.value)}
-          className="border p-2 rounded w-full mb-4"
-        />
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">Destination Phone Number</label>
+          <input
+            type="text"
+            placeholder="e.g., 254712345678"
+            value={destination}
+            onChange={(e) => setDestination(e.target.value)}
+            className="border p-3 rounded-lg w-full focus:ring-2 focus:ring-brand-green outline-none"
+          />
+          <p className="text-xs text-gray-500 mt-1">Enter phone number in international format</p>
+        </div>
       )}
     </>
   );
@@ -294,35 +318,59 @@ export default function WalletModal({
     loading ||
     !amount ||
     Number(amount) <= 0 ||
-    (action === "transfer" && !destination);
+    (action === "transfer" && !destination) ||
+    (action === "pay" && payType === "till" && !destination) ||
+    (action === "pay" && payType === "paybill" && (!paybillNo || !accNo)) ||
+    (action === "withdraw" && !destination);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      <div className="bg-white dark:bg-brand-dark rounded-lg w-[95%] max-w-3xl shadow-xl flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-brand-green dark:text-brand-apple">
-            💰 Wallet
-          </h2>
-          <button onClick={onClose} className="text-gray-500 hover:underline">
-            ✖
-          </button>
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-900 rounded-t-xl">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-brand-green dark:text-brand-apple flex items-center gap-2">
+                <span>💰</span> My Wallet
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Manage your funds, transfer to other farmers, and make payments
+              </p>
+            </div>
+            <button 
+              onClick={onClose} 
+              className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+              title="Close"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Balance Card */}
+          <div className="mt-4 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Current Balance</p>
+            <p className="text-3xl font-bold text-brand-green dark:text-brand-apple">
+              {formatCurrencyKES(balance)}
+            </p>
+          </div>
         </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6">
-          <p className="text-lg mb-2">
-            Current Balance:{" "}
-            <span className="font-bold">{balance.toFixed(2)} KES</span>
-          </p>
-
-          {/* Tabs */}
-          <div className="flex gap-2 mb-4">
-            {["deposit", "withdraw", "transfer", "pay"].map((tab) => (
+          {/* Action Tabs */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            {[
+              { id: "deposit", label: "Deposit", icon: "💰" },
+              { id: "withdraw", label: "Withdraw", icon: "💸" },
+              { id: "transfer", label: "Transfer", icon: "🔄" },
+              { id: "pay", label: "Pay", icon: "📱" }
+            ].map((tab) => (
               <button
-                key={tab}
+                key={tab.id}
                 onClick={() => {
-                  setAction(tab as WalletAction); // Type assertion
+                  setAction(tab.id as WalletAction);
                   setTransferPreview(null);
                   setDestination("");
                   setSearchQuery("");
@@ -330,13 +378,14 @@ export default function WalletModal({
                   setAccNo("");
                   setPayType("till");
                 }}
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  action === tab
-                    ? "bg-brand-green text-white"
-                    : "bg-gray-100 text-gray-700"
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  action === tab.id
+                    ? "bg-brand-green text-white shadow-md scale-105"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
               >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                <span>{tab.icon}</span>
+                {tab.label}
               </button>
             ))}
           </div>
@@ -345,28 +394,29 @@ export default function WalletModal({
 
           {/* Transfer confirmation */}
           {transferPreview && (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded mb-4">
-              <p className="text-yellow-800 font-medium mb-2">
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg mb-4">
+              <p className="text-yellow-800 dark:text-yellow-300 font-medium mb-3">
                 {transferPreview.message}
               </p>
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
                   onClick={() => setTransferPreview(null)}
-                  className="px-3 py-1 rounded bg-gray-200 text-gray-700"
+                  className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className="px-3 py-1 rounded bg-green-600 text-white"
+                  disabled={loading}
+                  className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors disabled:opacity-50"
                 >
-                  Confirm Transfer
+                  {loading ? "Processing..." : "Confirm Transfer"}
                 </button>
               </div>
             </div>
           )}
 
-          <hr className="my-6" />
+          <hr className="my-6 border-gray-200 dark:border-gray-700" />
 
           <TransactionTable farmerId={farmerId} refreshkey={refreshKey} />
         </div>
@@ -374,15 +424,25 @@ export default function WalletModal({
         {/* Footer */}
         {!transferPreview && (
           <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-4">
-            <button onClick={onClose} className="text-gray-500 hover:underline">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
-              className="bg-brand-green text-white px-4 py-2 rounded"
+              className="px-6 py-2 rounded-lg bg-brand-green hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               disabled={isContinueDisabled}
             >
-              {loading ? "Processing..." : "Continue"}
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Processing...
+                </>
+              ) : (
+                'Continue'
+              )}
             </button>
           </div>
         )}

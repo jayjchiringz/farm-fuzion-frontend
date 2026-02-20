@@ -31,11 +31,33 @@ export default function Dashboard() {
   }>({ total: 0, categories: [] });
   const [loading, setLoading] = useState(true);
 
-  // ✅ include last_name for full display
-  const fullName = [farmer.first_name, farmer.middle_name, farmer.last_name]
-    .filter(Boolean)
-    .join(" ");
+  // Construct name with proper handling of optional middle_name
+  const fullName = (() => {
+    // Try to get name from the schema fields
+    const firstName = farmer.first_name || farmer.firstName || '';
+    const middleName = farmer.middle_name || farmer.middleName || '';
+    const lastName = farmer.last_name || farmer.lastName || '';
+    
+    // If we have at least first and last name
+    if (firstName && lastName) {
+      return middleName 
+        ? `${firstName} ${middleName} ${lastName}`
+        : `${firstName} ${lastName}`;
+    }
+    
+    // Fallback options
+    const possibleNames = [
+      farmer.displayName,
+      farmer.name,
+      farmer.email?.split('@')[0],
+      `Farmer ${farmer.id?.slice(0, 8) || farmer.user_id?.slice(0, 8)}`
+    ];
+    
+    return possibleNames.find(name => name && name.trim().length > 0) || "Farmer";
+  })();
 
+  console.log("✅ Resolved fullName:", fullName);
+  
   useEffect(() => {
     if (farmerId) {
       loadDashboardData();
@@ -215,7 +237,7 @@ export default function Dashboard() {
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-brand-dark text-brand-dark dark:text-brand-apple p-6 md:p-8 transition-colors duration-300">
           <h1 className="text-[46px] leading-[64px] font-bold mb-4 font-ubuntu">
-            {fullName}'s Farm
+            {fullName}'s farm
           </h1>
 
           {/* Farmer's Key Metrics */}

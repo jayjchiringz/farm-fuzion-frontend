@@ -61,6 +61,9 @@ export default function WalletModal({
     fetchBalance();
   }, []);
 
+  // Define the action type at the top
+  type WalletAction = "deposit" | "withdraw" | "transfer" | "pay";
+
   const handleSubmit = () => {
     if (action === "deposit") {
       api
@@ -313,7 +316,7 @@ export default function WalletModal({
               <button
                 key={tab}
                 onClick={() => {
-                  setAction(tab as any);
+                  setAction(tab as WalletAction); // Type assertion
                   setTransferPreview(null);
                   setDestination("");
                   setSearchQuery("");

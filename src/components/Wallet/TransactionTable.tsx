@@ -17,10 +17,10 @@ export default function TransactionTable({
   });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
-  const [loading, setLoading] = useState(false); // 👈 NEW
+  const [loading, setLoading] = useState(false);
 
   const fetchTransactions = async () => {
-    setLoading(true); // 👈 start loading
+    setLoading(true);
     try {
       const params = new URLSearchParams();
       if (filters.type) params.append("type", filters.type);
@@ -30,23 +30,41 @@ export default function TransactionTable({
       const res = await api.get(
         `/wallet/${farmerId}/transactions?${params.toString()}`
       );
-      setTransactions(res.data || []);
+      
+      // ✅ FIX: Ensure transactions is always an array
+      const transactionsData = res.data || [];
+      setTransactions(Array.isArray(transactionsData) ? transactionsData : []);
       setPage(1);
     } catch (err) {
       console.error("Failed to fetch transactions", err);
+      setTransactions([]); // ✅ Set to empty array on error
     } finally {
-      setLoading(false); // 👈 stop loading
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchTransactions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, refreshkey]); // 👈 include refreshkey
+  }, [filters, refreshkey]);
 
-  const totalPages = Math.ceil(transactions.length / pageSize);
+  // ✅ FIX: Safe date formatting function
+  const formatDate = (timestamp: string) => {
+    if (!timestamp) return '-';
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return '-';
+      return date.toLocaleString();
+    } catch {
+      return '-';
+    }
+  };
+
+  // ✅ FIX: Ensure transactions is array before calculations
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  const totalPages = Math.ceil(safeTransactions.length / pageSize);
   const startIndex = (page - 1) * pageSize;
-  const visibleTx = transactions.slice(startIndex, startIndex + pageSize);
+  // ✅ FIX: Safe slice operation
+  const visibleTx = safeTransactions.slice(startIndex, startIndex + pageSize);
 
   return (
     <div>
@@ -87,7 +105,6 @@ export default function TransactionTable({
           Reset
         </button>
 
-        {/* Page size selector */}
         <div className="ml-auto flex items-center gap-2">
           <label htmlFor="pageSize" className="text-sm text-gray-600">
             Rows per page:
@@ -109,7 +126,6 @@ export default function TransactionTable({
         </div>
       </div>
 
-      {/* Loader */}
       {loading ? (
         <div className="flex justify-center items-center py-10 text-gray-500">
           <svg
@@ -136,7 +152,6 @@ export default function TransactionTable({
         </div>
       ) : (
         <>
-          {/* Responsive Scrollable Table */}
           <div className="overflow-y-auto border rounded max-h-64 md:max-h-80 lg:max-h-96">
             <table className="w-full text-sm border">
               <thead className="sticky top-0 bg-gray-100">
@@ -151,43 +166,50 @@ export default function TransactionTable({
                 </tr>
               </thead>
               <tbody>
-                {visibleTx.map((tx: any) => (
-                  <tr key={tx.id}>
-                    <td className="p-2 border">{tx.type}</td>
-                    <td className="p-2 border">{tx.amount}</td>
-                    <td className="p-2 border">{tx.source || "-"}</td>
-                    <td className="p-2 border">{tx.destination || "-"}</td>
-                    <td className="p-2 border">{tx.direction}</td>
-                    <td className="p-2 border">{tx.status}</td>
-                    <td className="p-2 border">
-                      {new Date(tx.timestamp).toLocaleString()}
+                {visibleTx.length > 0 ? (
+                  visibleTx.map((tx: any) => (
+                    <tr key={tx.id || Math.random()}>
+                      <td className="p-2 border">{tx.type || '-'}</td>
+                      <td className="p-2 border">{tx.amount || 0}</td>
+                      <td className="p-2 border">{tx.source || '-'}</td>
+                      <td className="p-2 border">{tx.destination || '-'}</td>
+                      <td className="p-2 border">{tx.direction || '-'}</td>
+                      <td className="p-2 border">{tx.status || '-'}</td>
+                      <td className="p-2 border">{formatDate(tx.timestamp)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="p-4 text-center text-gray-500">
+                      No transactions found
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
 
-          {/* Pagination Controls */}
-          <div className="flex justify-between items-center mt-3 text-sm">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-            >
-              ⬅ Prev
-            </button>
-            <span>
-              Page {page} of {totalPages || 1}
-            </span>
-            <button
-              disabled={page === totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-            >
-              Next ➡
-            </button>
-          </div>
+          {safeTransactions.length > 0 && (
+            <div className="flex justify-between items-center mt-3 text-sm">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+              >
+                ⬅ Prev
+              </button>
+              <span>
+                Page {page} of {totalPages || 1}
+              </span>
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+              >
+                Next ➡
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

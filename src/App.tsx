@@ -8,51 +8,54 @@ import MainLayout from "./layouts/MainLayout";
 import RegisterFarmerUnderGroup from "./pages/RegisterFarmerUnderGroup";
 import Loans from "./pages/Loans";
 import LoanRepayments from "./pages/LoanRepayments";
-import AdminDashboard from "./pages/AdminDashboard"; // ✅ NEW
+import AdminDashboard from "./pages/AdminDashboard";
 
 import React from "react";
 import { AuthProvider } from "./contexts/AuthContext";
+import { CurrencyProvider } from './contexts/CurrencyContext';
 
 export default function App() {
   return (
     <AuthProvider>
-      <MainLayout>
-        <Routes>
-          <Route path="/" element={<RedirectBasedOnAuth />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/verify" element={<VerifyOtp />} />
+      <CurrencyProvider> {/* CurrencyProvider is correctly placed here */}
+        <MainLayout>
+          <Routes>
+            <Route path="/" element={<RedirectBasedOnAuth />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/verify" element={<VerifyOtp />} />
 
-          <Route
-            path="/dashboard"
-            element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/admin-dashboard"
-            element={
-              <PrivateRoute>
-                <AdminDashboard children={undefined} />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/register-farmer"
-            element={
-              <PrivateRoute>
-                <RegisterFarmerUnderGroup />
-              </PrivateRoute>
-            }
-          />
-          <Route path="/loans" element={<Loans />} />
-          <Route path="/repayments/:loanId" element={<LoanRepayments />} />
+            <Route
+              path="/dashboard"
+              element={
+                <PrivateRoute>
+                  <Dashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin-dashboard"
+              element={
+                <PrivateRoute>
+                  <AdminDashboard children={undefined} />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/register-farmer"
+              element={
+                <PrivateRoute>
+                  <RegisterFarmerUnderGroup />
+                </PrivateRoute>
+              }
+            />
+            <Route path="/loans" element={<Loans />} />
+            <Route path="/repayments/:loanId" element={<LoanRepayments />} />
 
-          {/* Fallback route */}
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </MainLayout>
+            {/* Fallback route */}
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </MainLayout>
+      </CurrencyProvider>
     </AuthProvider>
   );
 }

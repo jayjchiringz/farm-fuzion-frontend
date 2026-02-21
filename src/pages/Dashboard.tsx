@@ -19,6 +19,7 @@ import {
 import { Sun, CloudRain, Wind, Droplets, Sunrise, Sunset, Eye, Gauge } from "lucide-react";
 import { weatherApi, WeatherData } from "../services/weatherApi";
 import WeatherModal from "../components/Weather/WeatherModal";
+import CurrencyModal from "../components/Currency/CurrencyModal";
 
 // API Base URL
 const API_BASE = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
@@ -64,6 +65,9 @@ export default function Dashboard() {
 
   // Add with other modal states
   const [weatherOpen, setWeatherOpen] = useState(false);
+
+  // In Dashboard.tsx, add with other modal states
+  const [currencyOpen, setCurrencyOpen] = useState(false);
 
   useEffect(() => {
     const fetchFarmerDetails = async () => {
@@ -807,9 +811,9 @@ console.log("✅ Final displayName:", displayName);
                   <ActionCard
                     icon={<DollarSign size={24} />}
                     title="Currency"
-                    description="Live exchange rates"
+                    description="Live exchange rates and currency settings"
                     color="from-emerald-500 to-teal-600"
-                    link="/currency"
+                    onClick={() => setCurrencyOpen(true)}
                   />
                   
                   <ActionCard
@@ -869,6 +873,9 @@ console.log("✅ Final displayName:", displayName);
           }}
           onClose={() => setWeatherOpen(false)}
         />
+      )}
+      {currencyOpen && (
+        <CurrencyModal onClose={() => setCurrencyOpen(false)} />
       )}
     </>
   );

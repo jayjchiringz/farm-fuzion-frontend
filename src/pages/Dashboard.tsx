@@ -51,6 +51,62 @@ export default function Dashboard() {
   const [marketsOpen, setMarketsOpen] = useState(false);
   const [creditOpen, setCreditOpen] = useState(false);
 
+  const [farmerDetails, setFarmerDetails] = useState<any>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Add this useEffect
+  useEffect(() => {
+    const fetchFarmerDetails = async () => {
+      if (!farmerId) return;
+      
+      try {
+        // If we don't have first_name in localStorage, fetch from API
+        if (!farmer.first_name && farmerId) {
+          console.log("🔍 Fetching farmer details for ID:", farmerId);
+          
+          // Try different endpoints
+          const endpoints = [
+            `${API_BASE}/farmers/${farmerId}`,
+            `${API_BASE}/farmers/user/${farmerId}`,
+            `${API_BASE}/farmers?id=${farmerId}`
+          ];
+          
+          let data = null;
+          let success = false;
+          
+          for (const endpoint of endpoints) {
+            try {
+              console.log("Trying endpoint:", endpoint);
+              const response = await fetch(endpoint);
+              if (response.ok) {
+                data = await response.json();
+                console.log("✅ Success with endpoint:", endpoint, data);
+                success = true;
+                break;
+              }
+            } catch (e) {
+              console.log("Endpoint failed:", endpoint);
+            }
+          }
+          
+          if (success && data) {
+            console.log("✅ Farmer details from API:", data);
+            setFarmerDetails(data);
+            setFetchError(null);
+          } else {
+            console.warn("Could not fetch farmer details from any endpoint");
+            setFetchError("Could not load farmer details");
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching farmer details:", error);
+        setFetchError("Error loading farmer details");
+      }
+    };
+
+    fetchFarmerDetails();
+  }, [farmerId]);
+
   // Set greeting based on time
   useEffect(() => {
     const hour = new Date().getHours();
@@ -59,29 +115,22 @@ export default function Dashboard() {
     else setGreeting("Good evening");
   }, []);
 
-  // Construct name with proper handling
-  const fullName = (() => {
-    const firstName = farmer.first_name || farmer.firstName || '';
-    const middleName = farmer.middle_name || farmer.middleName || '';
-    const lastName = farmer.last_name || farmer.lastName || '';
-    
-    if (firstName && lastName) {
-      return middleName 
-        ? `${firstName} ${middleName} ${lastName}`
-        : `${firstName} ${lastName}`;
-    }
-    
-    const possibleNames = [
-      farmer.displayName,
-      farmer.name,
-      farmer.email?.split('@')[0],
-      `Farmer ${farmer.id?.slice(0, 8) || farmer.user_id?.slice(0, 8)}`
-    ];
-    
-    return possibleNames.find(name => name && name.trim().length > 0) || "Farmer";
-  })();
+  // Get the farmer's first name from localStorage or fetched details
+  const firstName = farmer.first_name || 
+                    farmer.firstName || 
+                    farmerDetails?.first_name || 
+                    farmerDetails?.firstName || 
+                    farmerDetails?.data?.first_name ||
+                    '';
 
-  const firstName = farmer.first_name || 'Farmer';
+  // If we still don't have a name, show a friendly default
+  const displayName = firstName || 
+                    (farmer.email ? farmer.email.split('@')[0] : 'Farmer') || 
+                    'Valued Farmer';
+
+  console.log("✅ Final firstName:", firstName);
+  console.log("✅ Final displayName:", displayName);
+  console.log("✅ Farmer details state:", farmerDetails);
 
   useEffect(() => {
     if (farmerId) {
@@ -393,7 +442,7 @@ export default function Dashboard() {
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-16 -mb-16"></div>
               
               <div className="relative z-10">
-                <h2 className="text-3xl font-bold mb-2">{fullName}'s Farm</h2>
+                <h2 className="text-3xl font-bold mb-2">{displayName}'s Farm</h2>
                 <p className="text-white/90 max-w-2xl">
                   Your farm management dashboard. Track inventory, monitor market prices, 
                   manage your wallet, and access credit facilities all in one place.

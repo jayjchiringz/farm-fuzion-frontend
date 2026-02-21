@@ -70,11 +70,23 @@ export default function Dashboard() {
             const data = await response.json();
             console.log("✅ Farmer details from API:", data);
             
-            // The API returns an array - get the first item
+            // The API returns an array of ALL farmers
+            // We need to find the one with matching ID
             if (Array.isArray(data) && data.length > 0) {
-              const farmerData = data[0];
-              console.log("✅ Found farmer:", farmerData);
-              setFarmerDetails(farmerData);
+              // Try to find by matching ID formats
+              const matchingFarmer = data.find((f: any) => 
+                String(f.id) === String(farmerId) || 
+                f.user_id === farmerId ||
+                f.auth_id === farmerId
+              );
+              
+              if (matchingFarmer) {
+                console.log("✅ Found matching farmer:", matchingFarmer);
+                setFarmerDetails(matchingFarmer);
+              } else {
+                console.warn("No matching farmer found, using first result:", data[0]);
+                setFarmerDetails(data[0]); // Fallback to first
+              }
             } else {
               console.warn("No farmer data found in response");
             }
@@ -98,20 +110,19 @@ export default function Dashboard() {
     else setGreeting("Good evening");
   }, []);
 
-  // Get the farmer's first name from localStorage or fetched details
-  const firstName = farmer.first_name || 
-                    farmer.firstName || 
-                    (Array.isArray(farmerDetails) && farmerDetails.length > 0 ? farmerDetails[0]?.first_name : null) ||
-                    farmerDetails?.first_name || 
-                    farmerDetails?.firstName || 
-                    '';
+// Get the farmer's first name from localStorage or fetched details
+const firstName = farmer.first_name || 
+                  farmer.firstName || 
+                  farmerDetails?.first_name || // Now farmerDetails is a single object, not an array
+                  farmerDetails?.firstName || 
+                  '';
 
-  const displayName = firstName || farmer.email?.split('@')[0] || 'Farmer';
+const displayName = firstName || farmer.email?.split('@')[0] || 'Farmer';
 
-  console.log("✅ Farmer details array:", farmerDetails);
-  console.log("✅ First name from API:", Array.isArray(farmerDetails) && farmerDetails.length > 0 ? farmerDetails[0]?.first_name : 'not found');
-  console.log("✅ Final firstName:", firstName);
-  console.log("✅ Final displayName:", displayName);
+console.log("✅ Farmer details:", farmerDetails);
+console.log("✅ First name from API:", farmerDetails?.first_name);
+console.log("✅ Final firstName:", firstName);
+console.log("✅ Final displayName:", displayName);
 
   useEffect(() => {
     if (farmerId) {

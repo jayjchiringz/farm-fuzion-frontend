@@ -176,6 +176,28 @@ export default function Dashboard() {
   const [productsOpen, setProductsOpen] = useState(false);
   const [marketsOpen, setMarketsOpen] = useState(false);
 
+  // Helper function to get emoji for product categories
+  const getProductEmoji = (productName: string): string => {
+    const name = productName.toLowerCase();
+    if (name.includes('maize') || name.includes('corn')) return '🌽';
+    if (name.includes('tomato')) return '🍅';
+    if (name.includes('potato')) return '🥔';
+    if (name.includes('onion')) return '🧅';
+    if (name.includes('carrot')) return '🥕';
+    if (name.includes('cabbage')) return '🥬';
+    if (name.includes('bean') || name.includes('legume')) return '🫘';
+    if (name.includes('wheat') || name.includes('grain')) return '🌾';
+    if (name.includes('milk') || name.includes('dairy')) return '🥛';
+    if (name.includes('egg')) return '🥚';
+    if (name.includes('chicken') || name.includes('poultry')) return '🐔';
+    if (name.includes('beef') || name.includes('cattle')) return '🐄';
+    if (name.includes('coffee')) return '☕';
+    if (name.includes('tea')) return '🫖';
+    if (name.includes('fruit')) return '🍎';
+    if (name.includes('vegetable')) return '🥦';
+    return '🌱'; // Default
+  };
+
   // Colors for pie chart
   const COLORS = ['#8dc71d', '#ff8042', '#ffbb28', '#00C49F', '#0088FE'];
 
@@ -321,30 +343,99 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {/* Top Market Prices */}
-                <div className="bg-white dark:bg-[#0a3d32] p-6 rounded-lg shadow-md border border-slate-200 dark:border-slate-700">
-                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                    <span>💰 Top Market Prices</span>
+                {/* Top Market Prices - Enhanced with Tailwind */}
+                <div className="bg-white dark:bg-[#0a3d32] p-6 rounded-lg shadow-md border border-slate-200 dark:border-slate-700 card-hover">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-brand-green/10 rounded-lg">
+                        <span className="text-xl">💰</span>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-brand-dark dark:text-brand-apple">
+                          Market Prices
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Current rates per unit
+                        </p>
+                      </div>
+                    </div>
                     <button 
                       onClick={() => setMarketsOpen(true)}
-                      className="text-xs bg-brand-green text-white px-2 py-1 rounded hover:bg-green-700"
+                      className="flex items-center gap-1 text-xs bg-brand-green text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition-colors group"
                     >
-                      View Market
+                      <span>View All</span>
+                      <span className="group-hover:translate-x-0.5 transition-transform">→</span>
                     </button>
-                  </h3>
+                  </div>
+
                   {marketPrices.length > 0 ? (
                     <div className="space-y-2">
-                      {marketPrices.map((price: any, idx: number) => (
-                        <div key={idx} className="flex justify-between items-center text-sm">
-                          <span>{price.product_name}</span>
-                          <span className="font-bold text-brand-green">
-                            {formatCurrencyKES(price.retail_price)}/{price.unit}
-                          </span>
-                        </div>
-                      ))}
+                      {/* Header */}
+                      <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 pb-1 border-b border-slate-200 dark:border-slate-700">
+                        <span>Product</span>
+                        <span>Price per unit</span>
+                      </div>
+
+                      {/* Price List - Using your scrollbar-thin class */}
+                      <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 scrollbar-thin">
+                        {marketPrices
+                          .sort((a, b) => (b.retail_price || 0) - (a.retail_price || 0))
+                          .map((price: any, idx: number) => (
+                            <div 
+                              key={idx} 
+                              className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group table-row-enter"
+                              style={{ animationDelay: `${idx * 100}ms` }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg opacity-50 group-hover:opacity-100 transition-opacity">
+                                  {getProductEmoji(price.product_name)}
+                                </span>
+                                <div>
+                                  <span className="font-medium text-sm text-gray-800 dark:text-gray-200">
+                                    {price.product_name}
+                                  </span>
+                                  <span className="text-xs text-gray-400 ml-2">
+                                    {price.category || 'General'}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className={`font-bold ${(price.weekly_change || 0) > 0 ? 'text-green-600 price-up' : 'text-red-600 price-down'}`}>
+                                  {formatCurrencyKES(price.retail_price)}
+                                </span>
+                                <span className="text-xs text-gray-500 ml-1">
+                                  /{price.unit || 'unit'}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+
+                      {/* Footer with trend info */}
+                      <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs">
+                        <span className="text-gray-500">
+                          📊 {marketPrices.length} products tracked
+                        </span>
+                        <span className="text-brand-green flex items-center gap-1">
+                          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                          Live updates
+                        </span>
+                      </div>
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-sm">Loading market prices...</p>
+                    <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                      <div className="w-16 h-16 mb-3 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center shimmer">
+                        <span className="text-3xl">📊</span>
+                      </div>
+                      <p className="text-sm font-medium">No market prices available</p>
+                      <p className="text-xs mt-1">Check back later for updates</p>
+                      <button
+                        onClick={() => setMarketsOpen(true)}
+                        className="mt-3 text-brand-green text-sm hover:underline"
+                      >
+                        Browse Marketplace →
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

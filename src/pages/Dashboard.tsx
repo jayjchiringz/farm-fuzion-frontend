@@ -54,7 +54,6 @@ export default function Dashboard() {
   const [farmerDetails, setFarmerDetails] = useState<any>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // Add this useEffect
   useEffect(() => {
     const fetchFarmerDetails = async () => {
       if (!farmerId) return;
@@ -64,43 +63,27 @@ export default function Dashboard() {
         if (!farmer.first_name && farmerId) {
           console.log("🔍 Fetching farmer details for ID:", farmerId);
           
-          // Try different endpoints
-          const endpoints = [
-            `${API_BASE}/farmers/${farmerId}`,
-            `${API_BASE}/farmers/user/${farmerId}`,
-            `${API_BASE}/farmers?id=${farmerId}`
-          ];
+          // The working endpoint returns an array
+          const response = await fetch(`${API_BASE}/farmers?id=${farmerId}`);
           
-          let data = null;
-          let success = false;
-          
-          for (const endpoint of endpoints) {
-            try {
-              console.log("Trying endpoint:", endpoint);
-              const response = await fetch(endpoint);
-              if (response.ok) {
-                data = await response.json();
-                console.log("✅ Success with endpoint:", endpoint, data);
-                success = true;
-                break;
-              }
-            } catch (e) {
-              console.log("Endpoint failed:", endpoint);
-            }
-          }
-          
-          if (success && data) {
+          if (response.ok) {
+            const data = await response.json();
             console.log("✅ Farmer details from API:", data);
-            setFarmerDetails(data);
-            setFetchError(null);
+            
+            // The API returns an array - get the first item
+            if (Array.isArray(data) && data.length > 0) {
+              const farmerData = data[0];
+              console.log("✅ Found farmer:", farmerData);
+              setFarmerDetails(farmerData);
+            } else {
+              console.warn("No farmer data found in response");
+            }
           } else {
-            console.warn("Could not fetch farmer details from any endpoint");
-            setFetchError("Could not load farmer details");
+            console.warn("Failed to fetch farmer details:", response.status);
           }
         }
       } catch (error) {
         console.error("Error fetching farmer details:", error);
-        setFetchError("Error loading farmer details");
       }
     };
 
@@ -120,17 +103,14 @@ export default function Dashboard() {
                     farmer.firstName || 
                     farmerDetails?.first_name || 
                     farmerDetails?.firstName || 
-                    farmerDetails?.data?.first_name ||
                     '';
 
-  // If we still don't have a name, show a friendly default
-  const displayName = firstName || 
-                    (farmer.email ? farmer.email.split('@')[0] : 'Farmer') || 
-                    'Valued Farmer';
+  const displayName = firstName || farmer.email?.split('@')[0] || 'Farmer';
 
+  console.log("✅ Farmer details:", farmerDetails);
+  console.log("✅ First name from API:", farmerDetails?.first_name);
   console.log("✅ Final firstName:", firstName);
   console.log("✅ Final displayName:", displayName);
-  console.log("✅ Farmer details state:", farmerDetails);
 
   useEffect(() => {
     if (farmerId) {

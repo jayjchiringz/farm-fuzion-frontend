@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Sun, CloudRain, Wind, Droplets, Sunrise, Sunset, Eye, Gauge } from "lucide-react";
 import { weatherApi, WeatherData } from "../services/weatherApi";
+import WeatherModal from "../components/Weather/WeatherModal";
 
 // API Base URL
 const API_BASE = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
@@ -60,6 +61,9 @@ export default function Dashboard() {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<string>("nairobi");
+
+  // Add with other modal states
+  const [weatherOpen, setWeatherOpen] = useState(false);
 
   useEffect(() => {
     const fetchFarmerDetails = async () => {
@@ -791,15 +795,15 @@ console.log("✅ Final displayName:", displayName);
                     color="from-yellow-500 to-orange-600"
                     onClick={() => setCreditOpen(true)}
                   />
-                  
+
                   <ActionCard
                     icon={<Cloud size={24} />}
-                    title="Weather"
-                    description="Forecast and climate data"
+                    title="Weather Intelligence"
+                    description="Plan with accurate forecasts and historical data"
                     color="from-cyan-500 to-blue-600"
-                    link="/weather"
+                    onClick={() => setWeatherOpen(true)}
                   />
-                  
+
                   <ActionCard
                     icon={<DollarSign size={24} />}
                     title="Currency"
@@ -852,6 +856,18 @@ console.log("✅ Final displayName:", displayName);
         <CreditModal
           farmerId={farmer?.id}
           onClose={() => setCreditOpen(false)}
+        />
+      )}
+      {weatherOpen && (
+        <WeatherModal
+          farmerId={farmer?.id}
+          farmerLocation={{
+            county: farmerDetails?.county,
+            sub_county: farmerDetails?.sub_county,
+            ward: farmerDetails?.ward,
+            village: farmerDetails?.village
+          }}
+          onClose={() => setWeatherOpen(false)}
         />
       )}
     </>

@@ -152,18 +152,35 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('query', input);
-      formData.append('category', selectedCategory);
-      formData.append('farmer_id', farmerId);
+      let response;
+      
+      // OPTION B IMPLEMENTATION: Use JSON for text, multipart for images
       if (uploadedImage) {
-        formData.append('image', uploadedImage);
+        // Use FormData for image uploads
+        const formData = new FormData();
+        formData.append('query', input);
+        formData.append('category', selectedCategory);
+        formData.append('farmer_id', farmerId);
+        
+        // Convert base64 to blob for cleaner upload
+        const base64Response = await fetch(uploadedImage);
+        const blob = await base64Response.blob();
+        formData.append('image', blob, 'plant-image.jpg');
+        
+        response = await api.post('/knowledge/ask', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 30000
+        });
+      } else {
+        // Use JSON for text-only queries (cleaner, faster)
+        response = await api.post('/knowledge/ask', {
+          query: input,
+          category: selectedCategory,
+          farmer_id: farmerId
+        }, {
+          timeout: 30000
+        });
       }
-
-      const response = await api.post('/knowledge/ask', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 30000
-      });
 
       // Generate follow-up suggestions based on context
       const suggestions = generateSuggestions(input, response.data.answer);
@@ -187,10 +204,10 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: "Samahani, kuna tatizo la mtandao. Tafadhali jaribu tena baadaye. 🙏\n\n" +
-                 "Kwa sasa, unaweza kuangalia:\n" +
-                 "• Bei za soko kwenye dashibodi\n" +
-                 "• Hali ya hewa kwa eneo lako\n" +
-                 "• Orodha ya mazao kwenye ghala",
+                "Kwa sasa, unaweza kuangalia:\n" +
+                "• Bei za soko kwenye dashibodi\n" +
+                "• Hali ya hewa kwa eneo lako\n" +
+                "• Orodha ya mazao kwenye ghala",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);

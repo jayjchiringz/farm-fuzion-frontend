@@ -9,6 +9,7 @@ import WalletModal from "../components/Wallet/WalletModal";
 import ProductsModal from "../components/Products/ProductsModal";
 import MarketsModal from "../components/Markets/MarketsModal";
 import { formatCurrencyKES } from "../utils/format";
+import CreditModal from "../components/Credit/CreditModal";
 
 // API Base URL
 const API_BASE = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
@@ -656,13 +657,20 @@ export default function Dashboard() {
               />
             )}
             
-            {/* Other cards unchanged */}
+            {/* Credit Center - Updated to use modal */}
             <Card
               title="Credit Center"
               desc="Apply for farm loans and monitor repayments."
-              link="/loans"
-              linkText="Manage Loans →"
+              linkText="Manage Credit →"
+              onClick={() => setCreditOpen(true)}
             />
+            {creditOpen && (
+              <CreditModal
+                farmerId={farmer?.id}
+                onClose={() => setCreditOpen(false)}
+              />
+            )}
+            
             <Card
               title="Weather Forecast"
               desc="Track rainfall predictions, climate updates and forecasts."

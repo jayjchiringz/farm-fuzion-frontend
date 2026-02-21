@@ -817,22 +817,6 @@ console.log("✅ Final displayName:", displayName);
                     color="from-emerald-500 to-teal-600"
                     onClick={() => setCurrencyOpen(true)}
                   />
-                  
-                  <ActionCard
-                    icon={<BookOpen size={24} />}
-                    title="Knowledge Hub"
-                    description="Farming resources and guides"
-                    color="from-amber-500 to-yellow-600"
-                    link="/knowledge-hub"
-                  />
-                  
-                  <ActionCard
-                    icon={<Truck size={24} />}
-                    title="Logistics"
-                    description="Schedule and track deliveries"
-                    color="from-rose-500 to-pink-600"
-                    link="/logistics"
-                  />
 
                   <ActionCard
                     icon={<BookOpen size={24} />}
@@ -840,6 +824,14 @@ console.log("✅ Final displayName:", displayName);
                     description="AI-powered farming assistant & research"
                     color="from-purple-500 to-indigo-600"
                     onClick={() => setKnowledgeOpen(true)}
+                  />
+
+                  <ActionCard
+                    icon={<Truck size={24} />}
+                    title="Logistics"
+                    description="Schedule and track deliveries"
+                    color="from-rose-500 to-pink-600"
+                    link="/logistics"
                   />
                 </div>
               </>

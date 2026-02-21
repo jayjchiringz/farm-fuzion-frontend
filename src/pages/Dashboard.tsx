@@ -101,14 +101,15 @@ export default function Dashboard() {
   // Get the farmer's first name from localStorage or fetched details
   const firstName = farmer.first_name || 
                     farmer.firstName || 
+                    (Array.isArray(farmerDetails) && farmerDetails.length > 0 ? farmerDetails[0]?.first_name : null) ||
                     farmerDetails?.first_name || 
                     farmerDetails?.firstName || 
                     '';
 
   const displayName = firstName || farmer.email?.split('@')[0] || 'Farmer';
 
-  console.log("✅ Farmer details:", farmerDetails);
-  console.log("✅ First name from API:", farmerDetails?.first_name);
+  console.log("✅ Farmer details array:", farmerDetails);
+  console.log("✅ First name from API:", Array.isArray(farmerDetails) && farmerDetails.length > 0 ? farmerDetails[0]?.first_name : 'not found');
   console.log("✅ Final firstName:", firstName);
   console.log("✅ Final displayName:", displayName);
 

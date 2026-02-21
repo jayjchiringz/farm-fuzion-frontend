@@ -16,6 +16,8 @@ import {
   Truck, PawPrint, TrendingUp, Bell, Settings, HelpCircle,
   Home, BarChart3, Sparkles, RefreshCw
 } from "lucide-react";
+import { Sun, CloudRain, Wind, Droplets, Sunrise, Sunset, Eye, Gauge } from "lucide-react";
+import { weatherApi, WeatherData } from "../services/weatherApi";
 
 // API Base URL
 const API_BASE = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
@@ -53,6 +55,11 @@ export default function Dashboard() {
 
   const [farmerDetails, setFarmerDetails] = useState<any>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Add with other state declarations
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState<string>("nairobi");
 
   useEffect(() => {
     const fetchFarmerDetails = async () => {
@@ -129,6 +136,11 @@ console.log("✅ Final displayName:", displayName);
       loadDashboardData();
     }
   }, [farmerId]);
+
+  // Fetch weather when dashboard loads
+  useEffect(() => {
+    fetchWeather();
+  }, []);
 
   const loadDashboardData = async () => {
     setLoading(true);
@@ -260,6 +272,20 @@ console.log("✅ Final displayName:", displayName);
     if (name.includes('fruit')) return '🍎';
     if (name.includes('vegetable')) return '🥦';
     return '🌱';
+  };
+
+  const fetchWeather = async (region?: string) => {
+    setWeatherLoading(true);
+    try {
+      const regionToUse = region || selectedRegion;
+      const data = await weatherApi.getRegionWeather(regionToUse as any);
+      setWeatherData(data);
+      setSelectedRegion(regionToUse);
+    } catch (error) {
+      console.error("Error fetching weather:", error);
+    } finally {
+      setWeatherLoading(false);
+    }
   };
 
   // Colors for pie chart
@@ -449,6 +475,137 @@ console.log("✅ Final displayName:", displayName);
                     <span className="text-sm">Market Updated</span>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Weather Widget */}
+            <div className="mb-8">
+              <div className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl p-6 text-white shadow-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white/20 rounded-xl">
+                      <Cloud size={28} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold">Weather Forecast</h3>
+                      <p className="text-white/80 text-sm">Real-time weather for your farm</p>
+                    </div>
+                  </div>
+                  
+                  {/* Region selector */}
+                  <select
+                    value={selectedRegion}
+                    onChange={(e) => fetchWeather(e.target.value)}
+                    className="bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
+                  >
+                    <option value="nairobi" className="bg-blue-600">Nairobi</option>
+                    <option value="nakuru" className="bg-blue-600">Nakuru</option>
+                    <option value="eldoret" className="bg-blue-600">Eldoret</option>
+                    <option value="kisumu" className="bg-blue-600">Kisumu</option>
+                    <option value="mombasa" className="bg-blue-600">Mombasa</option>
+                    <option value="kitale" className="bg-blue-600">Kitale</option>
+                    <option value="meru" className="bg-blue-600">Meru</option>
+                    <option value="machakos" className="bg-blue-600">Machakos</option>
+                  </select>
+                </div>
+
+                {weatherLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-3 border-white border-t-transparent"></div>
+                  </div>
+                ) : weatherData ? (
+                  <>
+                    {/* Current Weather */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Main weather info */}
+                      <div className="lg:col-span-1 flex items-center gap-4">
+                        <span className="text-6xl">{weatherData.conditionIcon}</span>
+                        <div>
+                          <div className="text-4xl font-bold">{weatherData.temperature}°C</div>
+                          <div className="text-white/90">{weatherData.condition}</div>
+                          <div className="text-white/70 text-sm">Feels like {weatherData.feelsLike}°C</div>
+                        </div>
+                      </div>
+
+                      {/* Weather details grid */}
+                      <div className="lg:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
+                          <div className="flex items-center gap-2 text-white/80 mb-1">
+                            <Droplets size={16} />
+                            <span className="text-xs">Humidity</span>
+                          </div>
+                          <div className="text-xl font-bold">{weatherData.humidity}%</div>
+                        </div>
+                        
+                        <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
+                          <div className="flex items-center gap-2 text-white/80 mb-1">
+                            <Wind size={16} />
+                            <span className="text-xs">Wind</span>
+                          </div>
+                          <div className="text-xl font-bold">{weatherData.windSpeed} km/h</div>
+                          <div className="text-xs text-white/70">{weatherData.windDirection}</div>
+                        </div>
+                        
+                        <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
+                          <div className="flex items-center gap-2 text-white/80 mb-1">
+                            <Sunrise size={16} />
+                            <span className="text-xs">Sunrise</span>
+                          </div>
+                          <div className="text-lg font-bold">{weatherData.sunrise}</div>
+                        </div>
+                        
+                        <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
+                          <div className="flex items-center gap-2 text-white/80 mb-1">
+                            <Sunset size={16} />
+                            <span className="text-xs">Sunset</span>
+                          </div>
+                          <div className="text-lg font-bold">{weatherData.sunset}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 5-Day Forecast */}
+                    <div className="mt-6 pt-4 border-t border-white/20">
+                      <h4 className="text-sm font-medium mb-3">5-Day Forecast</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                        {weatherData.forecast.map((day, idx) => (
+                        <div key={idx} className="bg-white/10 rounded-xl p-3 text-center backdrop-blur-sm">
+                          <div className="text-sm font-medium mb-1">{day.day}</div>
+                          <span className="text-3xl">{day.conditionIcon}</span>
+                          <div className="flex justify-center gap-2 text-sm mt-1">
+                            <span className="font-bold">{day.maxTemp}°</span>
+                            <span className="text-white/70">{day.minTemp}°</span>
+                          </div>
+                          {day.precipitation > 0 && (
+                            <div className="text-xs text-blue-200 mt-1 flex items-center justify-center gap-1">
+                              <CloudRain size={12} />
+                              {day.precipitation}%
+                            </div>
+                          )}
+                        </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Farming Tips based on weather */}
+                    <div className="mt-4 bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+                      <h4 className="text-sm font-medium mb-2">🌱 Farming Tips</h4>
+                      <p className="text-sm text-white/90">
+                        {weatherData.condition.includes('Rain') 
+                          ? "Good day for planting! The rain will help seeds germinate. Ensure proper drainage."
+                          : weatherData.temperature > 28
+                          ? "Hot day ahead! Ensure crops are well watered. Consider mulching to retain moisture."
+                          : weatherData.windSpeed > 20
+                          ? "Windy conditions today. Check support for tall crops and consider windbreaks."
+                          : "Ideal farming conditions today. Good for spraying and general farm work."}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-white/70">
+                    Unable to load weather data. Please try again later.
+                  </div>
+                )}
               </div>
             </div>
 

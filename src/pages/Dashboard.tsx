@@ -20,6 +20,7 @@ import { Sun, CloudRain, Wind, Droplets, Sunrise, Sunset, Eye, Gauge } from "luc
 import { weatherApi, WeatherData } from "../services/weatherApi";
 import WeatherModal from "../components/Weather/WeatherModal";
 import CurrencyModal from "../components/Currency/CurrencyModal";
+import KnowledgeModal from "../components/Knowledge/KnowledgeModal";
 
 // API Base URL
 const API_BASE = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
@@ -68,7 +69,8 @@ export default function Dashboard() {
 
   // In Dashboard.tsx, add with other modal states
   const [currencyOpen, setCurrencyOpen] = useState(false);
-
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false);
+  
   useEffect(() => {
     const fetchFarmerDetails = async () => {
       if (!farmerId) return;
@@ -831,6 +833,14 @@ console.log("✅ Final displayName:", displayName);
                     color="from-rose-500 to-pink-600"
                     link="/logistics"
                   />
+
+                  <ActionCard
+                    icon={<BookOpen size={24} />}
+                    title="Knowledge Hub"
+                    description="AI-powered farming assistant & research"
+                    color="from-purple-500 to-indigo-600"
+                    onClick={() => setKnowledgeOpen(true)}
+                  />
                 </div>
               </>
             )}
@@ -876,6 +886,12 @@ console.log("✅ Final displayName:", displayName);
       )}
       {currencyOpen && (
         <CurrencyModal onClose={() => setCurrencyOpen(false)} />
+      )}
+      {knowledgeOpen && (
+        <KnowledgeModal
+          farmerId={farmer?.id}
+          onClose={() => setKnowledgeOpen(false)}
+        />
       )}
     </>
   );

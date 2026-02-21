@@ -176,6 +176,8 @@ export default function Dashboard() {
   const [productsOpen, setProductsOpen] = useState(false);
   const [marketsOpen, setMarketsOpen] = useState(false);
 
+  const [creditOpen, setCreditOpen] = useState(false);
+
   // Helper function to get emoji for product categories
   const getProductEmoji = (productName: string): string => {
     const name = productName.toLowerCase();
@@ -656,7 +658,7 @@ export default function Dashboard() {
             
             {/* Other cards unchanged */}
             <Card
-              title="Loan Center"
+              title="Credit Center"
               desc="Apply for farm loans and monitor repayments."
               link="/loans"
               linkText="Manage Loans →"

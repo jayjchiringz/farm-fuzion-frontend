@@ -1,8 +1,6 @@
 // farm-fuzion-frontend/src/services/roles.ts
 import { api } from "./api";
 
-// farm-fuzion-frontend/src/services/roles.ts
-
 const BASE_URL = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/getRoles";
 const CREATE_URL = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/createRole";
 const UPDATE_URL = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/updateRole";
@@ -15,8 +13,8 @@ export async function getRoles(): Promise<any[]> {
       headers: {
         "Content-Type": "application/json",
       },
-      credentials: "include", // Important for CORS with credentials
-      mode: "cors", // Explicitly set CORS mode
+      // ❌ Remove credentials: "include"
+      // ✅ No credentials needed for public endpoints
     });
     
     if (!res.ok) {
@@ -37,12 +35,10 @@ export async function createRole(payload: { name: string; description?: string }
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      // ❌ Remove credentials
     });
     
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(errorText || "Failed to create role");
-    }
+    if (!res.ok) throw new Error(await res.text());
     return await res.json();
   } catch (err) {
     console.error("Failed to create role:", err);

@@ -757,16 +757,40 @@ export default function AdminDashboard() {
             </nav>
           </div>
 
-          {/* Logout Button - Fixed with better visibility and click handling */}
+          {/* Logout Button - Debug Version */}
           <button
-            onClick={handleLogout}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group cursor-pointer ${
+            onClick={() => {
+              console.log("🚀 Logout button clicked");
+              alert("Logout clicked - attempting to logout");
+              try {
+                // Clear all localStorage items
+                localStorage.clear();
+                console.log("✅ localStorage cleared");
+                
+                // Clear any session storage if used
+                sessionStorage.clear();
+                console.log("✅ sessionStorage cleared");
+                
+                // Redirect to login page
+                console.log("🔄 Redirecting to /login");
+                window.location.href = "/login";
+              } catch (error) {
+                console.error("❌ Logout error:", error);
+                alert("Logout failed: " + error);
+              }
+            }}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 cursor-pointer ${
               !isSidebarOpen ? 'justify-center' : ''
-            } bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 hover:border-red-500/50`}
+            } bg-red-500 hover:bg-red-600 text-white border border-red-600 shadow-lg hover:shadow-xl w-full`}
             title="Logout"
             type="button"
+            style={{ 
+              pointerEvents: 'auto', 
+              position: 'relative', 
+              zIndex: 9999 
+            }}
           >
-            <LogOut size={isSidebarOpen ? 20 : 24} className="transition-transform duration-300 group-hover:translate-x-1" />
+            <LogOut size={isSidebarOpen ? 20 : 24} />
             {isSidebarOpen && <span className="text-sm font-medium">Logout</span>}
           </button>
         </aside>

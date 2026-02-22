@@ -14,13 +14,15 @@ import {
   Menu, ChevronLeft, ChevronRight, LogOut, Wallet, Package, 
   ShoppingCart, CreditCard, Cloud, DollarSign, BookOpen, 
   Truck, PawPrint, TrendingUp, Bell, Settings, HelpCircle,
-  Home, BarChart3, Sparkles, RefreshCw
+  Home, BarChart3, Sparkles, RefreshCw,
+  GraduationCap
 } from "lucide-react";
 import { Sun, CloudRain, Wind, Droplets, Sunrise, Sunset, Eye, Gauge } from "lucide-react";
 import { weatherApi, WeatherData } from "../services/weatherApi";
 import WeatherModal from "../components/Weather/WeatherModal";
 import CurrencyModal from "../components/Currency/CurrencyModal";
 import KnowledgeModal from "../components/Knowledge/KnowledgeModal";
+import LogisticsModal from "../components/Logistics/LogisticsModal";
 
 // API Base URL
 const API_BASE = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
@@ -66,11 +68,10 @@ export default function Dashboard() {
 
   // Add with other modal states
   const [weatherOpen, setWeatherOpen] = useState(false);
-
-  // In Dashboard.tsx, add with other modal states
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [knowledgeOpen, setKnowledgeOpen] = useState(false);
-  
+  const [logisticsOpen, setLogisticsOpen] = useState(false);
+
   useEffect(() => {
     const fetchFarmerDetails = async () => {
       if (!farmerId) return;
@@ -127,19 +128,19 @@ export default function Dashboard() {
     else setGreeting("Good evening");
   }, []);
 
-// Get the farmer's first name from localStorage or fetched details
-const firstName = farmer.first_name || 
-                  farmer.firstName || 
-                  farmerDetails?.first_name || // Now farmerDetails is a single object, not an array
-                  farmerDetails?.firstName || 
-                  '';
+  // Get the farmer's first name from localStorage or fetched details
+  const firstName = farmer.first_name || 
+                    farmer.firstName || 
+                    farmerDetails?.first_name || // Now farmerDetails is a single object, not an array
+                    farmerDetails?.firstName || 
+                    '';
 
-const displayName = firstName || farmer.email?.split('@')[0] || 'Farmer';
+  const displayName = firstName || farmer.email?.split('@')[0] || 'Farmer';
 
-console.log("✅ Farmer details:", farmerDetails);
-console.log("✅ First name from API:", farmerDetails?.first_name);
-console.log("✅ Final firstName:", firstName);
-console.log("✅ Final displayName:", displayName);
+  console.log("✅ Farmer details:", farmerDetails);
+  console.log("✅ First name from API:", farmerDetails?.first_name);
+  console.log("✅ Final firstName:", firstName);
+  console.log("✅ Final displayName:", displayName);
 
   useEffect(() => {
     if (farmerId) {
@@ -348,11 +349,10 @@ console.log("✅ Final displayName:", displayName);
           {/* Navigation */}
           <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
             <NavItem 
-              icon={<Home size={20} />} 
-              label="Dashboard" 
-              to="/dashboard" 
-              active 
-              collapsed={sidebarCollapsed} 
+              icon={<Wallet size={20} />} 
+              label="Wallet" 
+              onClick={() => setWalletOpen(true)} 
+              collapsed={sidebarCollapsed}  
             />
             <NavButton 
               icon={<Package size={20} />} 
@@ -361,44 +361,41 @@ console.log("✅ Final displayName:", displayName);
               collapsed={sidebarCollapsed} 
             />
             <NavItem 
-              icon={<Truck size={20} />} 
-              label="Logistics" 
-              to="/logistics" 
-              collapsed={sidebarCollapsed} 
-            />
-            <NavItem 
-              icon={<BookOpen size={20} />} 
-              label="Knowledge Hub" 
-              to="/knowledge-hub" 
+              icon={<ShoppingCart size={20} />} 
+              label="Market Place"
+              onClick={() => setMarketsOpen(true)} 
               collapsed={sidebarCollapsed} 
             />
             <NavItem 
               icon={<CreditCard size={20} />} 
-              label="Insurance" 
-              to="/insurance" 
+              label="Credit"
+              onClick={() => setCreditOpen(true)} 
               collapsed={sidebarCollapsed} 
             />
             <NavItem 
-              icon={<ShoppingCart size={20} />} 
+              icon={<CloudRain size={20} />} 
+              label="Weather" 
+              onClick={() => setWeatherOpen(true)} 
+              collapsed={sidebarCollapsed} 
+            />
+            <NavItem 
+              icon={<DollarSign size={20} />} 
               label="Market" 
-              to="/marketplace" 
+              onClick={() => setCurrencyOpen(true)} 
               collapsed={sidebarCollapsed} 
             />
             <NavItem 
-              icon={<PawPrint size={20} />} 
-              label="Veterinary" 
-              to="/veterinary" 
+              icon={<GraduationCap size={20} />} 
+              label="Knowledge" 
+              onClick={() => setKnowledgeOpen(true)} 
               collapsed={sidebarCollapsed} 
             />
-            
-            {farmer?.role === "admin" && (
-              <NavItem 
-                icon={<Settings size={20} />} 
-                label="Admin" 
-                to="/register-farmer" 
-                collapsed={sidebarCollapsed} 
-              />
-            )}
+            <NavItem 
+              icon={<Truck size={20} />} 
+              label="Logistics" 
+              onClick={() => setLogisticsOpen(true)} 
+              collapsed={sidebarCollapsed} 
+            />
           </nav>
 
           {/* Sidebar Footer */}
@@ -799,7 +796,7 @@ console.log("✅ Final displayName:", displayName);
                     title="Logistics"
                     description="Schedule and track deliveries"
                     color="from-rose-500 to-pink-600"
-                    link="/logistics"
+                    onClick={() => setLogisticsOpen(true)} // Remove the link, add onClick
                   />
                 </div>
               </>
@@ -852,6 +849,9 @@ console.log("✅ Final displayName:", displayName);
           farmerId={farmer?.id}
           onClose={() => setKnowledgeOpen(false)}
         />
+      )}
+      {logisticsOpen && (
+        <LogisticsModal onClose={() => setLogisticsOpen(false)} />
       )}
     </>
   );

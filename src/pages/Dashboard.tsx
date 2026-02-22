@@ -326,20 +326,24 @@ export default function Dashboard() {
           {/* Sidebar Header */}
           <div className="p-4 border-b border-gray-200 dark:border-gray-800">
             <div className="flex items-center justify-between">
-              {!sidebarCollapsed ? (
+              {/* Logo - Always visible, just adjusted size when collapsed */}
+              <div className={`transition-all duration-300 ${sidebarCollapsed ? 'w-10 overflow-hidden' : 'flex-1'}`}>
                 <img
                   src="/Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png"
                   alt="Farm Fuzion"
-                  className="h-10 object-contain"
+                  className={`transition-all duration-300 ${
+                    sidebarCollapsed 
+                      ? 'h-10 w-10 object-cover rounded-lg' 
+                      : 'h-10 w-auto object-contain'
+                  }`}
                 />
-              ) : (
-                <div className="w-10 h-10 bg-brand-green rounded-lg flex items-center justify-center mx-auto">
-                  <span className="text-white font-bold text-xl">FF</span>
-                </div>
-              )}
+              </div>
+              
+              {/* Collapse button */}
               <button
                 onClick={toggleSidebar}
-                className="hidden md:block p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                className="hidden md:block p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex-shrink-0"
+                title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
                 {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
               </button>

@@ -757,19 +757,16 @@ export default function AdminDashboard() {
             </nav>
           </div>
 
-          {/* Logout Button - Fixed */}
+          {/* Logout Button - Fixed with better visibility and click handling */}
           <button
             onClick={handleLogout}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 group ${
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group cursor-pointer ${
               !isSidebarOpen ? 'justify-center' : ''
-            } ${
-              isSidebarOpen 
-                ? 'bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white' 
-                : 'bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white justify-center'
-            }`}
+            } bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 hover:border-red-500/50`}
             title="Logout"
+            type="button"
           >
-            <LogOut size={isSidebarOpen ? 18 : 22} className="transition-transform duration-300 group-hover:translate-x-1" />
+            <LogOut size={isSidebarOpen ? 20 : 24} className="transition-transform duration-300 group-hover:translate-x-1" />
             {isSidebarOpen && <span className="text-sm font-medium">Logout</span>}
           </button>
         </aside>

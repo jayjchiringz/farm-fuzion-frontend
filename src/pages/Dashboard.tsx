@@ -302,7 +302,7 @@ export default function Dashboard() {
   // Colors for pie chart
   const COLORS = ['#8dc71d', '#ff8042', '#ffbb28', '#00C49F', '#0088FE'];
 
-  const sidebarWidth = sidebarCollapsed ? 'w-24' : 'w-72';
+  const sidebarWidth = sidebarCollapsed ? 'w-28' : 'w-72';
 
   return (
     <>
@@ -326,7 +326,7 @@ export default function Dashboard() {
           {/* Sidebar Header with enhanced animations */}
           <div className="p-6 border-b border-gray-200 dark:border-gray-800"> {/* Increased padding from p-4 to p-6 */}
             <div className="flex items-center justify-between">
-              {/* Logo with smooth transition */}
+              {/* Logo with smooth transition - ENLARGED FOR COLLAPSED STATE */}
               <div className="transition-all duration-500 ease-in-out">
                 {!sidebarCollapsed ? (
                   <img
@@ -338,7 +338,8 @@ export default function Dashboard() {
                   <img
                     src="/Logos/FF Logo only transparent background.png"
                     alt="FF"
-                    className="h-14 w-14 object-contain mx-auto transition-all duration-300 hover:scale-110 hover:rotate-3" // Increased from h-12 to h-14
+                    className="h-14 w-14 object-contain mx-auto transition-all duration-300 hover:scale-110 hover:rotate-3" 
+                    style={{ minHeight: '56px', minWidth: '56px' }} // Force minimum size
                   />
                 )}
               </div>

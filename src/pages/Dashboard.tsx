@@ -302,7 +302,7 @@ export default function Dashboard() {
   // Colors for pie chart
   const COLORS = ['#8dc71d', '#ff8042', '#ffbb28', '#00C49F', '#0088FE'];
 
-  const sidebarWidth = sidebarCollapsed ? 'w-20' : 'w-64';
+  const sidebarWidth = sidebarCollapsed ? 'w-20' : 'w-72';
 
   return (
     <>
@@ -319,103 +319,111 @@ export default function Dashboard() {
       <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
         {/* Sidebar */}
         <aside
-          className={`z-50 md:static fixed inset-y-0 left-0 ${sidebarWidth} bg-white dark:bg-gray-900 shadow-2xl transform transition-all duration-300 ease-in-out ${
+          className={`z-50 md:static fixed inset-y-0 left-0 ${sidebarWidth} bg-white dark:bg-gray-900 shadow-2xl transform transition-all duration-500 ease-in-out ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           } md:translate-x-0 flex flex-col`}
         >
-          {/* Sidebar Header */}
-          <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+          {/* Sidebar Header with enhanced animations */}
+          <div className="p-6 border-b border-gray-200 dark:border-gray-800"> {/* Increased padding from p-4 to p-6 */}
             <div className="flex items-center justify-between">
-              {/* Logo - Different versions for expanded/collapsed */}
-              {!sidebarCollapsed ? (
-                // Expanded state - full logo with text
-                <img
-                  src="/Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png"
-                  alt="Farm Fuzion"
-                  className="h-10 w-auto object-contain"
-                />
-              ) : (
-                // Collapsed state - FF logo only
-                <img
-                  src="/Logos/FF Logo only transparent background.png"
-                  alt="FF"
-                  className="h-10 w-10 object-contain mx-auto"
-                />
-              )}
+              {/* Logo with smooth transition */}
+              <div className="transition-all duration-500 ease-in-out">
+                {!sidebarCollapsed ? (
+                  <img
+                    src="/Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png"
+                    alt="Farm Fuzion"
+                    className="h-12 w-auto object-contain transition-transform duration-300 hover:scale-105" // Increased height
+                  />
+                ) : (
+                  <img
+                    src="/Logos/FF Logo only transparent background.png"
+                    alt="FF"
+                    className="h-12 w-12 object-contain mx-auto transition-all duration-300 hover:scale-110 hover:rotate-3" // Animated on hover
+                  />
+                )}
+              </div>
               
-              {/* Collapse button */}
+              {/* Enhanced collapse button */}
               <button
                 onClick={toggleSidebar}
-                className="hidden md:block p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex-shrink-0"
+                className="hidden md:flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-300 hover:scale-110 hover:rotate-180 flex-shrink-0 group"
                 title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
-                {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+                <div className="relative">
+                  {sidebarCollapsed ? (
+                    <ChevronRight size={20} className="transition-transform duration-300 group-hover:translate-x-1" />
+                  ) : (
+                    <ChevronLeft size={20} className="transition-transform duration-300 group-hover:-translate-x-1" />
+                  )}
+                  {/* Subtle glow effect on hover */}
+                  <div className="absolute inset-0 rounded-full bg-brand-green/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md -z-10"></div>
+                </div>
               </button>
             </div>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+          {/* Navigation with improved spacing and animations */}
+          <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto"> {/* Increased padding and spacing */}
             <NavItem 
-              icon={<Wallet size={20} />} 
+              icon={<Wallet size={22} />} // Slightly larger icons
               label="Wallet" 
               onClick={() => setWalletOpen(true)} 
               collapsed={sidebarCollapsed}  
             />
             <NavButton 
-              icon={<Package size={20} />} 
+              icon={<Package size={22} />} 
               label="Inventory" 
               onClick={() => setProductsOpen(true)} 
               collapsed={sidebarCollapsed} 
             />
             <NavItem 
-              icon={<ShoppingCart size={20} />} 
+              icon={<ShoppingCart size={22} />} 
               label="Market Place"
               onClick={() => setMarketsOpen(true)} 
               collapsed={sidebarCollapsed} 
             />
             <NavItem 
-              icon={<CreditCard size={20} />} 
+              icon={<CreditCard size={22} />} 
               label="Credit"
               onClick={() => setCreditOpen(true)} 
               collapsed={sidebarCollapsed} 
             />
             <NavItem 
-              icon={<CloudRain size={20} />} 
+              icon={<CloudRain size={22} />} 
               label="Weather" 
               onClick={() => setWeatherOpen(true)} 
               collapsed={sidebarCollapsed} 
             />
             <NavItem 
-              icon={<DollarSign size={20} />} 
+              icon={<DollarSign size={22} />} 
               label="Currency" 
               onClick={() => setCurrencyOpen(true)} 
               collapsed={sidebarCollapsed} 
             />
             <NavItem 
-              icon={<GraduationCap size={20} />} 
+              icon={<GraduationCap size={22} />} 
               label="Knowledge" 
               onClick={() => setKnowledgeOpen(true)} 
               collapsed={sidebarCollapsed} 
             />
             <NavItem 
-              icon={<Truck size={20} />} 
+              icon={<Truck size={22} />} 
               label="Logistics" 
               onClick={() => setLogisticsOpen(true)}
               collapsed={sidebarCollapsed} 
             />
           </nav>
 
-          {/* Sidebar Footer */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+          {/* Enhanced footer with logout button */}
+          <div className="p-6 border-t border-gray-200 dark:border-gray-800"> {/* Increased padding */}
             <button
               onClick={logout}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-300 hover:scale-105 group ${
                 sidebarCollapsed ? 'justify-center' : ''
               }`}
             >
-              <LogOut size={20} />
-              {!sidebarCollapsed && <span>Logout</span>}
+              <LogOut size={22} className="transition-transform duration-300 group-hover:translate-x-1" />
+              {!sidebarCollapsed && <span className="text-sm font-medium">Logout</span>}
             </button>
           </div>
         </aside>
@@ -873,15 +881,25 @@ function NavItem({ icon, label, to, onClick, active = false, collapsed }: any) {
     return (
       <button
         onClick={onClick}
-        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+        className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 hover:scale-105 group ${
           active 
-            ? 'bg-brand-green text-white shadow-md' 
-            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+            ? 'bg-brand-green text-white shadow-lg shadow-brand-green/30' 
+            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:shadow-md'
         } ${collapsed ? 'justify-center' : ''}`}
         title={collapsed ? label : ''}
       >
-        {icon}
-        {!collapsed && <span className="text-sm font-medium">{label}</span>}
+        <div className="relative">
+          {icon}
+          {/* Subtle glow effect for active items */}
+          {active && (
+            <div className="absolute inset-0 rounded-full bg-brand-green/30 animate-pulse blur-md -z-10"></div>
+          )}
+        </div>
+        {!collapsed && (
+          <span className="text-sm font-medium transition-all duration-300 group-hover:translate-x-1">
+            {label}
+          </span>
+        )}
       </button>
     );
   }
@@ -890,15 +908,24 @@ function NavItem({ icon, label, to, onClick, active = false, collapsed }: any) {
   return (
     <Link
       to={to}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+      className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 hover:scale-105 group ${
         active 
-          ? 'bg-brand-green text-white shadow-md' 
-          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+          ? 'bg-brand-green text-white shadow-lg shadow-brand-green/30' 
+          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:shadow-md'
       } ${collapsed ? 'justify-center' : ''}`}
       title={collapsed ? label : ''}
     >
-      {icon}
-      {!collapsed && <span className="text-sm font-medium">{label}</span>}
+      <div className="relative">
+        {icon}
+        {active && (
+          <div className="absolute inset-0 rounded-full bg-brand-green/30 animate-pulse blur-md -z-10"></div>
+        )}
+      </div>
+      {!collapsed && (
+        <span className="text-sm font-medium transition-all duration-300 group-hover:translate-x-1">
+          {label}
+        </span>
+      )}
     </Link>
   );
 }

@@ -121,6 +121,28 @@
   }
 }
 
+@media (max-width: 768px) {
+  .sidebar-collapsed {
+    width: 80px !important;
+  }
+  
+  .sidebar-expanded {
+    width: 280px !important;
+  }
+  
+  /* Larger touch targets for mobile */
+  .nav-item-mobile {
+    padding: 12px !important;
+    margin: 4px 0 !important;
+  }
+  
+  /* Increase tap target size */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
 .animate-fade-in {
   animation: fade-in 0.2s ease-out forwards;
 }

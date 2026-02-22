@@ -129,6 +129,9 @@ export default function AdminDashboard() {
   const [groupSearch, setGroupSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  const admin = JSON.parse(localStorage.getItem("user") || "{}");
+  const adminName = admin.first_name || admin.email?.split('@')[0] || 'Administrator';
+
   useEffect(() => { 
     fetchData(); 
   }, []);
@@ -724,12 +727,27 @@ export default function AdminDashboard() {
           <div className="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  Admin Dashboard
-                </h1>
-                <span className="hidden md:inline-block px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-sm font-medium">
-                  Administrator
-                </span>
+                {/* Admin avatar */}
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                    {adminName.charAt(0)}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
+                </div>
+                
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Welcome back, {adminName}!
+                  </h1>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                    <span className="flex items-center gap-1">
+                      <ShieldCheck size={14} className="text-purple-600" />
+                      Super Admin
+                    </span>
+                    <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+                    <span>Last login: Today 9:41 AM</span>
+                  </p>
+                </div>
               </div>
               
               <div className="flex items-center gap-3">
@@ -738,14 +756,13 @@ export default function AdminDashboard() {
                   className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors relative"
                   disabled={refreshing}
                 >
-                  <RefreshCw size={20} className={refreshing ? 'animate-spin text-brand-green' : ''} />
+                  <RefreshCw size={20} className={refreshing ? 'animate-spin text-brand-green' : 'text-gray-600 dark:text-gray-400'} />
                 </button>
                 
                 <ThemeToggle />
               </div>
             </div>
           </div>
-
           {/* Dashboard Content */}
           <div className="p-6">
             {/* Welcome Banner */}

@@ -255,6 +255,34 @@ export default function AdminDashboard() {
 
   const submitGroup = async () => {
     try {
+      // Validate required fields
+      const requiredFields = [
+        { field: groupForm.name, name: "Group Name" },
+        { field: groupForm.group_type_id, name: "Group Type" },
+        { field: groupForm.county, name: "County" },
+        { field: groupForm.constituency, name: "Constituency" },
+        { field: groupForm.ward, name: "Ward" },
+        { field: groupForm.location, name: "Location" },
+        { field: groupForm.registration_number, name: "Registration Number" },
+      ];
+
+      const missingFields = requiredFields
+        .filter(item => !item.field || item.field.trim() === "")
+        .map(item => item.name);
+
+      if (missingFields.length > 0) {
+        alert(`Please fill in the following required fields:\n- ${missingFields.join('\n- ')}`);
+        return;
+      }
+
+      // Validate that at least one required document is selected
+      const hasRequiredDocs = groupForm.documentRequirements.some(r => r.is_required);
+      if (!hasRequiredDocs) {
+        alert("Please select at least one required document type.");
+        return;
+      }
+
+      setLoading(true);
       const uploadedPaths: { [docType: string]: string } = {};
 
       // Upload files to Firebase Storage
@@ -269,30 +297,40 @@ export default function AdminDashboard() {
         }
       }
 
+      // Prepare payload with proper structure
+      const payload = {
+        name: groupForm.name.trim(),
+        group_type_id: groupForm.group_type_id,
+        county: groupForm.county,
+        constituency: groupForm.constituency,
+        ward: groupForm.ward,
+        location: groupForm.location.trim(),
+        registration_number: groupForm.registration_number.trim(),
+        description: groupForm.description?.trim() || "",
+        requirements: groupForm.documentRequirements.map((r) => ({
+          doc_type: r.doc_type,
+          is_required: r.is_required,
+          file_path: uploadedPaths[r.doc_type] || null,
+        })),
+      };
+
+      console.log("Submitting group with payload:", payload);
+
       // Send metadata to Cloud Function
       const res = await fetch("https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/registerWithDocs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: groupForm.name,
-          group_type_id: groupForm.group_type_id,
-          county: groupForm.county,
-          constituency: groupForm.constituency,
-          ward: groupForm.ward,
-          location: groupForm.location,
-          registration_number: groupForm.registration_number,
-          description: groupForm.description || "",
-          requirements: groupForm.documentRequirements.map((r) => ({
-            doc_type: r.doc_type,
-            is_required: r.is_required,
-            file_path: uploadedPaths[r.doc_type] || null,
-          })),
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Cloud function failed");
+      const responseData = await res.json();
+      
+      if (!res.ok) {
+        console.error("Server error response:", responseData);
+        throw new Error(responseData.error || "Cloud function failed");
+      }
 
-      const { id: groupId } = await res.json();
+      const { id: groupId } = responseData;
 
       // Save requirements metadata
       const metaRes = await fetch(`${BASE_URL}/groups/${groupId}/requirements`, {
@@ -305,7 +343,7 @@ export default function AdminDashboard() {
 
       if (!metaRes.ok) throw new Error("Requirement save failed");
 
-      // Reset form
+      // Success! Reset form
       setGroupModalOpen(false);
       setGroupForm({
         name: "",
@@ -323,14 +361,17 @@ export default function AdminDashboard() {
         uploadedDocs: {},
       });
 
+      alert("✅ Group registered successfully!");
       fetchData();
     } catch (err: any) {
       console.error("❌ Group creation failed:", err);
       alert(
         `Group registration failed:\n${
-          axios.isAxiosError(err) ? err.response?.data?.error || err.message : "Unknown error"
+          err.message || "Unknown error"
         }`
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1048,17 +1089,221 @@ export default function AdminDashboard() {
       {/* Group Registration Modal */}
       <Dialog open={isGroupModalOpen} onClose={() => setGroupModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
         <div className="flex items-center justify-center min-h-screen">
-          <DialogPanel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
+          <DialogPanel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg max-h-[90vh] overflow-y-auto">
             <DialogTitle className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
               Register New Group
             </DialogTitle>
-            {/* ... group form content ... */}
-            <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setGroupModalOpen(false)} className="px-4 py-2 bg-gray-500 text-white rounded-lg">
+
+            {/* Required fields indicator */}
+            <p className="text-sm text-red-500 mb-4">* Required fields</p>
+
+            {/* Group Name - Required */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Group Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                className="w-full p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="e.g., Molo Farmers SACCO"
+                value={groupForm.name}
+                onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
+              />
+            </div>
+
+            {/* Group Type - Required */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Group Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                value={groupForm.group_type_id}
+                onChange={(e) => setGroupForm({ ...groupForm, group_type_id: e.target.value })}
+              >
+                <option value="">Select Type</option>
+                {groupTypes.map((type) => (
+                  <option key={type.id} value={type.id}>{type.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* County - Required */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                County <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                value={groupForm.county}
+                onChange={(e) => {
+                  const county = e.target.value;
+                  setGroupForm({ ...groupForm, county, constituency: "", ward: "" });
+                }}
+              >
+                <option value="">Select County</option>
+                {counties.map((c) => (
+                  <option key={c.name} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Constituency - Required */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Constituency <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                value={groupForm.constituency}
+                onChange={(e) =>
+                  setGroupForm({ ...groupForm, constituency: e.target.value, ward: "" })
+                }
+                disabled={!groupForm.county}
+              >
+                <option value="">Select Constituency</option>
+                {constituencies
+                  .filter((c) => c.county === groupForm.county)
+                  .map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {/* Ward - Required */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Ward <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                value={groupForm.ward}
+                onChange={(e) => setGroupForm({ ...groupForm, ward: e.target.value })}
+                disabled={!groupForm.constituency}
+              >
+                <option value="">Select Ward</option>
+                {wards
+                  .filter((w) => w.constituency === groupForm.constituency)
+                  .map((w) => (
+                    <option key={w.name} value={w.name}>
+                      {w.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {/* Location - Required */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Physical Location <span className="text-red-500">*</span>
+              </label>
+              <input
+                className="w-full p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="e.g., Near Molo Market, along Nakuru-Eldoret road"
+                value={groupForm.location}
+                onChange={(e) => setGroupForm({ ...groupForm, location: e.target.value })}
+              />
+            </div>
+
+            {/* Registration Number - Required */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Registration Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                className="w-full p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="e.g., SACCO/2024/12345"
+                value={groupForm.registration_number}
+                onChange={(e) =>
+                  setGroupForm({ ...groupForm, registration_number: e.target.value })
+                }
+              />
+            </div>
+
+            {/* Description - Optional */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Description (Optional)
+              </label>
+              <textarea
+                className="w-full p-2 border rounded text-gray-900 dark:text-white dark:bg-brand-dark dark:border-gray-600"
+                placeholder="Brief description of the group..."
+                rows={3}
+                value={groupForm.description}
+                onChange={(e) => setGroupForm({ ...groupForm, description: e.target.value })}
+              />
+            </div>
+
+            {/* Required Documents */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Required Documents <span className="text-red-500">*</span>
+              </label>
+              <p className="text-xs text-gray-500 mb-2">Select at least one document type</p>
+              {groupForm.documentRequirements.map((item, i) => (
+                <div key={i} className="mb-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <label className="flex items-center gap-2 text-gray-900 dark:text-white mb-2">
+                    <input
+                      type="checkbox"
+                      checked={item.is_required}
+                      onChange={(e) => {
+                        const newList = [...groupForm.documentRequirements];
+                        newList[i].is_required = e.target.checked;
+                        setGroupForm({ ...groupForm, documentRequirements: newList });
+                      }}
+                      className="rounded text-brand-green focus:ring-brand-green"
+                    />
+                    <span className="text-sm font-medium">{item.doc_type}</span>
+                  </label>
+
+                  {item.is_required && (
+                    <div className="mt-2">
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-green file:text-white hover:file:bg-green-700"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setGroupForm((prev) => ({
+                            ...prev,
+                            uploadedDocs: {
+                              ...prev.uploadedDocs,
+                              [item.doc_type]: file,
+                            },
+                          }));
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setGroupModalOpen(false)}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
                 Cancel
               </button>
-              <button onClick={submitGroup} className="px-4 py-2 bg-brand-green text-white rounded-lg">
-                Register
+              <button
+                type="button"
+                onClick={submitGroup}
+                disabled={loading}
+                className="px-4 py-2 bg-brand-green text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" />
+                    Registering...
+                  </>
+                ) : (
+                  'Register Group'
+                )}
               </button>
             </div>
           </DialogPanel>

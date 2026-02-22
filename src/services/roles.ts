@@ -1,6 +1,8 @@
 // farm-fuzion-frontend/src/services/roles.ts
 import { api } from "./api";
 
+// farm-fuzion-frontend/src/services/roles.ts
+
 const BASE_URL = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/getRoles";
 const CREATE_URL = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/createRole";
 const UPDATE_URL = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/updateRole";
@@ -13,6 +15,8 @@ export async function getRoles(): Promise<any[]> {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include", // Important for CORS with credentials
+      mode: "cors", // Explicitly set CORS mode
     });
     
     if (!res.ok) {
@@ -27,7 +31,6 @@ export async function getRoles(): Promise<any[]> {
     return [];
   }
 }
-
 export async function createRole(payload: { name: string; description?: string }) {
   try {
     const res = await fetch(CREATE_URL, {
@@ -46,7 +49,6 @@ export async function createRole(payload: { name: string; description?: string }
     throw err;
   }
 }
-
 export async function updateRole(id: string, payload: { name: string; description?: string }) {
   try {
     // ✅ Send ID in URL path, not in body
@@ -66,7 +68,6 @@ export async function updateRole(id: string, payload: { name: string; descriptio
     throw err;
   }
 }
-
 export async function deleteRole(id: string) {
   try {
     // ✅ Send ID in URL path, not in body

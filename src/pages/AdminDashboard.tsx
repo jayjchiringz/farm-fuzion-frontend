@@ -103,9 +103,18 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
     fetchRoles();
   }, []);
 
+  // In your AdminDashboard.tsx, update the fetchRoles function:
   const fetchRoles = async () => {
-    const res = (await getRoles()) as unknown as any[];
-    setUserRoles(res);
+    try {
+      console.log("Fetching roles from:", BASE_URL);
+      const roles = await getRoles();
+      console.log("Roles fetched:", roles);
+      setUserRoles(roles);
+    } catch (error) {
+      console.error("Error in fetchRoles:", error);
+      // Show user-friendly message
+      alert("Failed to load user roles. Please refresh the page.");
+    }
   };
 
   useEffect(() => {

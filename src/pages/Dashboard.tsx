@@ -813,7 +813,7 @@ export default function Dashboard() {
                   />
 
                   <ActionCard
-                    icon={<BookOpen size={24} />}
+                    icon={<GraduationCap size={24} />}
                     title="Knowledge Hub"
                     description="AI-powered farming assistant & research"
                     color="from-purple-500 to-indigo-600"

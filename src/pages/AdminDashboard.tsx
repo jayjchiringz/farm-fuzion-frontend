@@ -572,55 +572,68 @@ export default function AdminDashboard() {
     <MainLayout>
       <ThemeToggle />
       <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-        {/* Enhanced Sidebar */}
+        {/* Enhanced Sidebar with better light mode contrast */}
         <aside
           className={`${
             isSidebarOpen ? "w-72" : "w-24"
           } transition-all duration-500 ease-in-out 
-            bg-gradient-to-b from-brand-green to-green-700 
+            bg-gradient-to-b from-[#8dc71d] to-[#6fa316] 
             dark:from-gray-900 dark:to-gray-800 
             text-white flex flex-col justify-between py-8 px-4 shadow-2xl relative overflow-hidden`}
         >
-          {/* Decorative elements */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
+          {/* Decorative elements - adjusted for light mode */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full -mr-16 -mt-16"></div>
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/5 rounded-full -ml-12 -mb-12"></div>
           
+          {/* Glossy overlay for better logo visibility */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
+          
+          {/* Additional highlight at the top for logo area */}
+          <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-xl"></div>
+          
           {/* Sidebar Header */}
-          <div>
+          <div className="relative z-10">
             <div className="flex items-center justify-between mb-8">
-              {/* Logo */}
+              {/* Logo with enhanced visibility */}
               <div className="transition-all duration-500">
                 {isSidebarOpen ? (
                   <div className="flex items-center gap-3">
-                    <img
-                      src="/Logos/FF Logo only transparent background.png"
-                      alt="Farm Fuzion"
-                      className="h-10 w-10 object-contain"
-                    />
-                    <span className="text-xl font-bold text-white">Admin Panel</span>
+                    <div className="relative">
+                      {/* Glow effect behind logo */}
+                      <div className="absolute inset-0 bg-white/30 rounded-full blur-md -z-10"></div>
+                      <img
+                        src="/Logos/FF Logo only transparent background.png"
+                        alt="Farm Fuzion"
+                        className="h-12 w-12 object-contain relative z-10 drop-shadow-lg"
+                      />
+                    </div>
+                    <span className="text-xl font-bold text-white drop-shadow-md">Admin Panel</span>
                   </div>
                 ) : (
-                  <img
-                    src="/Logos/FF Logo only transparent background.png"
-                    alt="FF"
-                    className="h-12 w-12 object-contain mx-auto transition-all duration-300 hover:scale-110 hover:rotate-3"
-                  />
+                  <div className="relative">
+                    {/* Glow effect for collapsed logo */}
+                    <div className="absolute inset-0 bg-white/30 rounded-full blur-md -z-10"></div>
+                    <img
+                      src="/Logos/FF Logo only transparent background.png"
+                      alt="FF"
+                      className="h-14 w-14 object-contain mx-auto transition-all duration-300 hover:scale-110 hover:rotate-3 relative z-10 drop-shadow-lg"
+                    />
+                  </div>
                 )}
               </div>
               
-              {/* Toggle Button */}
+              {/* Toggle Button with better contrast */}
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="p-2 hover:bg-white/10 rounded-lg transition-all duration-300 hover:scale-110"
+                className="p-2 hover:bg-white/20 rounded-lg transition-all duration-300 hover:scale-110 bg-black/10 backdrop-blur-sm"
                 title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
               >
-                {isSidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+                {isSidebarOpen ? <ChevronLeft size={20} className="drop-shadow-md" /> : <ChevronRight size={20} className="drop-shadow-md" />}
               </button>
             </div>
 
-            {/* Navigation */}
+            {/* Navigation items with better contrast */}
             <nav className="space-y-2">
-              {/* Dashboard Home */}
               <NavItem 
                 icon={<LayoutDashboard size={isSidebarOpen ? 20 : 24} />}
                 label="Dashboard"
@@ -632,18 +645,18 @@ export default function AdminDashboard() {
               <div>
                 <button
                   onClick={() => setOpenGroupSub(!openGroupSub)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-all duration-300 hover:scale-105 group ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/20 transition-all duration-300 hover:scale-105 group backdrop-blur-sm ${
                     !isSidebarOpen && 'justify-center'
                   }`}
                 >
-                  <Building2 size={isSidebarOpen ? 20 : 24} />
+                  <Building2 size={isSidebarOpen ? 20 : 24} className="drop-shadow-md" />
                   {isSidebarOpen && (
-                    <span className="flex-1 text-left text-sm font-medium">Manage Groups</span>
+                    <span className="flex-1 text-left text-sm font-medium drop-shadow-md">Manage Groups</span>
                   )}
                   {isSidebarOpen && (
                     <ChevronRight 
                       size={16} 
-                      className={`transition-transform duration-300 ${openGroupSub ? 'rotate-90' : ''}`} 
+                      className={`transition-transform duration-300 drop-shadow-md ${openGroupSub ? 'rotate-90' : ''}`} 
                     />
                   )}
                 </button>
@@ -668,18 +681,18 @@ export default function AdminDashboard() {
               <div>
                 <button
                   onClick={() => setOpenUserSub(!openUserSub)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-all duration-300 hover:scale-105 group ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/20 transition-all duration-300 hover:scale-105 group backdrop-blur-sm ${
                     !isSidebarOpen && 'justify-center'
                   }`}
                 >
-                  <UsersRound size={isSidebarOpen ? 20 : 24} />
+                  <UsersRound size={isSidebarOpen ? 20 : 24} className="drop-shadow-md" />
                   {isSidebarOpen && (
-                    <span className="flex-1 text-left text-sm font-medium">Manage Users</span>
+                    <span className="flex-1 text-left text-sm font-medium drop-shadow-md">Manage Users</span>
                   )}
                   {isSidebarOpen && (
                     <ChevronRight 
                       size={16} 
-                      className={`transition-transform duration-300 ${openUserSub ? 'rotate-90' : ''}`} 
+                      className={`transition-transform duration-300 drop-shadow-md ${openUserSub ? 'rotate-90' : ''}`} 
                     />
                   )}
                 </button>
@@ -702,15 +715,15 @@ export default function AdminDashboard() {
             </nav>
           </div>
 
-          {/* Logout Button */}
+          {/* Logout Button with better contrast */}
           <button
             onClick={handleLogout}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-white transition-all duration-300 hover:scale-105 group ${
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/30 hover:bg-red-500/40 text-white transition-all duration-300 hover:scale-105 group backdrop-blur-sm ${
               !isSidebarOpen && 'justify-center'
             }`}
           >
-            <LogOut size={isSidebarOpen ? 20 : 24} />
-            {isSidebarOpen && <span className="text-sm font-medium">Logout</span>}
+            <LogOut size={isSidebarOpen ? 20 : 24} className="drop-shadow-md" />
+            {isSidebarOpen && <span className="text-sm font-medium drop-shadow-md">Logout</span>}
           </button>
         </aside>
 
@@ -1104,19 +1117,20 @@ export default function AdminDashboard() {
 function NavItem({ icon, label, active = false, collapsed }: any) {
   return (
     <div
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 backdrop-blur-sm ${
         active 
-          ? 'bg-white/20 text-white shadow-lg' 
-          : 'text-white/80 hover:bg-white/10 hover:text-white'
+          ? 'bg-white/30 text-white shadow-lg' 
+          : 'text-white/90 hover:bg-white/20 hover:text-white'
       } ${collapsed ? 'justify-center' : ''}`}
     >
       <div className="relative">
+        <div className="absolute inset-0 bg-white/20 rounded-full blur-sm opacity-0 group-hover:opacity-100 transition-opacity"></div>
         {icon}
         {active && (
-          <div className="absolute inset-0 rounded-full bg-white/30 animate-pulse blur-md -z-10"></div>
+          <div className="absolute inset-0 rounded-full bg-white/40 animate-pulse blur-md -z-10"></div>
         )}
       </div>
-      {!collapsed && <span className="text-sm font-medium">{label}</span>}
+      {!collapsed && <span className="text-sm font-medium drop-shadow-md">{label}</span>}
     </div>
   );
 }
@@ -1125,10 +1139,10 @@ function SubNavItem({ icon, label, onClick }: any) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300"
+      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-300 backdrop-blur-sm"
     >
-      {icon}
-      <span>{label}</span>
+      <span className="drop-shadow-sm">{icon}</span>
+      <span className="drop-shadow-sm">{label}</span>
     </button>
   );
 }

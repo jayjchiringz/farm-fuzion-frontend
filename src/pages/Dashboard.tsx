@@ -326,18 +326,22 @@ export default function Dashboard() {
           {/* Sidebar Header */}
           <div className="p-4 border-b border-gray-200 dark:border-gray-800">
             <div className="flex items-center justify-between">
-              {/* Logo - Always visible, just adjusted size when collapsed */}
-              <div className={`transition-all duration-300 ${sidebarCollapsed ? 'w-10 overflow-hidden' : 'flex-1'}`}>
+              {/* Logo - Different versions for expanded/collapsed */}
+              {!sidebarCollapsed ? (
+                // Expanded state - full logo with text
                 <img
                   src="/Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png"
                   alt="Farm Fuzion"
-                  className={`transition-all duration-300 ${
-                    sidebarCollapsed 
-                      ? 'h-10 w-10 object-cover rounded-lg' 
-                      : 'h-10 w-auto object-contain'
-                  }`}
+                  className="h-10 w-auto object-contain"
                 />
-              </div>
+              ) : (
+                // Collapsed state - FF logo only
+                <img
+                  src="/Logos/FF Logo only transparent background.png"
+                  alt="FF"
+                  className="h-10 w-10 object-contain mx-auto"
+                />
+              )}
               
               {/* Collapse button */}
               <button

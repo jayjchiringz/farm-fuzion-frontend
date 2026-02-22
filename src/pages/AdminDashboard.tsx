@@ -570,7 +570,13 @@ export default function AdminDashboard() {
   };
 
   const handleLogout = () => {
+    // Clear all localStorage items
     localStorage.clear();
+    
+    // Clear any session storage if used
+    sessionStorage.clear();
+    
+    // Redirect to login page
     window.location.href = "/login";
   };
 
@@ -751,15 +757,20 @@ export default function AdminDashboard() {
             </nav>
           </div>
 
-          {/* Logout with subtle styling */}
+          {/* Logout Button - Fixed */}
           <button
             onClick={handleLogout}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-red-500/10 text-red-300/80 hover:text-red-300 transition-all duration-300 group ${
-              !isSidebarOpen && 'justify-center'
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 group ${
+              !isSidebarOpen ? 'justify-center' : ''
+            } ${
+              isSidebarOpen 
+                ? 'bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white' 
+                : 'bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white justify-center'
             }`}
+            title="Logout"
           >
-            <LogOut size={isSidebarOpen ? 18 : 22} />
-            {isSidebarOpen && <span className="text-sm">Logout</span>}
+            <LogOut size={isSidebarOpen ? 18 : 22} className="transition-transform duration-300 group-hover:translate-x-1" />
+            {isSidebarOpen && <span className="text-sm font-medium">Logout</span>}
           </button>
         </aside>
 

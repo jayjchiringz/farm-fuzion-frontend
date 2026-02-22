@@ -18,9 +18,23 @@ export default function LogisticsModal({ onClose }: LogisticsModalProps) {
 
   const randomMessage = messages[Math.floor(Math.random() * messages.length)];
 
+  // Handle backdrop click
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Only close if clicking the backdrop itself, not the modal content
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md shadow-2xl overflow-hidden transform transition-all animate-slide-up">
+    <div 
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-fade-in"
+      onClick={handleBackdropClick} // Add backdrop click handler
+    >
+      <div 
+        className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md shadow-2xl overflow-hidden transform transition-all animate-slide-up"
+        onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
+      >
         
         {/* Header with construction theme */}
         <div className="p-6 bg-gradient-to-r from-yellow-500 to-orange-600 text-white relative overflow-hidden">

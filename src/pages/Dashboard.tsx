@@ -380,7 +380,7 @@ export default function Dashboard() {
             />
             <NavItem 
               icon={<DollarSign size={20} />} 
-              label="Market" 
+              label="Currency" 
               onClick={() => setCurrencyOpen(true)} 
               collapsed={sidebarCollapsed} 
             />

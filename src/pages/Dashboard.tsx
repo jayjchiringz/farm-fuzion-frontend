@@ -859,7 +859,26 @@ export default function Dashboard() {
 
 // ==================== Subcomponents ====================
 
-function NavItem({ icon, label, to, active = false, collapsed }: any) {
+function NavItem({ icon, label, to, onClick, active = false, collapsed }: any) {
+  // If onClick is provided, render as button
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+          active 
+            ? 'bg-brand-green text-white shadow-md' 
+            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+        } ${collapsed ? 'justify-center' : ''}`}
+        title={collapsed ? label : ''}
+      >
+        {icon}
+        {!collapsed && <span className="text-sm font-medium">{label}</span>}
+      </button>
+    );
+  }
+  
+  // Otherwise render as Link
   return (
     <Link
       to={to}

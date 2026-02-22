@@ -1413,19 +1413,336 @@ export default function AdminDashboard() {
 
       {/* Farmer Registration Modal */}
       <Dialog open={isFarmerModalOpen} onClose={() => setFarmerModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
-        <div className="flex items-center justify-center min-h-screen">
-          <DialogPanel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
-            <DialogTitle className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-              Register New Farmer
-            </DialogTitle>
-            {/* ... farmer form content ... */}
-            <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setFarmerModalOpen(false)} className="px-4 py-2 bg-gray-500 text-white rounded-lg">
-                Cancel
-              </button>
-              <button onClick={submitFarmer} className="px-4 py-2 bg-brand-green text-white rounded-lg">
-                Register
-              </button>
+        <div className="flex items-center justify-center min-h-screen p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" aria-hidden="true" onClick={() => setFarmerModalOpen(false)} />
+          
+          <DialogPanel className="relative bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl shadow-2xl transform transition-all animate-slide-up">
+            {/* Header with gradient */}
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 dark:from-gray-800 dark:to-gray-900 px-6 py-4 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-xl">
+                    <UserPlus size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-xl font-bold text-white">
+                      Register New Farmer
+                    </DialogTitle>
+                    <p className="text-sm text-white/80">Add a new farmer to the platform</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setFarmerModalOpen(false)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Form content */}
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              {/* Progress Steps */}
+              <div className="flex items-center justify-between mb-6">
+                {['Personal Info', 'Location', 'Account'].map((step, idx) => (
+                  <div key={idx} className="flex items-center flex-1">
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                      idx === 0 ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                    }`}>
+                      {idx + 1}
+                    </div>
+                    {idx < 2 && <div className="flex-1 h-0.5 mx-2 bg-gray-200 dark:bg-gray-700" />}
+                  </div>
+                ))}
+              </div>
+
+              {/* Required fields indicator */}
+              <div className="flex items-center gap-2 mb-4 text-sm">
+                <span className="text-red-500">*</span>
+                <span className="text-gray-600 dark:text-gray-400">Required fields</span>
+              </div>
+
+              {/* Personal Information Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <UserCog size={18} className="text-green-600" />
+                  Personal Information
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* First Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      First Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      className="w-full p-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                      placeholder="e.g., John"
+                      value={farmerForm.first_name}
+                      onChange={(e) => setFarmerForm({ ...farmerForm, first_name: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Middle Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Middle Name
+                    </label>
+                    <input
+                      className="w-full p-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                      placeholder="e.g., Mwangi"
+                      value={farmerForm.middle_name}
+                      onChange={(e) => setFarmerForm({ ...farmerForm, middle_name: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Last Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Last Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      className="w-full p-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                      placeholder="e.g., Doe"
+                      value={farmerForm.last_name}
+                      onChange={(e) => setFarmerForm({ ...farmerForm, last_name: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Date of Birth */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Date of Birth <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      className="w-full p-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      value={farmerForm.dob}
+                      onChange={(e) => setFarmerForm({ ...farmerForm, dob: e.target.value })}
+                    />
+                  </div>
+
+                  {/* ID/Passport Number */}
+                  <div className="col-span-2 md:col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      ID/Passport Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      className="w-full p-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="e.g., 29810809"
+                      value={farmerForm.id_passport_no}
+                      onChange={(e) => setFarmerForm({ ...farmerForm, id_passport_no: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Location Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <MapPin size={18} className="text-green-600" />
+                  Location Details
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* County */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      County <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      className="w-full p-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      value={farmerForm.county}
+                      onChange={(e) => {
+                        const county = e.target.value;
+                        setFarmerForm({ ...farmerForm, county, constituency: "", ward: "" });
+                      }}
+                    >
+                      <option value="">Select County</option>
+                      {counties.map((c) => (
+                        <option key={c.name} value={c.name}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Constituency */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Constituency <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      className="w-full p-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      value={farmerForm.constituency}
+                      onChange={(e) =>
+                        setFarmerForm({ ...farmerForm, constituency: e.target.value, ward: "" })
+                      }
+                      disabled={!farmerForm.county}
+                    >
+                      <option value="">Select Constituency</option>
+                      {constituencies
+                        .filter((c) => c.county === farmerForm.county)
+                        .map((c) => (
+                          <option key={c.name} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  {/* Ward */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Ward <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      className="w-full p-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      value={farmerForm.ward}
+                      onChange={(e) => setFarmerForm({ ...farmerForm, ward: e.target.value })}
+                      disabled={!farmerForm.constituency}
+                    >
+                      <option value="">Select Ward</option>
+                      {wards
+                        .filter((w) => w.constituency === farmerForm.constituency)
+                        .map((w) => (
+                          <option key={w.name} value={w.name}>
+                            {w.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  {/* Physical Location */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Physical Location <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      className="w-full p-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="e.g., Vuga Village, Boma la Mwatsama"
+                      value={farmerForm.location}
+                      onChange={(e) => setFarmerForm({ ...farmerForm, location: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Address */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Address
+                    </label>
+                    <input
+                      className="w-full p-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="e.g., 123 Main Street"
+                      value={farmerForm.address}
+                      onChange={(e) => setFarmerForm({ ...farmerForm, address: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Users size={18} className="text-green-600" />
+                  Contact Information
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Mobile Number */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Mobile Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      className="w-full p-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="e.g., 0707098495"
+                      value={farmerForm.mobile}
+                      onChange={(e) => setFarmerForm({ ...farmerForm, mobile: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      className="w-full p-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="e.g., farmer@example.com"
+                      value={farmerForm.email}
+                      onChange={(e) => setFarmerForm({ ...farmerForm, email: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Group Assignment */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Building2 size={18} className="text-green-600" />
+                  Group Assignment
+                </h3>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Select Group <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    className="w-full p-3 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    value={farmerForm.group_id}
+                    onChange={(e) => setFarmerForm({ ...farmerForm, group_id: e.target.value })}
+                  >
+                    <option value="">Select a group</option>
+                    {groups.map((g) => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Farmers must be assigned to a group
+                  </p>
+                </div>
+              </div>
+
+              {/* Validation Summary */}
+              {(!farmerForm.first_name || !farmerForm.last_name || !farmerForm.email || !farmerForm.mobile || !farmerForm.group_id) && (
+                <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-400 flex items-center gap-2">
+                    <AlertTriangle size={16} />
+                    Please fill in all required fields
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer with actions */}
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 rounded-b-2xl">
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFarmerModalOpen(false)}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={submitFarmer}
+                  disabled={loading || !farmerForm.first_name || !farmerForm.last_name || !farmerForm.email || !farmerForm.mobile || !farmerForm.group_id}
+                  className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw size={16} className="animate-spin" />
+                      Registering...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={16} />
+                      Register Farmer
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </DialogPanel>
         </div>

@@ -15,7 +15,8 @@ import {
   ShoppingCart, CreditCard, Cloud, DollarSign, BookOpen, 
   Truck, PawPrint, TrendingUp, Bell, Settings, HelpCircle,
   Home, BarChart3, Sparkles, RefreshCw,
-  GraduationCap
+  GraduationCap,
+  CloudSunRainIcon
 } from "lucide-react";
 import { Sun, CloudRain, Wind, Droplets, Sunrise, Sunset, Eye, Gauge } from "lucide-react";
 import { weatherApi, WeatherData } from "../services/weatherApi";
@@ -796,7 +797,7 @@ export default function Dashboard() {
                   />
 
                   <ActionCard
-                    icon={<Cloud size={24} />}
+                    icon={<CloudSunRainIcon size={24} />}
                     title="Weather Intelligence"
                     description="Plan with accurate forecasts and historical data"
                     color="from-cyan-500 to-blue-600"

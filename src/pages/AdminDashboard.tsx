@@ -572,70 +572,61 @@ export default function AdminDashboard() {
     <MainLayout>
       <ThemeToggle />
       <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-        {/* Enhanced Sidebar with better light mode contrast */}
+        {/* Sophisticated Sidebar with Translucent Effects */}
         <aside
           className={`${
             isSidebarOpen ? "w-72" : "w-24"
           } transition-all duration-500 ease-in-out 
-            bg-gradient-to-b from-[#8dc71d] to-[#6fa316] 
-            dark:from-gray-900 dark:to-gray-800 
-            text-white flex flex-col justify-between py-8 px-4 shadow-2xl relative overflow-hidden`}
+            bg-brand-green/95 backdrop-blur-md
+            dark:bg-gray-900/95 dark:backdrop-blur-md
+            text-white flex flex-col justify-between py-8 px-4 shadow-2xl relative overflow-hidden
+            border-r border-white/10`}
         >
-          {/* Decorative elements - adjusted for light mode */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full -mr-16 -mt-16"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/5 rounded-full -ml-12 -mb-12"></div>
-          
-          {/* Glossy overlay for better logo visibility */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
-          
-          {/* Additional highlight at the top for logo area */}
-          <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-xl"></div>
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.1)_0%,_transparent_50%)]"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(0,0,0,0.05)_0%,_transparent_50%)]"></div>
           
           {/* Sidebar Header */}
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-8">
-              {/* Logo with enhanced visibility */}
+              {/* Logo with subtle elegance */}
               <div className="transition-all duration-500">
                 {isSidebarOpen ? (
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      {/* Glow effect behind logo */}
-                      <div className="absolute inset-0 bg-white/30 rounded-full blur-md -z-10"></div>
                       <img
                         src="/Logos/FF Logo only transparent background.png"
                         alt="Farm Fuzion"
-                        className="h-12 w-12 object-contain relative z-10 drop-shadow-lg"
+                        className="h-12 w-12 object-contain relative z-10 opacity-90 hover:opacity-100 transition-opacity"
                       />
                     </div>
-                    <span className="text-xl font-bold text-white drop-shadow-md">Admin Panel</span>
+                    <span className="text-xl font-light text-white/90 tracking-wide">Admin Panel</span>
                   </div>
                 ) : (
-                  <div className="relative">
-                    {/* Glow effect for collapsed logo */}
-                    <div className="absolute inset-0 bg-white/30 rounded-full blur-md -z-10"></div>
+                  <div className="relative flex justify-center">
                     <img
                       src="/Logos/FF Logo only transparent background.png"
                       alt="FF"
-                      className="h-14 w-14 object-contain mx-auto transition-all duration-300 hover:scale-110 hover:rotate-3 relative z-10 drop-shadow-lg"
+                      className="h-14 w-14 object-contain mx-auto transition-all duration-300 hover:scale-110 opacity-90 hover:opacity-100"
                     />
                   </div>
                 )}
               </div>
               
-              {/* Toggle Button with better contrast */}
+              {/* Subtle toggle button */}
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="p-2 hover:bg-white/20 rounded-lg transition-all duration-300 hover:scale-110 bg-black/10 backdrop-blur-sm"
+                className="p-2 hover:bg-white/10 rounded-lg transition-all duration-300 backdrop-blur-sm text-white/70 hover:text-white"
                 title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
               >
-                {isSidebarOpen ? <ChevronLeft size={20} className="drop-shadow-md" /> : <ChevronRight size={20} className="drop-shadow-md" />}
+                {isSidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
               </button>
             </div>
 
-            {/* Navigation items with better contrast */}
-            <nav className="space-y-2">
+            {/* Navigation with refined styling */}
+            <nav className="space-y-1">
               <NavItem 
-                icon={<LayoutDashboard size={isSidebarOpen ? 20 : 24} />}
+                icon={<LayoutDashboard size={isSidebarOpen ? 18 : 22} />}
                 label="Dashboard"
                 active={true}
                 collapsed={!isSidebarOpen}
@@ -645,31 +636,31 @@ export default function AdminDashboard() {
               <div>
                 <button
                   onClick={() => setOpenGroupSub(!openGroupSub)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/20 transition-all duration-300 hover:scale-105 group backdrop-blur-sm ${
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-white/10 transition-all duration-300 group ${
                     !isSidebarOpen && 'justify-center'
                   }`}
                 >
-                  <Building2 size={isSidebarOpen ? 20 : 24} className="drop-shadow-md" />
+                  <Building2 size={isSidebarOpen ? 18 : 22} className="text-white/80 group-hover:text-white" />
                   {isSidebarOpen && (
-                    <span className="flex-1 text-left text-sm font-medium drop-shadow-md">Manage Groups</span>
+                    <span className="flex-1 text-left text-sm font-medium text-white/80 group-hover:text-white">Manage Groups</span>
                   )}
                   {isSidebarOpen && (
                     <ChevronRight 
-                      size={16} 
-                      className={`transition-transform duration-300 drop-shadow-md ${openGroupSub ? 'rotate-90' : ''}`} 
+                      size={14} 
+                      className={`text-white/60 transition-transform duration-300 ${openGroupSub ? 'rotate-90' : ''}`} 
                     />
                   )}
                 </button>
                 
                 {isSidebarOpen && openGroupSub && (
-                  <div className="ml-4 mt-1 space-y-1 animate-slide-down">
+                  <div className="ml-4 mt-1 space-y-0.5 border-l border-white/10 pl-2">
                     <SubNavItem 
-                      icon={<Plus size={16} />}
+                      icon={<Plus size={14} />}
                       label="Register Group"
                       onClick={() => setGroupModalOpen(true)}
                     />
                     <SubNavItem 
-                      icon={<FolderTree size={16} />}
+                      icon={<FolderTree size={14} />}
                       label="Group Types"
                       onClick={() => setGroupTypeModalOpen(true)}
                     />
@@ -681,31 +672,31 @@ export default function AdminDashboard() {
               <div>
                 <button
                   onClick={() => setOpenUserSub(!openUserSub)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/20 transition-all duration-300 hover:scale-105 group backdrop-blur-sm ${
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-white/10 transition-all duration-300 group ${
                     !isSidebarOpen && 'justify-center'
                   }`}
                 >
-                  <UsersRound size={isSidebarOpen ? 20 : 24} className="drop-shadow-md" />
+                  <UsersRound size={isSidebarOpen ? 18 : 22} className="text-white/80 group-hover:text-white" />
                   {isSidebarOpen && (
-                    <span className="flex-1 text-left text-sm font-medium drop-shadow-md">Manage Users</span>
+                    <span className="flex-1 text-left text-sm font-medium text-white/80 group-hover:text-white">Manage Users</span>
                   )}
                   {isSidebarOpen && (
                     <ChevronRight 
-                      size={16} 
-                      className={`transition-transform duration-300 drop-shadow-md ${openUserSub ? 'rotate-90' : ''}`} 
+                      size={14} 
+                      className={`text-white/60 transition-transform duration-300 ${openUserSub ? 'rotate-90' : ''}`} 
                     />
                   )}
                 </button>
                 
                 {isSidebarOpen && openUserSub && (
-                  <div className="ml-4 mt-1 space-y-1 animate-slide-down">
+                  <div className="ml-4 mt-1 space-y-0.5 border-l border-white/10 pl-2">
                     <SubNavItem 
-                      icon={<UserPlus size={16} />}
+                      icon={<UserPlus size={14} />}
                       label="Register Farmer"
                       onClick={() => setFarmerModalOpen(true)}
                     />
                     <SubNavItem 
-                      icon={<ShieldCheck size={16} />}
+                      icon={<ShieldCheck size={14} />}
                       label="User Roles"
                       onClick={() => setUserRoleModalOpen(true)}
                     />
@@ -715,15 +706,15 @@ export default function AdminDashboard() {
             </nav>
           </div>
 
-          {/* Logout Button with better contrast */}
+          {/* Logout with subtle styling */}
           <button
             onClick={handleLogout}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/30 hover:bg-red-500/40 text-white transition-all duration-300 hover:scale-105 group backdrop-blur-sm ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-red-500/10 text-red-300/80 hover:text-red-300 transition-all duration-300 group ${
               !isSidebarOpen && 'justify-center'
             }`}
           >
-            <LogOut size={isSidebarOpen ? 20 : 24} className="drop-shadow-md" />
-            {isSidebarOpen && <span className="text-sm font-medium drop-shadow-md">Logout</span>}
+            <LogOut size={isSidebarOpen ? 18 : 22} />
+            {isSidebarOpen && <span className="text-sm">Logout</span>}
           </button>
         </aside>
 
@@ -1117,20 +1108,14 @@ export default function AdminDashboard() {
 function NavItem({ icon, label, active = false, collapsed }: any) {
   return (
     <div
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 backdrop-blur-sm ${
+      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 ${
         active 
-          ? 'bg-white/30 text-white shadow-lg' 
-          : 'text-white/90 hover:bg-white/20 hover:text-white'
+          ? 'bg-white/15 text-white' 
+          : 'text-white/70 hover:bg-white/10 hover:text-white'
       } ${collapsed ? 'justify-center' : ''}`}
     >
-      <div className="relative">
-        <div className="absolute inset-0 bg-white/20 rounded-full blur-sm opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        {icon}
-        {active && (
-          <div className="absolute inset-0 rounded-full bg-white/40 animate-pulse blur-md -z-10"></div>
-        )}
-      </div>
-      {!collapsed && <span className="text-sm font-medium drop-shadow-md">{label}</span>}
+      <span className={active ? 'text-white' : 'text-white/70'}>{icon}</span>
+      {!collapsed && <span className="text-sm font-light tracking-wide">{label}</span>}
     </div>
   );
 }
@@ -1139,10 +1124,10 @@ function SubNavItem({ icon, label, onClick }: any) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-300 backdrop-blur-sm"
+      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-white/60 hover:text-white/90 hover:bg-white/5 rounded-lg transition-all duration-300"
     >
-      <span className="drop-shadow-sm">{icon}</span>
-      <span className="drop-shadow-sm">{label}</span>
+      <span className="opacity-70">{icon}</span>
+      <span className="font-light">{label}</span>
     </button>
   );
 }

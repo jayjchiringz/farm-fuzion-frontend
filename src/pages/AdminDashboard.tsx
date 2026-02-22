@@ -13,7 +13,7 @@ import {
   Plus, LogOut, Settings2, Building2, UserPlus, FileText, CheckCircle,
   XCircle, Clock, ChevronRight, ChevronLeft, Search, Filter, RefreshCw,
   Sparkles, BarChart3, Home, LayoutDashboard, UserCog, FolderTree,
-  X, MapPin, Info, AlertTriangle
+  X, MapPin, Info, AlertTriangle, Trash2
 } from "lucide-react";
 import { constituencies, counties, county, wards } from "kenya-locations";
 import { OverviewStats, GroupStats, FarmerStats } from "../components/Dashboard/DashboardStatsUI";
@@ -1926,18 +1926,207 @@ export default function AdminDashboard() {
         </div>
       </Dialog>
 
-      {/* User Role Modal */}
+      {/* User Roles Modal */}
       <Dialog
         open={isUserRoleModalOpen}
         onClose={() => setUserRoleModalOpen(false)}
         className="fixed z-50 inset-0 overflow-y-auto"
       >
-        <div className="flex items-center justify-center min-h-screen">
-          <DialogPanel className="bg-white dark:bg-brand-dark p-6 rounded-xl max-w-md w-full shadow-lg">
-            <DialogTitle className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-              Manage User Roles
-            </DialogTitle>
-            {/* ... user role content ... */}
+        <div className="flex items-center justify-center min-h-screen p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" aria-hidden="true" onClick={() => setUserRoleModalOpen(false)} />
+          
+          <DialogPanel className="relative bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl transform transition-all animate-slide-up">
+            {/* Header with gradient */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-gray-800 dark:to-gray-900 px-6 py-4 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-xl">
+                    <ShieldCheck size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-xl font-bold text-white">
+                      Manage User Roles
+                    </DialogTitle>
+                    <p className="text-sm text-white/80">Define and manage user permissions</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setUserRoleModalOpen(false)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
+              {/* Existing Roles List */}
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-blue-600" />
+                  Existing Roles
+                </h3>
+                
+                {userRoles.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <ShieldCheck size={32} className="mx-auto text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No roles yet</p>
+                    <p className="text-xs text-gray-400 mt-1">Add your first role below</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {userRoles.map((role) => (
+                      <div
+                        key={role.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <ShieldCheck size={14} className="text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {role.name}
+                            </span>
+                            {role.description && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{role.description}</p>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {editingId === role.id ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={newRoleName}
+                              onChange={(e) => setNewRoleName(e.target.value)}
+                              className="w-32 px-2 py-1 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="New name"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleUpdateUserRole(role.id)}
+                              disabled={!newRoleName.trim()}
+                              className="p-1 text-green-600 hover:text-green-700 disabled:opacity-50"
+                              title="Save"
+                            >
+                              <CheckCircle size={18} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingId(null);
+                                setNewRoleName("");
+                              }}
+                              className="p-1 text-gray-500 hover:text-gray-700"
+                              title="Cancel"
+                            >
+                              <XCircle size={18} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => {
+                                setEditingId(role.id);
+                                setNewRoleName(role.name);
+                              }}
+                              className="p-1 text-blue-600 hover:text-blue-700"
+                              title="Edit"
+                            >
+                              <Settings size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUserRole(role.id)}
+                              className="p-1 text-red-600 hover:text-red-700"
+                              title="Delete"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Add New Role */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                  <Plus size={16} className="text-green-600" />
+                  Add New Role
+                </h3>
+                
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={newRoleName}
+                    onChange={(e) => setNewRoleName(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddUserRole()}
+                    placeholder="e.g., Farm Manager, Extension Officer, Field Agent"
+                    className="w-full px-4 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleAddUserRole}
+                      disabled={!newRoleName.trim()}
+                      className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      <Plus size={16} />
+                      Add Role
+                    </button>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Press Enter to add quickly
+                </p>
+              </div>
+
+              {/* Info Note */}
+              <div className="mt-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <p className="text-xs text-blue-800 dark:text-blue-300 flex items-start gap-2">
+                  <Info size={14} className="mt-0.5 flex-shrink-0" />
+                  <span>
+                    User roles determine what actions different users can perform in the system. 
+                    Examples: Farmer, Agronomist, Extension Officer, Admin.
+                  </span>
+                </p>
+              </div>
+
+              {/* Sample Roles Card */}
+              <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+                  <Sparkles size={12} className="text-yellow-500" />
+                  Suggested Roles
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {['Farmer', 'Agronomist', 'Extension Officer', 'Admin', 'Field Agent', 'Veterinarian'].map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => setNewRoleName(suggestion)}
+                      className="px-2 py-1 text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 rounded-b-2xl">
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setUserRoleModalOpen(false)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </DialogPanel>
         </div>
       </Dialog>

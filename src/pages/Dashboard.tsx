@@ -393,7 +393,7 @@ export default function Dashboard() {
             <NavItem 
               icon={<Truck size={20} />} 
               label="Logistics" 
-              onClick={() => setLogisticsOpen(true)} 
+              onClick={() => setLogisticsOpen(true)}
               collapsed={sidebarCollapsed} 
             />
           </nav>
@@ -796,7 +796,7 @@ export default function Dashboard() {
                     title="Logistics"
                     description="Schedule and track deliveries"
                     color="from-rose-500 to-pink-600"
-                    onClick={() => setLogisticsOpen(true)} // Remove the link, add onClick
+                    onClick={() => setLogisticsOpen(true)}
                   />
                 </div>
               </>

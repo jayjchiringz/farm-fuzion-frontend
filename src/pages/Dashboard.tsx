@@ -302,7 +302,7 @@ export default function Dashboard() {
   // Colors for pie chart
   const COLORS = ['#8dc71d', '#ff8042', '#ffbb28', '#00C49F', '#0088FE'];
 
-  const sidebarWidth = sidebarCollapsed ? 'w-20' : 'w-72';
+  const sidebarWidth = sidebarCollapsed ? 'w-24' : 'w-72';
 
   return (
     <>
@@ -332,13 +332,13 @@ export default function Dashboard() {
                   <img
                     src="/Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png"
                     alt="Farm Fuzion"
-                    className="h-12 w-auto object-contain transition-transform duration-300 hover:scale-105" // Increased height
+                    className="h-12 w-auto object-contain transition-transform duration-300 hover:scale-105"
                   />
                 ) : (
                   <img
                     src="/Logos/FF Logo only transparent background.png"
                     alt="FF"
-                    className="h-12 w-12 object-contain mx-auto transition-all duration-300 hover:scale-110 hover:rotate-3" // Animated on hover
+                    className="h-14 w-14 object-contain mx-auto transition-all duration-300 hover:scale-110 hover:rotate-3" // Increased from h-12 to h-14
                   />
                 )}
               </div>
@@ -876,6 +876,12 @@ export default function Dashboard() {
 // ==================== Subcomponents ====================
 
 function NavItem({ icon, label, to, onClick, active = false, collapsed }: any) {
+  // Clone the icon with dynamic size
+  const iconElement = React.cloneElement(icon, {
+    size: collapsed ? 28 : 22, // Larger icons in collapsed mode
+    className: icon.props.className
+  });
+
   // If onClick is provided, render as button
   if (onClick) {
     return (
@@ -889,7 +895,7 @@ function NavItem({ icon, label, to, onClick, active = false, collapsed }: any) {
         title={collapsed ? label : ''}
       >
         <div className="relative">
-          {icon}
+          {iconElement}
           {/* Subtle glow effect for active items */}
           {active && (
             <div className="absolute inset-0 rounded-full bg-brand-green/30 animate-pulse blur-md -z-10"></div>
@@ -916,7 +922,7 @@ function NavItem({ icon, label, to, onClick, active = false, collapsed }: any) {
       title={collapsed ? label : ''}
     >
       <div className="relative">
-        {icon}
+        {iconElement}
         {active && (
           <div className="absolute inset-0 rounded-full bg-brand-green/30 animate-pulse blur-md -z-10"></div>
         )}
@@ -931,16 +937,28 @@ function NavItem({ icon, label, to, onClick, active = false, collapsed }: any) {
 }
 
 function NavButton({ icon, label, onClick, collapsed }: any) {
+  // Clone the icon with dynamic size
+  const iconElement = React.cloneElement(icon, {
+    size: collapsed ? 28 : 22, // Larger icons in collapsed mode
+    className: icon.props.className
+  });
+
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all ${
+      className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 hover:scale-105 group ${
         collapsed ? 'justify-center' : ''
-      }`}
+      } text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:shadow-md`}
       title={collapsed ? label : ''}
     >
-      {icon}
-      {!collapsed && <span className="text-sm font-medium">{label}</span>}
+      <div className="relative">
+        {iconElement}
+      </div>
+      {!collapsed && (
+        <span className="text-sm font-medium transition-all duration-300 group-hover:translate-x-1">
+          {label}
+        </span>
+      )}
     </button>
   );
 }

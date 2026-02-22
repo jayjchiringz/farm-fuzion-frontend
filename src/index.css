@@ -106,6 +106,17 @@
   .nav-item-mobile {
     @apply p-3 my-1;
   }
+  
+  /* Ensure collapsed sidebar is wide enough on mobile */
+  .w-24 {
+    width: 96px !important;
+  }
+  
+  /* Larger touch targets for mobile icons */
+  .w-24 button svg {
+    width: 32px;
+    height: 32px;
+  }
 }
 
 /* Custom animation utilities - now handled by Tailwind config */

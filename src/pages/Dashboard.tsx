@@ -329,17 +329,28 @@ export default function Dashboard() {
               {/* Logo with smooth transition - ENLARGED FOR COLLAPSED STATE */}
               <div className="transition-all duration-500 ease-in-out">
                 {!sidebarCollapsed ? (
-                  <img
-                    src="/Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png"
-                    alt="Farm Fuzion"
-                    className="h-12 w-auto object-contain transition-transform duration-300 hover:scale-105"
-                  />
+                  // Expanded state - full logo with dark mode support
+                  <>
+                    {/* Light mode logo */}
+                    <img
+                      src="/Logos/Green_Logo_and_name_transparent_background_deep_dark_font.png"
+                      alt="Farm Fuzion"
+                      className="h-12 w-auto object-contain transition-transform duration-300 hover:scale-105 block dark:hidden"
+                    />
+                    {/* Dark mode logo */}
+                    <img
+                      src="/Logos/Green_Logo_and_name_transparent_background_apple_green_font.png"
+                      alt="Farm Fuzion"
+                      className="h-12 w-auto object-contain transition-transform duration-300 hover:scale-105 hidden dark:block"
+                    />
+                  </>
                 ) : (
+                  // Collapsed state - FF logo only (same for both modes - it's just the green logo)
                   <img
                     src="/Logos/FF Logo only transparent background.png"
                     alt="FF"
                     className="h-14 w-14 object-contain mx-auto transition-all duration-300 hover:scale-110 hover:rotate-3" 
-                    style={{ minHeight: '56px', minWidth: '56px' }} // Force minimum size
+                    style={{ minHeight: '56px', minWidth: '56px' }}
                   />
                 )}
               </div>

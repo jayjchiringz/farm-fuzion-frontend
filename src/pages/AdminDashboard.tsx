@@ -989,12 +989,6 @@ export default function AdminDashboard() {
                     >
                       <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-8 -mt-8 group-hover:scale-125 transition-transform"></div>
                       <div className="relative flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                            <Users size={20} />
-                          </div>
-                          <span className="font-semibold">View All Farmers</span>
-                        </div>
                         <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
                       </div>
                     </button>

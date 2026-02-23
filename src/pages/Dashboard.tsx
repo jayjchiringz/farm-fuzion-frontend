@@ -16,7 +16,8 @@ import {
   Truck, PawPrint, TrendingUp, Bell, Settings, HelpCircle,
   Home, BarChart3, Sparkles, RefreshCw,
   GraduationCap,
-  CloudSunRainIcon
+  CloudSunRainIcon,
+  Cross
 } from "lucide-react";
 import { Sun, CloudRain, Wind, Droplets, Sunrise, Sunset, Eye, Gauge } from "lucide-react";
 import { weatherApi, WeatherData } from "../services/weatherApi";
@@ -24,6 +25,7 @@ import WeatherModal from "../components/Weather/WeatherModal";
 import CurrencyModal from "../components/Currency/CurrencyModal";
 import KnowledgeModal from "../components/Knowledge/KnowledgeModal";
 import LogisticsModal from "../components/Logistics/LogisticsModal";
+import InsuranceModal from "../components/Insurance/InsuranceModal";
 
 // API Base URL
 const API_BASE = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
@@ -72,6 +74,7 @@ export default function Dashboard() {
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [knowledgeOpen, setKnowledgeOpen] = useState(false);
   const [logisticsOpen, setLogisticsOpen] = useState(false);
+  const [insuranceOpen, setInsuranceOpen] = useState(false);
 
   useEffect(() => {
     const fetchFarmerDetails = async () => {
@@ -423,6 +426,12 @@ export default function Dashboard() {
               icon={<Truck size={22} />} 
               label="Logistics" 
               onClick={() => setLogisticsOpen(true)}
+              collapsed={sidebarCollapsed} 
+            />
+            <NavItem 
+              icon={<Cross size={22} />} 
+              label="Insurance" 
+              onClick={() => setInsuranceOpen(true)}
               collapsed={sidebarCollapsed} 
             />
           </nav>
@@ -827,6 +836,14 @@ export default function Dashboard() {
                     color="from-rose-500 to-pink-600"
                     onClick={() => setLogisticsOpen(true)}
                   />
+
+                  <ActionCard
+                    icon={<Cross size={24} />}
+                    title="Insurance"
+                    description="Manage farm insurance policies"
+                    color="from-rose-500 to-pink-600"
+                    onClick={() => setInsuranceOpen(true)}
+                  />
                 </div>
               </>
             )}
@@ -881,6 +898,9 @@ export default function Dashboard() {
       )}
       {logisticsOpen && (
         <LogisticsModal onClose={() => setLogisticsOpen(false)} />
+      )}
+      {insuranceOpen && ( 
+        <InsuranceModal onClose={() => setInsuranceOpen(false)} />
       )}
     </>
   );

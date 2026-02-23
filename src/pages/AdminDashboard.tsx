@@ -989,25 +989,16 @@ export default function AdminDashboard() {
                     >
                       <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-8 -mt-8 group-hover:scale-125 transition-transform"></div>
                       <div className="relative flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                            <Users size={20} />
+                          </div>
+                          <span className="font-semibold">View All Farmers</span>
+                        </div>
                         <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
                       </div>
                     </button>
                   </div>
-                </section>
-
-                {/* View All Farmers Button */}
-                <section className="mt-8">
-                  <button
-                    onClick={() => {
-                      setSelectedGroupForFarmers(null);
-                      setFarmerViewModalOpen(true);
-                    }}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 hover:scale-105 shadow-lg flex items-center gap-2"
-                  >
-                    <Users size={20} />
-                    View All Farmers
-                    <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                  </button>
                 </section>
               </>
             )}

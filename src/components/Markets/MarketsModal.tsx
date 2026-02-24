@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { marketplaceApi, ShoppingCart as ShoppingCartType, MarketplaceOrder, MarketplaceProduct } from "../../services/marketplaceApi";
 import { formatCurrencyKES } from "../../utils/format";
+import AgroServicesModal from "./AgroServicesModal";
 
 interface MarketPricesModalProps {
   farmerId?: string;
@@ -30,7 +31,7 @@ interface MarketPricesModalProps {
   onMarketAdded?: () => Promise<void> | void;
 }
 
-type TabType = "dashboard" | "market" | "insights" | "marketplace" | "cart" | "orders" | "mylistings";
+type TabType = "dashboard" | "market" | "insights" | "marketplace" | "cart" | "orders" | "mylistings" | "agroservices";
 
 // Update the MiniCart component itself
 const MiniCart = ({ 
@@ -234,7 +235,8 @@ export default function MarketPricesModal({
     unit: string;
     cart_id?: string;
   }>>([]);
-
+  const [showAgroServices, setShowAgroServices] = useState(false);
+  
   useEffect(() => {
     setIsMounted(true);
     return () => setIsMounted(false);
@@ -2267,7 +2269,7 @@ export default function MarketPricesModal({
           {/* Body */}
           <div className="flex-1 overflow-y-auto p-6">
             {/* Tabs */}
-            <div className="flex gap-2 mb-6">
+            <div className="flex gap-2 mb-6 flex-wrap">
               {[
                 { key: "dashboard", label: "Dashboard", icon: "📊" },
                 { key: "market", label: "Market Prices", icon: "💰" },
@@ -2276,28 +2278,25 @@ export default function MarketPricesModal({
                 { key: "orders", label: "Orders", icon: "📦" },
                 { key: "insights", label: "AI Insights", icon: "🤖" },
                 { key: "mylistings", label: "My Listings", icon: "📋" },
+                { key: "agroservices", label: "Agro Services", icon: "🌾" },
               ].map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => {
-                    if (tab.key === "add") {
-                      setFormData({
-                        product_name: "",
-                        category: "",
-                        region: "",
-                        retail_price: 0,
-                        farmgate_price: 0,
-                        unit: `${selectedCurrency}/kg`,
-                        benchmark: false,
-                      });
-                      setEditingId(null);
+                    if (tab.key === "agroservices") {
+                      setShowAgroServices(true);
+                    } else {
+                      setCurrentTab(tab.key as TabType);
                     }
-                    setCurrentTab(tab.key as TabType);
                   }}
                   className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-all duration-300 ${
-                    currentTab === tab.key
-                      ? "bg-brand-green text-white shadow-lg"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    tab.key === "agroservices"
+                      ? showAgroServices
+                        ? "bg-brand-green text-white shadow-lg"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                      : currentTab === tab.key
+                        ? "bg-brand-green text-white shadow-lg"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                   }`}
                 >
                   <span>{tab.icon}</span>
@@ -2341,6 +2340,13 @@ export default function MarketPricesModal({
               handleCheckout(cartData[0].id);
             }
           }}
+        />
+      )}
+      {/* Agro Services Modal */}
+      {showAgroServices && (
+        <AgroServicesModal
+          farmerId={farmerId}
+          onClose={() => setShowAgroServices(false)}
         />
       )}
     </>

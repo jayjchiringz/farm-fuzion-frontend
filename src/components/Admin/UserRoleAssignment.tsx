@@ -28,7 +28,6 @@ interface User {
   group_name?: string;
   created_at: string;
   // Optional farmer fields - might not exist for all users
-  phone?: string | null;
   county?: string | null;
   sub_county?: string | null;
 }

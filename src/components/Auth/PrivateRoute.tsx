@@ -9,7 +9,9 @@ export default function PrivateRoute({ children }: { children: React.ReactElemen
 
   // Role-based access guard
   const isFarmerDashboard = location.pathname.startsWith("/dashboard");
-  const isAdminRoute = location.pathname.startsWith("/admin-dashboard") || location.pathname.startsWith("/register-farmer");
+  const isAdminRoute = location.pathname.startsWith("/admin-dashboard") || 
+                       location.pathname.startsWith("/register-farmer") ||
+                       location.pathname.startsWith("/admin/users"); // Add this line
 
   if (isFarmerDashboard && user.role !== "farmer") {
     return <Navigate to="/admin-dashboard" replace />;

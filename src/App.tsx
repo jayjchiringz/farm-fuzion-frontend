@@ -9,6 +9,7 @@ import RegisterFarmerUnderGroup from "./pages/RegisterFarmerUnderGroup";
 import Loans from "./pages/Loans";
 import LoanRepayments from "./pages/LoanRepayments";
 import AdminDashboard from "./pages/AdminDashboard";
+import UserRoleManagement from './pages/admin/UserRoleManagement';
 
 import React from "react";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -17,7 +18,7 @@ import { CurrencyProvider } from './contexts/CurrencyContext';
 export default function App() {
   return (
     <AuthProvider>
-      <CurrencyProvider> {/* CurrencyProvider is correctly placed here */}
+      <CurrencyProvider>
         <MainLayout>
           <Routes>
             <Route path="/" element={<RedirectBasedOnAuth />} />
@@ -32,14 +33,16 @@ export default function App() {
                 </PrivateRoute>
               }
             />
+            
             <Route
               path="/admin-dashboard"
               element={
                 <PrivateRoute>
-                  <AdminDashboard children={undefined} />
+                  <AdminDashboard />
                 </PrivateRoute>
               }
             />
+            
             <Route
               path="/register-farmer"
               element={
@@ -48,8 +51,18 @@ export default function App() {
                 </PrivateRoute>
               }
             />
+            
             <Route path="/loans" element={<Loans />} />
             <Route path="/repayments/:loanId" element={<LoanRepayments />} />
+            
+            <Route 
+              path="/admin/users/roles" 
+              element={
+                <PrivateRoute>
+                  <UserRoleManagement />
+                </PrivateRoute>
+              } 
+            />
 
             {/* Fallback route */}
             <Route path="*" element={<Navigate to="/" />} />

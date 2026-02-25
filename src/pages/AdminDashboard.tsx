@@ -19,6 +19,7 @@ import { constituencies, counties, county, wards } from "kenya-locations";
 import { OverviewStats, GroupStats, FarmerStats } from "../components/Dashboard/DashboardStatsUI";
 import { usePagination } from "../hooks/usePagination";
 import PaginationFooter from "../components/Pagination/PaginationFooter";
+import UserRoleAssignment from "../components/Admin/UserRoleAssignment";
 
 const BASE_URL = import.meta.env.MODE === "development"
   ? "/api"
@@ -132,6 +133,8 @@ export default function AdminDashboard() {
 
   const admin = JSON.parse(localStorage.getItem("user") || "{}");
   const adminName = admin.first_name || admin.email?.split('@')[0] || 'Administrator';
+
+  const [isUserRoleAssignmentOpen, setUserRoleAssignmentOpen] = useState(false);
 
   useEffect(() => { 
     fetchData(); 
@@ -750,6 +753,11 @@ export default function AdminDashboard() {
                       icon={<ShieldCheck size={14} />}
                       label="User Roles"
                       onClick={() => setUserRoleModalOpen(true)}
+                    />
+                    <SubNavItem 
+                      icon={<UserCog size={14} />}
+                      label="Assign Roles"
+                      onClick={() => setUserRoleAssignmentOpen(true)} // New for assigning roles to users
                     />
                   </div>
                 )}
@@ -2126,6 +2134,11 @@ export default function AdminDashboard() {
           </DialogPanel>
         </div>
       </Dialog>
+      <UserRoleAssignment 
+        isOpen={isUserRoleAssignmentOpen}
+        onClose={() => setUserRoleAssignmentOpen(false)}
+        onSuccess={fetchData} // Refresh data after role changes
+      />
     </MainLayout>
   );
 }

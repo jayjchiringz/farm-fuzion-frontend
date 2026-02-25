@@ -13,27 +13,24 @@ import {
   ChevronRight,
   UserCog,
   Mail,
-  Phone,
   Calendar,
-  Building2
+  Building2,
+  User
 } from 'lucide-react';
 
 interface User {
   id: string;
   email: string;
-  first_name: string;
-  last_name: string;
-  phone: string;
+  first_name: string | null;
+  last_name: string | null;
   role: string;
   group_id: string | null;
   group_name?: string;
   created_at: string;
-}
-
-interface Role {
-  id: string;
-  name: string;
-  description?: string;
+  // Optional farmer fields - might not exist for all users
+  phone?: string | null;
+  county?: string | null;
+  sub_county?: string | null;
 }
 
 interface UserRoleAssignmentProps {
@@ -83,8 +80,7 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
       const search = searchTerm.toLowerCase();
       filtered = filtered.filter(user => 
         user.email.toLowerCase().includes(search) ||
-        `${user.first_name} ${user.last_name}`.toLowerCase().includes(search) ||
-        (user.phone && user.phone.includes(search))
+        `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase().includes(search)
       );
     }
     
@@ -101,7 +97,7 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
     setLoading(true);
     setShowError(null);
     try {
-      const response = await fetch(`${API_BASE}/admin/users?limit=100`); // Get all users for management
+      const response = await fetch(`${API_BASE}/admin/users?limit=100`);
       if (response.ok) {
         const data = await response.json();
         setUsers(data.users || []);
@@ -246,6 +242,13 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
     }
   };
 
+  const getUserDisplayName = (user: User): string => {
+    if (user.first_name || user.last_name) {
+      return `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    }
+    return user.email.split('@')[0];
+  };
+
   // Pagination
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
   const paginatedUsers = filteredUsers.slice(
@@ -309,7 +312,7 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   type="text"
-                  placeholder="Search users by name, email or phone..."
+                  placeholder="Search users by name or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
@@ -364,7 +367,7 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
                     <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">User</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Current Role</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">New Role</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
@@ -389,7 +392,7 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
                                 </div>
                                 <div className="ml-3">
                                   <p className="font-medium text-gray-900 dark:text-white">
-                                    {user.first_name || 'No name'} {user.last_name || ''}
+                                    {getUserDisplayName(user)}
                                   </p>
                                   <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">
                                     ID: {user.id.slice(0, 8)}...
@@ -409,12 +412,6 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
                                   <Mail size={12} className="text-gray-400" />
                                   {user.email}
                                 </p>
-                                {user.phone && (
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                    <Phone size={10} className="text-gray-400" />
-                                    {user.phone}
-                                  </p>
-                                )}
                                 <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                                   <Calendar size={10} className="text-gray-400" />
                                   Joined: {new Date(user.created_at).toLocaleDateString()}

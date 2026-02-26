@@ -13,43 +13,39 @@ export default function VerifyOtp() {
     setLoading(true);
     try {
       const response = await verifyOtp(email, otp);
+      console.log("🔍 Auth response:", response);
       
-      // The response should now include the user with role_name
-      // Based on your updated auth endpoint
       const { user } = response;
 
       if (!user) throw new Error("Missing user in response.");
-      
-      // Make sure we have the role information
-      if (!user.role_name) {
-        console.error("User object missing role_name:", user);
-        throw new Error("Invalid user data received");
+
+      // Ensure we have a role
+      const role = user.role;
+      if (!role) {
+        console.error("No role in user object:", user);
+        throw new Error("Invalid user data: missing role");
       }
 
-      // Store user in localStorage (includes role_id and role_name)
+      // Store user
       localStorage.setItem("user", JSON.stringify(user));
-      
-      // Also store role separately for quick access if needed
-      localStorage.setItem("role", user.role_name);
+      localStorage.setItem("role", role);
 
-      console.log("✅ Authenticated:", user.role_name, user);
+      console.log("✅ Authenticated:", role, user);
 
-      // Navigate based on role_name from database
-      if (user.role_name.toLowerCase() === "admin") {
+      // Navigate based on role
+      if (role === "admin") {
         navigate("/admin-dashboard");
-      } else if (user.role_name.toLowerCase() === "sacco") {
-        navigate("/sacco-dashboard");
-      } else if (user.role_name.toLowerCase() === "farmer") {
+      } else if (role === "farmer") {
         navigate("/dashboard");
+      } else if (role === "sacco") {
+        navigate("/sacco-dashboard"); // You may need to create this
       } else {
-        console.warn("Unknown role:", user.role_name);
-        // Default to admin dashboard for unknown roles
-        navigate("/admin-dashboard");
+        // Default fallback
+        navigate("/dashboard");
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "OTP verification failed";
-      console.error("🚨 Verification failed:", msg);
-      alert(msg);
+      console.error("🚨 Verification failed:", err);
+      alert(err instanceof Error ? err.message : "Verification failed");
     } finally {
       setLoading(false);
     }

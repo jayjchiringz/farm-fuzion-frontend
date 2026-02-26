@@ -1,24 +1,47 @@
+// src/components/Auth/PrivateRoute.tsx
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
-export default function PrivateRoute({ children }: { children: React.ReactElement }) {
+interface PrivateRouteProps {
+  children: React.ReactElement;
+  requiredRole?: string | string[]; // Optional: require specific role(s)
+}
+
+export default function PrivateRoute({ children, requiredRole }: PrivateRouteProps) {
   const location = useLocation();
-  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const { user, isAdmin, isFarmer } = useAuth();
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
 
-  // Role-based access guard
+  // Define route types based on path patterns
   const isFarmerDashboard = location.pathname.startsWith("/dashboard");
   const isAdminRoute = location.pathname.startsWith("/admin-dashboard") || 
                        location.pathname.startsWith("/register-farmer") ||
-                       location.pathname.startsWith("/admin/users"); // Add this line
+                       location.pathname.startsWith("/admin/");
 
-  if (isFarmerDashboard && user.role !== "farmer") {
+  // Role-based access guard
+  if (isFarmerDashboard && !isFarmer) {
+    // If trying to access farmer dashboard but not a farmer
     return <Navigate to="/admin-dashboard" replace />;
   }
 
-  if (isAdminRoute && user.role === "farmer") {
+  if (isAdminRoute && isFarmer) {
+    // If trying to access admin routes but is a farmer
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // Check for specific role requirements
+  if (requiredRole) {
+    const requiredRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    const userRole = user.role_name?.toLowerCase();
+    
+    if (!userRole || !requiredRoles.some(role => role.toLowerCase() === userRole)) {
+      // User doesn't have required role, redirect to appropriate dashboard
+      return <Navigate to={isFarmer ? "/dashboard" : "/admin-dashboard"} replace />;
+    }
   }
 
   return children;

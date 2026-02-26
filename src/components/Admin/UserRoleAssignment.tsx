@@ -132,52 +132,41 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
   };
 
   const handleSaveRole = async (userId: string) => {
-    const newRole = editedRoles[userId];
-    if (!newRole) return;
+    const newRoleId = editedRoles[userId];
+    if (!newRoleId) return;
 
     setUpdating(userId);
-    setShowError(null);
-    setShowSuccess(null);
-
+    
     try {
       const response = await fetch(`${API_BASE}/admin/users/${userId}/role`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ role: newRole })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role_id: newRoleId }) // Send role_id, not role name
       });
 
       if (response.ok) {
         const data = await response.json();
-        setShowSuccess(`Role updated successfully for ${users.find(u => u.id === userId)?.email}`);
-        
-        // Update local state
+        // Update local state with new role info
         setUsers(prev => prev.map(user => 
           user.id === userId 
-            ? { ...user, role: newRole }
+            ? { 
+                ...user, 
+                role_id: data.user.role_id,
+                role_name: data.user.role_name 
+              }
             : user
         ));
         
-        // Clear edited role
+        setShowSuccess(`Role updated successfully`);
         setEditedRoles(prev => {
           const newState = { ...prev };
           delete newState[userId];
           return newState;
         });
-        
-        // Call onSuccess callback if provided
-        if (onSuccess) onSuccess();
-        
-        // Clear success message after 3 seconds
-        setTimeout(() => setShowSuccess(null), 3000);
-      } else {
-        const error = await response.json();
-        setShowError(error.error || 'Failed to update role');
       }
     } catch (error) {
       console.error('Error updating role:', error);
-      setShowError('Failed to update role. Please try again.');
+      setShowError('Failed to update role');
     } finally {
       setUpdating(null);
     }

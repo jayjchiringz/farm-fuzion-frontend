@@ -12,7 +12,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import UserRoleManagement from './pages/admin/UserRoleManagement';
 
 import React from "react";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { CurrencyProvider } from './contexts/CurrencyContext';
 
 export default function App() {
@@ -25,44 +25,57 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/verify" element={<VerifyOtp />} />
 
+            {/* Farmer only routes */}
             <Route
               path="/dashboard"
               element={
-                <PrivateRoute>
+                <PrivateRoute requiredRole="farmer">
                   <Dashboard />
                 </PrivateRoute>
               }
             />
             
+            {/* Admin only routes */}
             <Route
               path="/admin-dashboard"
               element={
-                <PrivateRoute>
+                <PrivateRoute requiredRole="admin">
                   <AdminDashboard />
                 </PrivateRoute>
               }
             />
             
             <Route
+              path="/admin/users/roles"
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <UserRoleManagement />
+                </PrivateRoute>
+              }
+            />
+            
+            {/* Routes accessible by both admin and sacco */}
+            <Route
               path="/register-farmer"
               element={
-                <PrivateRoute>
+                <PrivateRoute requiredRole={['admin', 'sacco']}>
                   <RegisterFarmerUnderGroup />
                 </PrivateRoute>
               }
             />
             
-            <Route path="/loans" element={<Loans />} />
-            <Route path="/repayments/:loanId" element={<LoanRepayments />} />
+            {/* Public routes (still require authentication but no specific role) */}
+            <Route path="/loans" element={
+              <PrivateRoute>
+                <Loans />
+              </PrivateRoute>
+            } />
             
-            <Route 
-              path="/admin/users/roles" 
-              element={
-                <PrivateRoute>
-                  <UserRoleManagement />
-                </PrivateRoute>
-              } 
-            />
+            <Route path="/repayments/:loanId" element={
+              <PrivateRoute>
+                <LoanRepayments />
+              </PrivateRoute>
+            } />
 
             {/* Fallback route */}
             <Route path="*" element={<Navigate to="/" />} />
@@ -73,15 +86,27 @@ export default function App() {
   );
 }
 
+// Separate component to use the auth context
 function RedirectBasedOnAuth() {
-  const raw = localStorage.getItem("user");
-  const user = raw ? JSON.parse(raw) : null;
+  const { user, isFarmer, isAdmin } = useAuth();
+  
+  // If no user, redirect to login
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
-  if (!user) return <Navigate to="/login" replace />;
-
-  if (user.role === "farmer") {
+  // Redirect based on role name from database
+  if (isFarmer) {
     return <Navigate to="/dashboard" replace />;
   }
 
+  // Admin and any other roles go to admin dashboard
+  // This can be expanded later for SACCO-specific dashboards
+  if (isAdmin) {
+    return <Navigate to="/admin-dashboard" replace />;
+  }
+
+  // For any other roles (like sacco), send to admin dashboard for now
+  // Later we can add a SACCO-specific dashboard
   return <Navigate to="/admin-dashboard" replace />;
 }

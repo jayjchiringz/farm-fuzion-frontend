@@ -1,3 +1,4 @@
+// farm-fuzion-frontend/src/components/Admin/UserRoleAssignment.tsx
 import React, { useState, useEffect } from 'react';
 import {
   Shield,
@@ -14,8 +15,7 @@ import {
   UserCog,
   Mail,
   Calendar,
-  Building2,
-  User
+  Building2
 } from 'lucide-react';
 
 interface User {
@@ -23,13 +23,17 @@ interface User {
   email: string;
   first_name: string | null;
   last_name: string | null;
+  middle_name?: string | null;
   role: string;
   group_id: string | null;
   group_name?: string;
   created_at: string;
-  // Optional farmer fields - might not exist for all users
-  county?: string | null;
-  sub_county?: string | null;
+}
+
+interface Role {
+  id: string;
+  name: string;
+  description?: string;
 }
 
 interface UserRoleAssignmentProps {
@@ -42,16 +46,10 @@ const API_BASE = import.meta.env.MODE === "development"
   ? "/api"
   : "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
 
-// Available roles based on your schema constraint
-const AVAILABLE_ROLES = [
-  { value: 'admin', label: 'Admin', color: 'purple', description: 'Full system access' },
-  { value: 'sacco', label: 'SACCO', color: 'blue', description: 'Manage groups and loans' },
-  { value: 'farmer', label: 'Farmer', color: 'green', description: 'Farm management and marketplace' }
-];
-
 export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserRoleAssignmentProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,10 +61,10 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
   
   const itemsPerPage = 10;
 
-  // Load users when modal opens
+  // Load users and roles when modal opens
   useEffect(() => {
     if (isOpen) {
-      fetchUsers();
+      Promise.all([fetchUsers(), fetchRoles()]);
     }
   }, [isOpen]);
 
@@ -109,6 +107,20 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
       setShowError('Failed to fetch users. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const response = await fetch('https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/getRoles');
+      if (response.ok) {
+        const data = await response.json();
+        setRoles(data);
+      } else {
+        console.error('Failed to fetch roles');
+      }
+    } catch (error) {
+      console.error('Error fetching roles:', error);
     }
   };
 
@@ -215,8 +227,9 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
     }
   };
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role?.toLowerCase()) {
+  const getRoleBadgeColor = (roleName: string) => {
+    // You can customize colors based on role names
+    switch (roleName?.toLowerCase()) {
       case 'admin':
         return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800';
       case 'sacco':
@@ -228,8 +241,8 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
     }
   };
 
-  const getRoleIcon = (role: string) => {
-    switch (role?.toLowerCase()) {
+  const getRoleIcon = (roleName: string) => {
+    switch (roleName?.toLowerCase()) {
       case 'admin':
         return '👑';
       case 'sacco':
@@ -276,7 +289,7 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-white">User Role Assignment</h3>
-                  <p className="text-sm text-white/80">Assign and manage user roles (Admin, SACCO, Farmer)</p>
+                  <p className="text-sm text-white/80">Assign and manage user roles</p>
                 </div>
               </div>
               <button
@@ -326,14 +339,14 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
                   className="w-full pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white appearance-none"
                 >
                   <option value="all">All Roles</option>
-                  {AVAILABLE_ROLES.map(role => (
-                    <option key={role.value} value={role.value}>{role.label}</option>
+                  {roles.map(role => (
+                    <option key={role.id} value={role.name}>{role.name}</option>
                   ))}
                 </select>
               </div>
 
               <button
-                onClick={fetchUsers}
+                onClick={() => Promise.all([fetchUsers(), fetchRoles()])}
                 className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 border border-gray-300 dark:border-gray-600"
               >
                 <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
@@ -429,13 +442,13 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                               >
                                 <option value="">Select Role</option>
-                                {AVAILABLE_ROLES.map(role => (
+                                {roles.map(role => (
                                   <option 
-                                    key={role.value} 
-                                    value={role.value}
-                                    disabled={role.value === user.role}
+                                    key={role.id} 
+                                    value={role.name}
+                                    disabled={role.name === user.role}
                                   >
-                                    {role.label} {role.value === user.role ? '(current)' : ''}
+                                    {role.name} {role.name === user.role ? '(current)' : ''}
                                   </option>
                                 ))}
                               </select>
@@ -498,24 +511,28 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
             )}
 
             {/* Role Legend */}
-            <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                <UserCog size={16} />
-                Role Descriptions
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {AVAILABLE_ROLES.map(role => (
-                  <div key={role.value} className="flex items-start gap-2">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(role.value)}`}>
-                      {role.label}
-                    </span>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {role.description}
-                    </p>
-                  </div>
-                ))}
+            {roles.length > 0 && (
+              <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                  <UserCog size={16} />
+                  Available Roles
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {roles.map(role => (
+                    <div key={role.id} className="flex items-start gap-2">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(role.name)}`}>
+                        {role.name}
+                      </span>
+                      {role.description && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {role.description}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Footer */}

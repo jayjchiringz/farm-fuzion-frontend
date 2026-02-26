@@ -18,6 +18,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  setUser: (user: User | null) => void; // Add this
   logout: () => void;
   getFarmerId: () => Promise<number | null>;
   hasRole: (roleName: string) => boolean;           // Helper to check roles
@@ -54,11 +55,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const response = await api.post('/auth/login', { email, password });
       
-      // The response should now include role information from the database
-      // Expected structure: { user: { id, email, role_id, role_name, ... }, token }
       const userData = response.data.user;
       
-      // Ensure we have the role information
       if (!userData.role_id || !userData.role_name) {
         console.error('Login response missing role information:', userData);
         throw new Error('Invalid user data received');
@@ -88,7 +86,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("getFarmerId: Fetching for user:", user.id);
       
-      // Check if user has farmer role (case-insensitive)
       if (user.role_name?.toLowerCase() === 'farmer') {
         const response = await api.get(`/farmers/by-user/${user.id}`);
         console.log("getFarmerId: Response:", response.data);
@@ -109,13 +106,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Helper function to check if user has a specific role (case-insensitive)
   const hasRole = (roleName: string): boolean => {
     if (!user || !user.role_name) return false;
     return user.role_name.toLowerCase() === roleName.toLowerCase();
   };
 
-  // Computed properties for common roles
   const isAdmin = hasRole('admin');
   const isFarmer = hasRole('farmer');
   const isSacco = hasRole('sacco');
@@ -125,6 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user, 
       loading, 
       login, 
+      setUser, // Add this
       logout, 
       getFarmerId,
       hasRole,

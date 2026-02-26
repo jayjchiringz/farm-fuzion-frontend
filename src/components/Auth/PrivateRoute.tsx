@@ -10,10 +10,25 @@ interface PrivateRouteProps {
 
 export default function PrivateRoute({ children, requiredRole }: PrivateRouteProps) {
   const location = useLocation();
-  const { user, isAdmin, isFarmer } = useAuth();
+  const { user, isAdmin, isFarmer, loading } = useAuth();
+
+  console.log('🔐 PrivateRoute - Auth state:', { 
+    user: user ? { id: user.id, email: user.email, role_name: user.role_name } : null,
+    isAdmin, 
+    isFarmer, 
+    loading, 
+    path: location.pathname,
+    requiredRole
+  });
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green"></div>
+    </div>;
   }
 
   // Define route types based on path patterns

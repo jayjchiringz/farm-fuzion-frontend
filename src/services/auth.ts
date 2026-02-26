@@ -14,7 +14,6 @@ export const requestOtp = async (email: string) => {
   return await res.json(); // Includes role
 };
 
-// farm-fuzion-frontend\src\services\auth.ts
 export async function verifyOtp(email: string, otp: string) {
   const response = await fetch(`https://api-ugbghpzhpa-uc.a.run.app/auth/verify-otp`, {
     method: 'POST',
@@ -31,10 +30,18 @@ export async function verifyOtp(email: string, otp: string) {
   
   // Ensure the user object has the expected structure
   if (data.user) {
-    // Make sure we have role information
+    // Make sure we have role information in the expected format
     if (!data.user.role_name && data.user.role) {
-      // Handle case where backend still sends old format
       data.user.role_name = data.user.role;
+    }
+    if (!data.user.role_id) {
+      // Map role to role_id if not provided
+      const roleIdMap: Record<string, string> = {
+        'admin': '1',
+        'sacco': '2',
+        'farmer': '3'
+      };
+      data.user.role_id = roleIdMap[data.user.role] || '3';
     }
   }
   

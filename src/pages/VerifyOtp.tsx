@@ -1,16 +1,21 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { verifyOtp } from "../services/auth";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function VerifyOtp() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const email = localStorage.getItem("pendingEmail") || "";
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
+    
     try {
       const response = await verifyOtp(email, otp);
       console.log("🔍 Auth response:", response);
@@ -26,26 +31,55 @@ export default function VerifyOtp() {
         throw new Error("Invalid user data: missing role");
       }
 
-      // Store user
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("role", role);
+      // Map role to role_id (temporary mapping - you should get this from your roles table)
+      const roleIdMap: Record<string, string> = {
+        'admin': '1',
+        'sacco': '2', 
+        'farmer': '3'
+      };
 
-      console.log("✅ Authenticated:", role, user);
+      // Format user to match AuthContext User interface
+      const formattedUser = {
+        id: user.id,
+        email: user.email,
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        role_id: user.role_id || roleIdMap[role] || '3', // Use role_id if provided, otherwise map
+        role_name: role, // Use the role from response as role_name
+        role_description: user.role_description || `${role} user`,
+        group_id: user.group_id || null,
+        created_at: user.created_at || new Date().toISOString()
+      };
 
-      // Navigate based on role
-      if (role === "admin") {
-        navigate("/admin-dashboard");
-      } else if (role === "farmer") {
-        navigate("/dashboard");
-      } else if (role === "sacco") {
-        navigate("/sacco-dashboard"); // You may need to create this
-      } else {
-        // Default fallback
-        navigate("/dashboard");
+      console.log("✅ Formatted user:", formattedUser);
+
+      // Set user via context (this updates state and localStorage)
+      setUser(formattedUser);
+      
+      // Also store token if present
+      if (response.token) {
+        localStorage.setItem("token", response.token);
       }
+
+      console.log("✅ Authenticated:", role, formattedUser);
+
+      // Small delay to ensure state updates propagate
+      setTimeout(() => {
+        // Navigate based on role
+        if (role === "admin") {
+          navigate("/admin-dashboard");
+        } else if (role === "farmer") {
+          navigate("/dashboard");
+        } else if (role === "sacco") {
+          navigate("/admin-dashboard"); // For now, send to admin dashboard
+        } else {
+          navigate("/dashboard");
+        }
+      }, 100);
+      
     } catch (err) {
       console.error("🚨 Verification failed:", err);
-      alert(err instanceof Error ? err.message : "Verification failed");
+      setError(err instanceof Error ? err.message : "Verification failed");
     } finally {
       setLoading(false);
     }
@@ -74,6 +108,12 @@ export default function VerifyOtp() {
             <span className="font-medium">{email}</span>
           </p>
         </div>
+
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+            {error}
+          </div>
+        )}
 
         <div>
           <label htmlFor="otp" className="block text-sm font-medium mb-1">

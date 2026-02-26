@@ -1,5 +1,3 @@
-import { api } from "./api";
-
 export const requestOtp = async (email: string) => {
   //const res = await fetch("https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/auth/request-otp", {
   const res = await fetch("https://api-ugbghpzhpa-uc.a.run.app/auth/request-otp", {
@@ -16,19 +14,29 @@ export const requestOtp = async (email: string) => {
   return await res.json(); // Includes role
 };
 
-export const verifyOtp = async (email: string, otp: string) => {
-  //const res = await fetch("http://localhost:5001/farm-fuzion/us-central1/api/auth/verify-otp", {
-  //const res = await fetch("https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/auth/verify-otp", {
-  const res = await fetch("https://api-ugbghpzhpa-uc.a.run.app/auth/verify-otp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, otp }),
+// farm-fuzion-frontend\src\services\auth.ts
+export async function verifyOtp(email: string, otp: string) {
+  const response = await fetch(`https://api-ugbghpzhpa-uc.a.run.app/auth/verify-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, otp })
   });
 
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || "OTP verification failed");
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Verification failed');
   }
 
-  return await res.json();
-};
+  const data = await response.json();
+  
+  // Ensure the user object has the expected structure
+  if (data.user) {
+    // Make sure we have role information
+    if (!data.user.role_name && data.user.role) {
+      // Handle case where backend still sends old format
+      data.user.role_name = data.user.role;
+    }
+  }
+  
+  return data;
+}

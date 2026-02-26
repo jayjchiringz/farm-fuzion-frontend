@@ -13,23 +13,38 @@ export default function VerifyOtp() {
     setLoading(true);
     try {
       const response = await verifyOtp(email, otp);
-      const { role, user } = response;
+      
+      // The response should now include the user with role_name
+      // Based on your updated auth endpoint
+      const { user } = response;
 
-      if (!role || !user) throw new Error("Missing user or role in response.");
+      if (!user) throw new Error("Missing user in response.");
+      
+      // Make sure we have the role information
+      if (!user.role_name) {
+        console.error("User object missing role_name:", user);
+        throw new Error("Invalid user data received");
+      }
 
+      // Store user in localStorage (includes role_id and role_name)
       localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("role", role);
+      
+      // Also store role separately for quick access if needed
+      localStorage.setItem("role", user.role_name);
 
-      console.log("✅ Authenticated:", role, user);
+      console.log("✅ Authenticated:", user.role_name, user);
 
-      if (user.role === "admin") {
+      // Navigate based on role_name from database
+      if (user.role_name.toLowerCase() === "admin") {
         navigate("/admin-dashboard");
-      } else if (user.role === "sacco") {
+      } else if (user.role_name.toLowerCase() === "sacco") {
         navigate("/sacco-dashboard");
-      } else if (user.role === "farmer") {
+      } else if (user.role_name.toLowerCase() === "farmer") {
         navigate("/dashboard");
       } else {
-        throw new Error("Unknown user role.");
+        console.warn("Unknown role:", user.role_name);
+        // Default to admin dashboard for unknown roles
+        navigate("/admin-dashboard");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "OTP verification failed";

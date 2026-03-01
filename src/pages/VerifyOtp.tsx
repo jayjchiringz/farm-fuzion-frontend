@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { verifyOtp } from "../services/auth";
 import { useAuth } from "../contexts/AuthContext";
@@ -10,9 +10,28 @@ export default function VerifyOtp() {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [retryAfter, setRetryAfter] = useState<number | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  // Countdown timer for rate limit
+  useEffect(() => {
+    if (countdown !== null && countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (countdown === 0) {
+      setRetryAfter(null);
+      setCountdown(null);
+      setError(""); // Clear the error when countdown finishes
+    }
+  }, [countdown]);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (retryAfter) {
+      setError(`Too many attempts. Please wait ${countdown} seconds.`);
+      return;
+    }
+
     setLoading(true);
     setError("");
     
@@ -24,62 +43,54 @@ export default function VerifyOtp() {
 
       if (!user) throw new Error("Missing user in response.");
 
-      // Ensure we have a role
-      const role = user.role;
-      if (!role) {
-        console.error("No role in user object:", user);
-        throw new Error("Invalid user data: missing role");
-      }
-
-      // Map role to role_id (temporary mapping - you should get this from your roles table)
-      const roleIdMap: Record<string, string> = {
-        'admin': '1',
-        'sacco': '2', 
-        'farmer': '3'
-      };
-
       // Format user to match AuthContext User interface
       const formattedUser = {
         id: user.id,
         email: user.email,
         first_name: user.first_name || '',
         last_name: user.last_name || '',
-        role_id: user.role_id || roleIdMap[role] || '3', // Use role_id if provided, otherwise map
-        role_name: role, // Use the role from response as role_name
-        role_description: user.role_description || `${role} user`,
+        role_id: user.role_id,
+        role_name: user.role_name || user.role,
+        role_description: user.role_description || null,
         group_id: user.group_id || null,
         created_at: user.created_at || new Date().toISOString()
       };
 
       console.log("✅ Formatted user:", formattedUser);
 
-      // Set user via context (this updates state and localStorage)
+      // Set user via context
       setUser(formattedUser);
       
-      // Also store token if present
+      // Store token if present
       if (response.token) {
         localStorage.setItem("token", response.token);
       }
 
-      console.log("✅ Authenticated:", role, formattedUser);
+      // Clear pending email
+      localStorage.removeItem("pendingEmail");
 
-      // Small delay to ensure state updates propagate
-      setTimeout(() => {
-        // Navigate based on role
-        if (role === "admin") {
-          navigate("/admin-dashboard");
-        } else if (role === "farmer") {
-          navigate("/dashboard");
-        } else if (role === "sacco") {
-          navigate("/admin-dashboard"); // For now, send to admin dashboard
-        } else {
-          navigate("/dashboard");
-        }
-      }, 100);
+      // Navigate based on role
+      if (formattedUser.role_name?.toLowerCase() === "admin") {
+        navigate("/admin-dashboard");
+      } else if (formattedUser.role_name?.toLowerCase() === "farmer") {
+        navigate("/dashboard");
+      } else {
+        navigate("/dashboard");
+      }
       
-    } catch (err) {
+    } catch (err: any) {
       console.error("🚨 Verification failed:", err);
-      setError(err instanceof Error ? err.message : "Verification failed");
+      
+      // Check for rate limit error
+      if (err.message?.includes('429') || err.message?.includes('Too many requests')) {
+        const match = err.message?.match(/try again in (\d+) seconds/);
+        const waitTime = match ? parseInt(match[1]) : 60;
+        setRetryAfter(waitTime);
+        setCountdown(waitTime);
+        setError(`Too many attempts. Please wait ${waitTime} seconds.`);
+      } else {
+        setError(err.message || "Verification failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -110,8 +121,16 @@ export default function VerifyOtp() {
         </div>
 
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          <div className={`${retryAfter ? 'bg-yellow-100 border-yellow-400 text-yellow-700' : 'bg-red-100 border-red-400 text-red-700'} border px-4 py-3 rounded relative`}>
             {error}
+            {countdown !== null && (
+              <div className="mt-2 w-full bg-yellow-200 rounded-full h-2">
+                <div 
+                  className="bg-yellow-600 h-2 rounded-full transition-all duration-1000"
+                  style={{ width: `${(countdown / (retryAfter || 60)) * 100}%` }}
+                ></div>
+              </div>
+            )}
           </div>
         )}
 
@@ -130,16 +149,23 @@ export default function VerifyOtp() {
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
             required
+            disabled={loading || !!retryAfter}
           />
         </div>
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !!retryAfter}
           className="w-full bg-brand-green text-[#8dc71d] py-3 rounded font-semibold hover:bg-brand-dark hover:text-white disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-300"
         >
-          {loading ? "Verifying..." : "Verify OTP"}
+          {loading ? "Verifying..." : retryAfter ? `Wait ${countdown}s` : "Verify OTP"}
         </button>
+
+        {retryAfter && (
+          <p className="text-sm text-center text-gray-600 dark:text-gray-400">
+            Too many attempts. Please wait {countdown} seconds before trying again.
+          </p>
+        )}
       </form>
     </div>
   );

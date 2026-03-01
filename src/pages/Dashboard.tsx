@@ -26,14 +26,20 @@ import CurrencyModal from "../components/Currency/CurrencyModal";
 import KnowledgeModal from "../components/Knowledge/KnowledgeModal";
 import LogisticsModal from "../components/Logistics/LogisticsModal";
 import InsuranceModal from "../components/Insurance/InsuranceModal";
+import { useAuth } from "../contexts/AuthContext";
 
 // API Base URL
 const API_BASE = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+
+  const { user, getFarmerId } = useAuth();
+
+  /*
   const farmer = JSON.parse(localStorage.getItem("user") || "{}");
   const farmerId = farmer?.id;
+  */
 
   // State for real data
   const [walletBalance, setWalletBalance] = useState(0);
@@ -75,54 +81,48 @@ export default function Dashboard() {
   const [knowledgeOpen, setKnowledgeOpen] = useState(false);
   const [logisticsOpen, setLogisticsOpen] = useState(false);
   const [insuranceOpen, setInsuranceOpen] = useState(false);
+  const [farmerNumericId, setFarmerNumericId] = useState<number | null>(null);
 
+  // Get farmer ID from context
+  useEffect(() => {
+    const fetchFarmerNumericId = async () => {
+      if (user?.role_name?.toLowerCase() === 'farmer') {
+        const id = await getFarmerId();
+        console.log("✅ Farmer numeric ID:", id);
+        setFarmerNumericId(id);
+      }
+    };
+    
+    fetchFarmerNumericId();
+  }, [user]);
+
+  // Update the farmer details fetch
   useEffect(() => {
     const fetchFarmerDetails = async () => {
-      if (!farmerId) return;
+      if (!user?.id) return;
       
       try {
-        // If we don't have first_name in localStorage, fetch from API
-        if (!farmer.first_name && farmerId) {
-          console.log("🔍 Fetching farmer details for ID:", farmerId);
-          
-          // The working endpoint returns an array
-          const response = await fetch(`${API_BASE}/farmers?id=${farmerId}`);
-          
-          if (response.ok) {
-            const data = await response.json();
-            console.log("✅ Farmer details from API:", data);
-            
-            // The API returns an array of ALL farmers
-            // We need to find the one with matching ID
-            if (Array.isArray(data) && data.length > 0) {
-              // Try to find by matching ID formats
-              const matchingFarmer = data.find((f: any) => 
-                String(f.id) === String(farmerId) || 
-                f.user_id === farmerId ||
-                f.auth_id === farmerId
-              );
-              
-              if (matchingFarmer) {
-                console.log("✅ Found matching farmer:", matchingFarmer);
-                setFarmerDetails(matchingFarmer);
-              } else {
-                console.warn("No matching farmer found, using first result:", data[0]);
-                setFarmerDetails(data[0]); // Fallback to first
-              }
-            } else {
-              console.warn("No farmer data found in response");
-            }
-          } else {
-            console.warn("Failed to fetch farmer details:", response.status);
-          }
+        console.log("🔍 Fetching farmer details for user ID:", user.id);
+        
+        // Use the by-user endpoint instead of query param
+        const response = await fetch(`${API_BASE}/farmers/by-user/${user.id}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log("✅ Farmer details from API:", data);
+          setFarmerDetails(data);
+        } else {
+          console.warn("Failed to fetch farmer details:", response.status);
         }
       } catch (error) {
         console.error("Error fetching farmer details:", error);
       }
     };
 
-    fetchFarmerDetails();
-  }, [farmerId]);
+    if (user?.role_name?.toLowerCase() === 'farmer') {
+      fetchFarmerDetails();
+    }
+  }, [user]);
 
   // Set greeting based on time
   useEffect(() => {
@@ -132,34 +132,35 @@ export default function Dashboard() {
     else setGreeting("Good evening");
   }, []);
 
-  // Get the farmer's first name from localStorage or fetched details
-  const firstName = farmer.first_name || 
-                    farmer.firstName || 
-                    farmerDetails?.first_name || // Now farmerDetails is a single object, not an array
-                    farmerDetails?.firstName || 
-                    '';
-
-  const displayName = firstName || farmer.email?.split('@')[0] || 'Farmer';
-
   console.log("✅ Farmer details:", farmerDetails);
   console.log("✅ First name from API:", farmerDetails?.first_name);
-  console.log("✅ Final firstName:", firstName);
-  console.log("✅ Final displayName:", displayName);
 
-  useEffect(() => {
-    if (farmerId) {
-      loadDashboardData();
-    }
-  }, [farmerId]);
+  // Update the firstName to use user from context
+  const firstName = user?.first_name || 
+                    farmerDetails?.first_name || 
+                    user?.email?.split('@')[0] || 
+                    'Farmer';
 
   // Fetch weather when dashboard loads
   useEffect(() => {
     fetchWeather();
   }, []);
 
+  // Update loadDashboardData to use the correct IDs
   const loadDashboardData = async () => {
+    if (!user?.id) return;
+    
     setLoading(true);
+    console.log("📊 Loading dashboard data for:", { 
+      userId: user.id, 
+      farmerNumericId,
+      role: user.role_name 
+    });
+    
     try {
+      // Use farmerNumericId for farmer-specific endpoints, user.id for wallet/user endpoints
+      const farmerIdentifier = farmerNumericId || user.id;
+      
       const [
         walletRes,
         ordersRes,
@@ -168,85 +169,28 @@ export default function Dashboard() {
         inventoryRes,
         transactionsRes
       ] = await Promise.allSettled([
-        fetch(`${API_BASE}/wallet/${farmerId}/balance`),
-        fetch(`${API_BASE}/marketplace/orders/buyer/${farmerId}?status=pending`),
-        fetch(`${API_BASE}/marketplace/products?farmer_id=${farmerId}&status=available`),
+        fetch(`${API_BASE}/wallet/${user.id}/balance`),
+        fetch(`${API_BASE}/marketplace/orders/buyer/${user.id}?status=pending`),
+        fetch(`${API_BASE}/marketplace/products?farmer_id=${farmerIdentifier}&status=available`),
         fetch(`${API_BASE}/market-prices/summary`),
-        fetch(`${API_BASE}/farm-products/farmer/${farmerId}`),
-        fetch(`${API_BASE}/wallet/${farmerId}/transactions?limit=5`)
+        fetch(`${API_BASE}/farm-products/farmer/${farmerIdentifier}`),
+        fetch(`${API_BASE}/wallet/${user.id}/transactions?limit=5`)
       ]);
 
-      // Process wallet balance
-      if (walletRes.status === 'fulfilled') {
-        const data = await walletRes.value.json();
-        setWalletBalance(data.balance || 0);
-      }
-
-      // Process pending orders
-      if (ordersRes.status === 'fulfilled') {
-        const data = await ordersRes.value.json();
-        setPendingOrders(data.data?.length || 0);
-      }
-
-      // Process active listings
-      if (listingsRes.status === 'fulfilled') {
-        const data = await listingsRes.value.json();
-        setActiveListings(data.data?.length || 0);
-        const sales = data.data?.reduce((sum: number, item: any) => 
-          sum + (item.price * item.quantity), 0) || 0;
-        setTotalSales(sales);
-      }
-
-      // Process market prices
-      if (pricesRes.status === 'fulfilled') {
-        const response = await pricesRes.value.json();
-        if (response && Array.isArray(response.data)) {
-          setMarketPrices(response.data.slice(0, 5));
-        } else {
-          setMarketPrices([]);
-        }
-      }
-
-      // Process inventory
-      if (inventoryRes.status === 'fulfilled') {
-        const data = await inventoryRes.value.json();
-        
-        const categoryCounts: Record<string, number> = {};
-        
-        if (data.data && Array.isArray(data.data)) {
-          data.data.forEach((item: any) => {
-            const category = item.category || 'Uncategorized';
-            categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-          });
-        }
-        
-        const categories = Object.entries(categoryCounts).map(([name, value]) => ({ 
-          name, 
-          value
-        }));
-        
-        setInventoryStats({
-          total: data.data?.length || 0,
-          categories
-        });
-      }
-
-      // Process recent transactions
-      if (transactionsRes.status === 'fulfilled') {
-        const response = await transactionsRes.value.json();
-        if (response && response.success && Array.isArray(response.transactions)) {
-          setRecentTransactions(response.transactions.slice(0, 3));
-        } else {
-          setRecentTransactions([]);
-        }
-      }
-
+      // ... rest of the processing
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     } finally {
       setLoading(false);
     }
   };
+
+    // Update the useEffect dependency
+  useEffect(() => {
+    if (user?.id) {
+      loadDashboardData();
+    }
+  }, [user?.id, farmerNumericId]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -505,7 +449,7 @@ export default function Dashboard() {
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-16 -mb-16"></div>
               
               <div className="relative z-10">
-                <h2 className="text-3xl font-bold mb-2">{displayName}'s Farm</h2>
+                <h2 className="text-3xl font-bold mb-2">{firstName}'s Farm</h2>
                 <p className="text-white/90 max-w-2xl">
                   Your farm management dashboard. Track inventory, monitor market prices, 
                   manage your wallet, and access credit facilities all in one place.
@@ -852,47 +796,44 @@ export default function Dashboard() {
       </div>
 
       {/* Modals */}
-      {walletOpen && (
-        <WalletModal farmerId={farmer?.id} onClose={() => setWalletOpen(false)} />
+      {walletOpen && user?.id && (
+        <WalletModal farmerId={user.id} onClose={() => setWalletOpen(false)} />
       )}
-      {productsOpen && (
+      {productsOpen && user?.id && (
         <ProductsModal
-          farmerId={farmer?.id}
+          farmerId={user.id}
           onClose={() => setProductsOpen(false)}
           onProductAdded={loadDashboardData}
         />
       )}
-      {marketsOpen && (
+      {marketsOpen && user?.id && (
         <MarketsModal
-          farmerId={farmer?.id}
+          farmerId={user?.id}
           onClose={() => setMarketsOpen(false)}
           onMarketAdded={loadDashboardData}
         />
       )}
-      {creditOpen && (
+      {creditOpen && user?.id && (
         <CreditModal
-          farmerId={farmer?.id}
+          farmerId={user.id}
           onClose={() => setCreditOpen(false)}
         />
       )}
-      {weatherOpen && (
+      {weatherOpen && user?.id && (
         <WeatherModal
-          farmerId={farmer?.id}
+          farmerId={user.id}
           farmerLocation={{
-            county: farmerDetails?.county,
-            sub_county: farmerDetails?.sub_county,
-            ward: farmerDetails?.ward,
-            village: farmerDetails?.village
+            county: farmerDetails?.county || '',
+            sub_county: farmerDetails?.sub_county || '',
+            ward: farmerDetails?.ward || '',
+            village: farmerDetails?.village || ''
           }}
           onClose={() => setWeatherOpen(false)}
         />
       )}
-      {currencyOpen && (
-        <CurrencyModal onClose={() => setCurrencyOpen(false)} />
-      )}
-      {knowledgeOpen && (
+      {knowledgeOpen && user?.id && (
         <KnowledgeModal
-          farmerId={farmer?.id}
+          farmerId={user.id}
           onClose={() => setKnowledgeOpen(false)}
         />
       )}

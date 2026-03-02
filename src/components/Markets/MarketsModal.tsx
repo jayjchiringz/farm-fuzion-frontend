@@ -1,6 +1,6 @@
 // farm-fuzion-frontend/src/components/Markets/MarketPricesModal.tsx
 import React, { useEffect, useState, useMemo } from "react";
-import { marketPricesApi, MarketPrice, API_BASE } from "../../services/marketPricesApi";
+import { marketPricesApi, MarketPrice } from "../../services/marketPricesApi";
 import { formatCurrency } from "../../utils/format";
 import {
   TrendingUp,
@@ -24,6 +24,7 @@ import {
 import { marketplaceApi, ShoppingCart as ShoppingCartType, MarketplaceOrder, MarketplaceProduct } from "../../services/marketplaceApi";
 import { formatCurrencyKES } from "../../utils/format";
 import AgroServicesModal from "./AgroServicesModal";
+import { API_BASE } from "../../services/config";
 
 interface MarketPricesModalProps {
   farmerId?: string;

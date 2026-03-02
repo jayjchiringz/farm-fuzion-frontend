@@ -1,9 +1,27 @@
+// src/services/api.ts
 import axios from "axios";
+import { API_BASE } from "./config";
 
 export const api = axios.create({
-  //baseURL: "http://127.0.0.1:5001/farm-fuzion/us-central1/api",
-  baseURL: "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api",
+  baseURL: API_BASE,
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+// Add request interceptor for debugging (optional)
+api.interceptors.request.use(request => {
+  console.log('🚀 API Request:', request.method?.toUpperCase(), request.url);
+  return request;
+});
+
+api.interceptors.response.use(
+  response => {
+    console.log('✅ API Response:', response.status, response.config.url);
+    return response;
+  },
+  error => {
+    console.error('❌ API Error:', error.response?.status, error.config?.url, error.message);
+    return Promise.reject(error);
+  }
+);

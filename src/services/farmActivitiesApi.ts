@@ -1,6 +1,7 @@
 // farm-fuzion-frontend/src/services/farmActivitiesApi.ts
 import axios from "axios";
 import { components } from "../../types/api";
+import { API_BASE } from "./config";
 
 // ============================================
 // TYPES
@@ -150,10 +151,6 @@ export type Crop = {
   growth_days: number;
   description?: string;
 };
-
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net";
 
 export const farmActivitiesApi = {
   // ============================================

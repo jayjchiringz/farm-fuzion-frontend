@@ -1,8 +1,6 @@
 // farm-fuzion-frontend/src/services/marketplaceApi.ts
 import axios from "axios";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 
-  "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
+import { API_BASE } from "./config";
 
 // Types matching backend schemas
 export interface MarketplaceProduct {

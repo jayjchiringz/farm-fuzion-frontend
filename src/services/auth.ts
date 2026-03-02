@@ -1,7 +1,9 @@
-// farm-fuzion-frontend\src\services\auth.ts
+// src/services/auth.ts
+import { API_BASE } from "./config";
+
 export async function verifyOtp(email: string, otp: string) {
   try {
-    const response = await fetch(`https://api-ugbghpzhpa-uc.a.run.app/auth/verify-otp`, {
+    const response = await fetch(`${API_BASE}/auth/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, otp })
@@ -9,9 +11,7 @@ export async function verifyOtp(email: string, otp: string) {
 
     if (!response.ok) {
       if (response.status === 429) {
-        // Try to get retry-after header
         const retryAfter = response.headers.get('retry-after');
-        const error = await response.text();
         throw new Error(`Too many requests. Please try again in ${retryAfter || 60} seconds.`);
       }
       
@@ -21,12 +21,8 @@ export async function verifyOtp(email: string, otp: string) {
 
     const data = await response.json();
     
-    // Ensure the user object has the expected structure
-    if (data.user) {
-      // Make sure we have role information
-      if (!data.user.role_name && data.user.role) {
-        data.user.role_name = data.user.role;
-      }
+    if (data.user && !data.user.role_name && data.user.role) {
+      data.user.role_name = data.user.role;
     }
     
     return data;
@@ -34,4 +30,20 @@ export async function verifyOtp(email: string, otp: string) {
     console.error('OTP verification error:', error);
     throw error;
   }
+}
+
+// Add requestOtp function if missing
+export async function requestOtp(email: string) {
+  const response = await fetch(`${API_BASE}/auth/request-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to request OTP");
+  }
+
+  return await response.json();
 }

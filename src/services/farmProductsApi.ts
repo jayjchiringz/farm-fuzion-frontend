@@ -1,6 +1,7 @@
 // farm-fuzion-frontend/src/services/farmProductsApi.ts
 import axios from "axios";
 import { components } from "../../types/api"; // ✅ generated OpenAPI types
+import { API_BASE } from "./config";
 
 // ✅ Alias FarmProduct schema with frontend extensions
 export type FarmProduct = components["schemas"]["FarmProduct"] & {
@@ -18,10 +19,6 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
 }
-
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net";
 
 export const farmProductsApi = {
   // 🔍 Get all products (with filters + pagination)

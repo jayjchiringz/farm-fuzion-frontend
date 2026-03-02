@@ -1,6 +1,7 @@
 // farm-fuzion-frontend/src/services/marketPricesApi.ts
 import axios from "axios";
 import { components } from "../../types/api"; // ✅ OpenAPI-generated types
+import { API_BASE } from "./config";
 
 // ✅ Alias MarketPrice schema with frontend extensions
 export type MarketPrice = components["schemas"]["MarketPrice"] & {
@@ -14,10 +15,6 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
 }
-
-export const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net";
 
 export const marketPricesApi = {
   // 🔍 Get all market prices (with filters + pagination)

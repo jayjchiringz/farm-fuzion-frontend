@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
+    "@tensorflow/tfjs": "^4.22.0",
     "axios": "^1.6.0",
     "firebase": "^11.10.0",
     "kenya-administrative-divisions": "^0.0.18",

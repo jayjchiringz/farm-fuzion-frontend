@@ -22,12 +22,6 @@ import PaginationFooter from "../components/Pagination/PaginationFooter";
 import UserRoleAssignment from "../components/Admin/UserRoleAssignment";
 import { API_BASE } from "../services/config";
 
-/*
-const API_BASE = import.meta.env.MODE === "development"
-  ? "/api"
-  : "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
-*/
-
 /*Interfaces*/
 // -------------------------------------------------------------------------------------------------------------------------------  
 interface Group {
@@ -290,65 +284,54 @@ export default function AdminDashboard() {
       }
 
       setLoading(true);
-      const uploadedPaths: { [docType: string]: string } = {};
 
-      // Upload files to Firebase Storage
+      // Create FormData for multipart/form-data upload
+      const formData = new FormData();
+
+      // Append all text fields
+      formData.append('name', groupForm.name.trim());
+      formData.append('group_type_id', groupForm.group_type_id);
+      formData.append('county', groupForm.county);
+      formData.append('constituency', groupForm.constituency);
+      formData.append('ward', groupForm.ward);
+      formData.append('location', groupForm.location.trim());
+      formData.append('registration_number', groupForm.registration_number.trim());
+      formData.append('description', groupForm.description?.trim() || '');
+
+      // Append requirements as JSON string
+      const requirements = groupForm.documentRequirements.map(r => ({
+        doc_type: r.doc_type,
+        is_required: r.is_required
+      }));
+      formData.append('requirements', JSON.stringify(requirements));
+
+      // Append files - use the document type as the field name
+      let fileCount = 0;
       for (const r of groupForm.documentRequirements) {
         const file = groupForm.uploadedDocs[r.doc_type];
         if (r.is_required && file instanceof File) {
-          const ext = file.name.split(".").pop();
-          const path = `group_docs/${uuidv4()}.${ext}`;
-          const fileRef = ref(storage, path);
-          await uploadBytes(fileRef, file);
-          uploadedPaths[r.doc_type] = path;
+          formData.append(r.doc_type, file);
+          fileCount++;
+          console.log(`📎 Attaching file: ${file.name} for ${r.doc_type}`);
         }
       }
 
-      // Prepare payload with proper structure
-      const payload = {
-        name: groupForm.name.trim(),
-        group_type_id: groupForm.group_type_id,
-        county: groupForm.county,
-        constituency: groupForm.constituency,
-        ward: groupForm.ward,
-        location: groupForm.location.trim(),
-        registration_number: groupForm.registration_number.trim(),
-        description: groupForm.description?.trim() || "",
-        requirements: groupForm.documentRequirements.map((r) => ({
-          doc_type: r.doc_type,
-          is_required: r.is_required,
-          file_path: uploadedPaths[r.doc_type] || null,
-        })),
-      };
+      console.log(`📤 Submitting group with ${fileCount} files and ${requirements.length} requirements`);
 
-      console.log("Submitting group with payload:", payload);
-
-      // Send metadata to Cloud Function
-      const res = await fetch(`${API_BASE}/register-with-docs`, {
+      // Send to backend (no Content-Type header - browser will set it with boundary)
+      const response = await fetch(`${API_BASE}/groups/register-with-docs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
-      const responseData = await res.json();
-      
-      if (!res.ok) {
+      const responseData = await response.json();
+
+      if (!response.ok) {
         console.error("Server error response:", responseData);
-        throw new Error(responseData.error || "Cloud function failed");
+        throw new Error(responseData.error || responseData.details || "Registration failed");
       }
 
-      const { id: groupId } = responseData;
-
-      // Save requirements metadata
-      const metaRes = await fetch(`${API_BASE}/groups/${groupId}/requirements`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requirements: groupForm.documentRequirements.filter((r) => r.is_required),
-        }),
-      });
-
-      if (!metaRes.ok) throw new Error("Requirement save failed");
+      console.log("✅ Group registered successfully:", responseData);
 
       // Success! Reset form
       setGroupModalOpen(false);
@@ -369,14 +352,11 @@ export default function AdminDashboard() {
       });
 
       alert("✅ Group registered successfully!");
-      fetchData();
+      fetchData(); // Refresh groups list
+
     } catch (err: any) {
       console.error("❌ Group creation failed:", err);
-      alert(
-        `Group registration failed:\n${
-          err.message || "Unknown error"
-        }`
-      );
+      alert(`Group registration failed:\n${err.message}`);
     } finally {
       setLoading(false);
     }

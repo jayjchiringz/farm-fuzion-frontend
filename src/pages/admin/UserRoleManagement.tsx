@@ -12,6 +12,8 @@ import {
   Users,
   UserCog
 } from 'lucide-react';
+import { API_BASE } from "../../services/config";
+
 
 interface User {
   id: string;
@@ -24,8 +26,6 @@ interface User {
   group_name?: string;
   created_at: string;
 }
-
-const API_BASE = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
 
 // Available roles based on your schema constraint
 const AVAILABLE_ROLES = [

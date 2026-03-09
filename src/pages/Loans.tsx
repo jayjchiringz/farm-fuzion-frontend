@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { API_BASE } from "../services/config";
 
 export default function Loans() {
   const [loans, setLoans] = useState([]);
@@ -12,9 +13,7 @@ export default function Loans() {
 
   const fetchLoans = async () => {
     try {
-      const res = await axios.get(
-        `https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/loans/${farmer.id}`
-      );
+      const res = await axios.get(`${API_BASE}/loans/${farmer.id}`);
       setLoans(res.data);
     } catch (err) {
       console.error("❌ Failed to load loans", err);
@@ -24,8 +23,7 @@ export default function Loans() {
   const applyForLoan = async () => {
     if (!amount) return alert("Amount is required");
     try {
-      await axios.post(
-        "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/loans",
+      await axios.post(`${API_BASE}/loans`,
         {
           farmer_id: farmer.id,
           amount: parseFloat(amount),

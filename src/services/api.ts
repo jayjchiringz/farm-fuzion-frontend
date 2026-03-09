@@ -9,7 +9,7 @@ export const api = axios.create({
   },
 });
 
-// Add request interceptor for debugging (optional)
+// Request interceptor for debugging
 api.interceptors.request.use(request => {
   console.log('🚀 API Request:', request.method?.toUpperCase(), request.url);
   return request;

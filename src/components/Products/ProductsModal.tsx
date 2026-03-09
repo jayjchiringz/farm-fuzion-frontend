@@ -12,6 +12,7 @@ import { FarmDiary } from "../FarmActivities/FarmDiary";
 import { SeasonOverview } from "../FarmActivities/SeasonOverview";
 import { Edit, Plus, Info, ShoppingCart } from "lucide-react";
 import { marketplaceApi } from "../../services/marketplaceApi";
+import { API_BASE } from "../../services/config";
 
 export type FarmProduct = ApiFarmProduct & {
   id?: string | number;
@@ -95,7 +96,6 @@ export default function ProductsModal({
           setIsLoadingFarmerId(true);
           
           try {
-            const API_BASE = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
             const response = await fetch(`${API_BASE}/farmers/by-user/${farmerId}`);
             
             if (!response.ok) {

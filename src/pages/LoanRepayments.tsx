@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import { API_BASE } from "../services/config";
 
 export default function LoanRepayments() {
   const { loanId } = useParams();
@@ -13,9 +14,7 @@ export default function LoanRepayments() {
 
   const fetchRepayments = async () => {
     try {
-      const res = await axios.get(
-        `https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/loan-repayments/${loanId}`
-      );
+      const res = await axios.get(`${API_BASE}/loan-repayments/${loanId}`);
       setRepayments(res.data);
     } catch (err) {
       console.error("❌ Failed to load repayments", err);
@@ -27,7 +26,7 @@ export default function LoanRepayments() {
 
     try {
       await axios.post(
-        `https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/loan-repayments`,
+        `${API_BASE}/loan-repayments`,
         {
           loan_id: loanId,
           farmer_id: farmer.id,

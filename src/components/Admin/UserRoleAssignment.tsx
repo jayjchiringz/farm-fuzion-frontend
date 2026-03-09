@@ -17,6 +17,7 @@ import {
   Calendar,
   Building2
 } from 'lucide-react';
+import { API_BASE } from "../../services/config";
 
 interface User {
   id: string;
@@ -42,9 +43,11 @@ interface UserRoleAssignmentProps {
   onSuccess?: () => void;
 }
 
+/*
 const API_BASE = import.meta.env.MODE === "development"
   ? "/api"
   : "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
+*/
 
 export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserRoleAssignmentProps) {
   const [users, setUsers] = useState<User[]>([]);
@@ -112,7 +115,7 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
 
   const fetchRoles = async () => {
     try {
-      const response = await fetch('https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/getRoles');
+      const response = await fetch('${API_BASE}/getRoles');
       if (response.ok) {
         const data = await response.json();
         setRoles(data);

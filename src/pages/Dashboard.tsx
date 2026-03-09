@@ -27,9 +27,7 @@ import KnowledgeModal from "../components/Knowledge/KnowledgeModal";
 import LogisticsModal from "../components/Logistics/LogisticsModal";
 import InsuranceModal from "../components/Insurance/InsuranceModal";
 import { useAuth } from "../contexts/AuthContext";
-
-// API Base URL
-const API_BASE = "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
+import { API_BASE } from "../services/config";
 
 export default function Dashboard() {
   const navigate = useNavigate();

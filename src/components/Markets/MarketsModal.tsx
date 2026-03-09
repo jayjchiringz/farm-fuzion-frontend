@@ -1,6 +1,6 @@
 // farm-fuzion-frontend/src/components/Markets/MarketPricesModal.tsx
 import React, { useEffect, useState, useMemo } from "react";
-import { marketPricesApi, MarketPrice, API_BASE } from "../../services/marketPricesApi";
+import { marketPricesApi, MarketPrice } from "../../services/marketPricesApi";
 import { formatCurrency } from "../../utils/format";
 import {
   TrendingUp,
@@ -24,6 +24,7 @@ import {
 import { marketplaceApi, ShoppingCart as ShoppingCartType, MarketplaceOrder, MarketplaceProduct } from "../../services/marketplaceApi";
 import { formatCurrencyKES } from "../../utils/format";
 import AgroServicesModal from "./AgroServicesModal";
+import { API_BASE } from "../../services/config";
 
 interface MarketPricesModalProps {
   farmerId?: string;
@@ -306,7 +307,7 @@ export default function MarketPricesModal({
   useEffect(() => {
     if (farmerId) {
       console.log("🛒 Testing cart API directly...");
-      fetch(`https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/marketplace/cart/${farmerId}`)
+      fetch(`${API_BASE}/marketplace/cart/${farmerId}`)
         .then(res => res.json())
         .then(data => console.log("🛒 Direct API cart response:", data))
         .catch(err => console.error("🛒 Direct API error:", err));
@@ -754,8 +755,8 @@ export default function MarketPricesModal({
       setLoading(true);
       try {
         const [balanceRes, txnsRes] = await Promise.all([
-          fetch(`https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/wallet/${farmerId}/balance`),
-          fetch(`https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api/wallet/${farmerId}/transactions?limit=10`)
+          fetch(`${API_BASE}/wallet/${farmerId}/balance`),
+          fetch(`${API_BASE}/wallet/${farmerId}/transactions?limit=10`)
         ]);
         
         const balanceData = await balanceRes.json();

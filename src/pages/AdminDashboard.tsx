@@ -20,10 +20,13 @@ import { OverviewStats, GroupStats, FarmerStats } from "../components/Dashboard/
 import { usePagination } from "../hooks/usePagination";
 import PaginationFooter from "../components/Pagination/PaginationFooter";
 import UserRoleAssignment from "../components/Admin/UserRoleAssignment";
+import { API_BASE } from "../services/config";
 
-const BASE_URL = import.meta.env.MODE === "development"
+/*
+const API_BASE = import.meta.env.MODE === "development"
   ? "/api"
   : "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
+*/
 
 /*Interfaces*/
 // -------------------------------------------------------------------------------------------------------------------------------  
@@ -168,7 +171,7 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch(`${BASE_URL}/stats/summary`);
+      const res = await fetch(`${API_BASE}/stats/summary`);
       const json = await res.json();
       setStats(json);
     } catch (err) {
@@ -180,10 +183,10 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       const [groupsRes, farmersRes, typesRes, docsRes] = await Promise.all([
-        fetch(`${BASE_URL}/groups`),
-        fetch(`${BASE_URL}/farmers`),
-        fetch(`${BASE_URL}/groups-types`),
-        fetch(`${BASE_URL}/document-types`),
+        fetch(`${API_BASE}/groups`),
+        fetch(`${API_BASE}/farmers`),
+        fetch(`${API_BASE}/groups-types`),
+        fetch(`${API_BASE}/document-types`),
       ]);
 
       const safeJson = async (res: Response, label: string) => {
@@ -224,14 +227,14 @@ export default function AdminDashboard() {
   const updateGroupStatus = async (id: string, status: string) => {
     try {
       setUpdatingGroupId(id);
-      let endpoint = `${BASE_URL}/groups/${id}/approve`;
+      let endpoint = `${API_BASE}/groups/${id}/approve`;
       let body;
 
       if (status === "rejected") {
-        endpoint = `${BASE_URL}/groups/${id}/reject`;
+        endpoint = `${API_BASE}/groups/${id}/reject`;
         body = JSON.stringify({ remarks: "Rejected by admin" });
       } else if (status === "pending") {
-        endpoint = `${BASE_URL}/groups/${id}/reject`;
+        endpoint = `${API_BASE}/groups/${id}/reject`;
         body = JSON.stringify({ remarks: "Reverted to pending", revertToPending: true });
       }
 
@@ -321,7 +324,7 @@ export default function AdminDashboard() {
       console.log("Submitting group with payload:", payload);
 
       // Send metadata to Cloud Function
-      const res = await fetch("https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/registerWithDocs", {
+      const res = await fetch("${API_BASE}/registerWithDocs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -337,7 +340,7 @@ export default function AdminDashboard() {
       const { id: groupId } = responseData;
 
       // Save requirements metadata
-      const metaRes = await fetch(`${BASE_URL}/groups/${groupId}/requirements`, {
+      const metaRes = await fetch(`${API_BASE}/groups/${groupId}/requirements`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -381,7 +384,7 @@ export default function AdminDashboard() {
 
   const submitFarmer = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/farmers`, {
+      const response = await fetch(`${API_BASE}/farmers`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -432,7 +435,7 @@ export default function AdminDashboard() {
 
   const handleAddGroupType = async () => {
     try {
-      const res = await fetch(`${BASE_URL}/groups-types`, {
+      const res = await fetch(`${API_BASE}/groups-types`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newGroupType }),
@@ -456,7 +459,7 @@ export default function AdminDashboard() {
 
   const handleUpdateGroupType = async (id: string) => {
     try {
-      const res = await fetch(`${BASE_URL}/groups-types/${id}`, {
+      const res = await fetch(`${API_BASE}/groups-types/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newGroupType }),
@@ -483,7 +486,7 @@ export default function AdminDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`${BASE_URL}/groups-types/${id}`, {
+      const res = await fetch(`${API_BASE}/groups-types/${id}`, {
         method: "DELETE",
       });
 
@@ -504,7 +507,7 @@ export default function AdminDashboard() {
   const addDocumentType = async () => {
     if (!newDocType.trim()) return;
     try {
-      const res = await fetch(`${BASE_URL}/document-types`, {
+      const res = await fetch(`${API_BASE}/document-types`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ doc_type: newDocType }),
@@ -522,7 +525,7 @@ export default function AdminDashboard() {
   const deleteDocumentType = async (doc_type: string) => {
     if (!window.confirm(`Remove "${doc_type}"?`)) return;
     try {
-      const res = await fetch(`${BASE_URL}/document-types/${encodeURIComponent(doc_type)}`, {
+      const res = await fetch(`${API_BASE}/document-types/${encodeURIComponent(doc_type)}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error(await res.text());
@@ -540,7 +543,7 @@ export default function AdminDashboard() {
 
   const handleAssignGroup = async (farmerId: number, groupId: string) => {
     try {
-      const res = await fetch(`${BASE_URL}/farmers/${farmerId}/group`, {
+      const res = await fetch(`${API_BASE}/farmers/${farmerId}/group`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ group_id: groupId }),

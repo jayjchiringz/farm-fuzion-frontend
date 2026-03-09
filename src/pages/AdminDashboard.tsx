@@ -324,7 +324,7 @@ export default function AdminDashboard() {
       console.log("Submitting group with payload:", payload);
 
       // Send metadata to Cloud Function
-      const res = await fetch("${API_BASE}/registerWithDocs", {
+      const res = await fetch(`${API_BASE}/register-with-docs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

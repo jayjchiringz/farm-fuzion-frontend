@@ -4,9 +4,7 @@ import MainLayout from "../layouts/MainLayout";
 import { Dialog, DialogTitle, DialogPanel } from "@headlessui/react";
 import ThemeToggle from "../components/ThemeToggle";
 import axios from "axios"; 
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
-import { storage } from "../lib/firebase";
 import { getRoles, createRole, updateRole, deleteRole } from "../services/roles";
 import { 
   Users, UsersRound, Group, ShieldCheck, PlusSquare, Settings, Menu, 
@@ -316,7 +314,9 @@ export default function AdminDashboard() {
         }
       }
 
-      console.log(`📤 Submitting group with ${fileCount} files and ${requirements.length} requirements`);
+      console.log(`📤 Submitting to: ${API_BASE}/groups/register-with-docs`);
+      console.log(`📤 Submitting with ${fileCount} files and ${requirements.length} requirements`);
+      console.log('📦 FormData keys:', Array.from(formData.keys()));
 
       // Send to backend (no Content-Type header - browser will set it with boundary)
       const response = await fetch(`${API_BASE}/groups/register-with-docs`, {

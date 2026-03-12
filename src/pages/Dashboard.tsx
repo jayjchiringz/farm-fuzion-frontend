@@ -80,6 +80,13 @@ export default function Dashboard() {
   const [logisticsOpen, setLogisticsOpen] = useState(false);
   const [insuranceOpen, setInsuranceOpen] = useState(false);
   const [farmerNumericId, setFarmerNumericId] = useState<number | null>(null);
+  const [walletTrend, setWalletTrend] = useState<string>("0%");
+  const [previousBalance, setPreviousBalance] = useState<number>(0);
+
+  // Add state for other trends
+  const [listingsTrend, setListingsTrend] = useState<string>("0%");
+  const [ordersTrend, setOrdersTrend] = useState<string>("0%");
+  const [inventoryTrend, setInventoryTrend] = useState<string>("0%");
 
   // Get farmer ID from context
   useEffect(() => {
@@ -178,13 +185,63 @@ export default function Dashboard() {
       if (walletRes.status === 'fulfilled' && walletRes.value.ok) {
         try {
           const data = await walletRes.value.json();
-          setWalletBalance(data.balance || 0);
-          console.log("💰 Wallet balance:", data.balance);
+          const currentBalance = data.balance || 0;
+          setWalletBalance(currentBalance);
+          
+          // Calculate trend based on previous balance (from localStorage or state)
+          const prevBalance = previousBalance || currentBalance;
+          if (prevBalance > 0) {
+            const changePercent = ((currentBalance - prevBalance) / prevBalance) * 100;
+            const formattedChange = changePercent.toFixed(1);
+            setWalletTrend(`${changePercent >= 0 ? '+' : ''}${formattedChange}%`);
+          } else {
+            setWalletTrend('0%');
+          }
+          
+          // Update previous balance for next calculation
+          setPreviousBalance(currentBalance);
+          
+          console.log("💰 Wallet balance:", currentBalance, "Trend:", walletTrend);
         } catch (e) {
           console.error("Error parsing wallet balance:", e);
         }
       } else {
         console.warn("Wallet balance fetch failed:", walletRes);
+      }
+
+      // Process recent transactions - also calculate trend from transaction history
+      if (transactionsRes.status === 'fulfilled' && transactionsRes.value.ok) {
+        try {
+          const response = await transactionsRes.value.json();
+          if (response && response.success && Array.isArray(response.transactions)) {
+            setRecentTransactions(response.transactions.slice(0, 3));
+            
+            // Calculate trend from transaction history (last 30 days vs previous 30 days)
+            const now = new Date();
+            const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
+            const sixtyDaysAgo = new Date(now.setDate(now.getDate() - 60));
+            
+            const recent30DaysTotal = response.transactions
+              .filter((t: any) => new Date(t.created_at) > thirtyDaysAgo)
+              .reduce((sum: number, t: any) => sum + (t.direction === 'in' ? t.amount : 0), 0);
+            
+            const previous30DaysTotal = response.transactions
+              .filter((t: any) => {
+                const date = new Date(t.created_at);
+                return date > sixtyDaysAgo && date <= thirtyDaysAgo;
+              })
+              .reduce((sum: number, t: any) => sum + (t.direction === 'in' ? t.amount : 0), 0);
+            
+            if (previous30DaysTotal > 0) {
+              const changePercent = ((recent30DaysTotal - previous30DaysTotal) / previous30DaysTotal) * 100;
+              setWalletTrend(`${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(1)}%`);
+            }
+          } else {
+            setRecentTransactions([]);
+          }
+        } catch (e) {
+          console.error("Error parsing transactions:", e);
+        }
       }
 
       // Process pending orders
@@ -197,17 +254,19 @@ export default function Dashboard() {
         }
       }
 
-      // Process active listings
+      // In your listings processing:
       if (listingsRes.status === 'fulfilled' && listingsRes.value.ok) {
-        try {
-          const data = await listingsRes.value.json();
-          setActiveListings(data.data?.length || 0);
-          const sales = data.data?.reduce((sum: number, item: any) => 
-            sum + (item.price * item.quantity), 0) || 0;
-          setTotalSales(sales);
-        } catch (e) {
-          console.error("Error parsing listings:", e);
+        const data = await listingsRes.value.json();
+        const currentActive = data.data?.length || 0;
+        setActiveListings(currentActive);
+        
+        // Compare with previous value from localStorage
+        const prevActive = parseInt(localStorage.getItem('prevActiveListings') || '0');
+        if (prevActive > 0) {
+          const change = ((currentActive - prevActive) / prevActive) * 100;
+          setListingsTrend(`${change >= 0 ? '+' : ''}${change.toFixed(1)}%`);
         }
+        localStorage.setItem('prevActiveListings', currentActive.toString());
       }
 
       // Process market prices
@@ -670,7 +729,7 @@ export default function Dashboard() {
                     label="Wallet Balance" 
                     value={formatCurrencyKES(walletBalance)}
                     icon={<Wallet size={24} />}
-                    trend="+12.5%"
+                    trend={walletTrend}
                     color="from-green-500 to-emerald-600"
                     onClick={() => setWalletOpen(true)}
                   />
@@ -678,7 +737,7 @@ export default function Dashboard() {
                     label="Active Listings" 
                     value={activeListings.toString()}
                     icon={<Package size={24} />}
-                    trend={activeListings > 0 ? '+2 new' : 'No change'}
+                    trend={listingsTrend}
                     color="from-blue-500 to-indigo-600"
                     onClick={() => setProductsOpen(true)}
                   />

@@ -144,7 +144,6 @@ export default function Dashboard() {
     fetchWeather();
   }, []);
 
-  // Update loadDashboardData to use the correct IDs
   const loadDashboardData = async () => {
     if (!user?.id) return;
     
@@ -175,7 +174,98 @@ export default function Dashboard() {
         fetch(`${API_BASE}/wallet/${user.id}/transactions?limit=5`)
       ]);
 
-      // ... rest of the processing
+      // Process wallet balance
+      if (walletRes.status === 'fulfilled' && walletRes.value.ok) {
+        try {
+          const data = await walletRes.value.json();
+          setWalletBalance(data.balance || 0);
+          console.log("💰 Wallet balance:", data.balance);
+        } catch (e) {
+          console.error("Error parsing wallet balance:", e);
+        }
+      } else {
+        console.warn("Wallet balance fetch failed:", walletRes);
+      }
+
+      // Process pending orders
+      if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) {
+        try {
+          const data = await ordersRes.value.json();
+          setPendingOrders(data.data?.length || 0);
+        } catch (e) {
+          console.error("Error parsing orders:", e);
+        }
+      }
+
+      // Process active listings
+      if (listingsRes.status === 'fulfilled' && listingsRes.value.ok) {
+        try {
+          const data = await listingsRes.value.json();
+          setActiveListings(data.data?.length || 0);
+          const sales = data.data?.reduce((sum: number, item: any) => 
+            sum + (item.price * item.quantity), 0) || 0;
+          setTotalSales(sales);
+        } catch (e) {
+          console.error("Error parsing listings:", e);
+        }
+      }
+
+      // Process market prices
+      if (pricesRes.status === 'fulfilled' && pricesRes.value.ok) {
+        try {
+          const response = await pricesRes.value.json();
+          if (response && Array.isArray(response.data)) {
+            setMarketPrices(response.data.slice(0, 5));
+          } else {
+            setMarketPrices([]);
+          }
+        } catch (e) {
+          console.error("Error parsing market prices:", e);
+        }
+      }
+
+      // Process inventory
+      if (inventoryRes.status === 'fulfilled' && inventoryRes.value.ok) {
+        try {
+          const data = await inventoryRes.value.json();
+          
+          const categoryCounts: Record<string, number> = {};
+          
+          if (data.data && Array.isArray(data.data)) {
+            data.data.forEach((item: any) => {
+              const category = item.category || 'Uncategorized';
+              categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+            });
+          }
+          
+          const categories = Object.entries(categoryCounts).map(([name, value]) => ({ 
+            name, 
+            value
+          }));
+          
+          setInventoryStats({
+            total: data.data?.length || 0,
+            categories
+          });
+        } catch (e) {
+          console.error("Error parsing inventory:", e);
+        }
+      }
+
+      // Process recent transactions
+      if (transactionsRes.status === 'fulfilled' && transactionsRes.value.ok) {
+        try {
+          const response = await transactionsRes.value.json();
+          if (response && response.success && Array.isArray(response.transactions)) {
+            setRecentTransactions(response.transactions.slice(0, 3));
+          } else {
+            setRecentTransactions([]);
+          }
+        } catch (e) {
+          console.error("Error parsing transactions:", e);
+        }
+      }
+
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     } finally {

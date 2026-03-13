@@ -31,13 +31,7 @@ import { API_BASE } from "../services/config";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-
   const { user, getFarmerId } = useAuth();
-
-  /*
-  const farmer = JSON.parse(localStorage.getItem("user") || "{}");
-  const farmerId = farmer?.id;
-  */
 
   // State for real data
   const [walletBalance, setWalletBalance] = useState(0);
@@ -64,16 +58,11 @@ export default function Dashboard() {
   const [productsOpen, setProductsOpen] = useState(false);
   const [marketsOpen, setMarketsOpen] = useState(false);
   const [creditOpen, setCreditOpen] = useState(false);
-
   const [farmerDetails, setFarmerDetails] = useState<any>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
-
-  // Add with other state declarations
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<string>("nairobi");
-
-  // Add with other modal states
   const [weatherOpen, setWeatherOpen] = useState(false);
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [knowledgeOpen, setKnowledgeOpen] = useState(false);
@@ -82,11 +71,10 @@ export default function Dashboard() {
   const [farmerNumericId, setFarmerNumericId] = useState<number | null>(null);
   const [walletTrend, setWalletTrend] = useState<string>("0%");
   const [previousBalance, setPreviousBalance] = useState<number>(0);
-
-  // Add state for other trends
-  const [listingsTrend, setListingsTrend] = useState<string>("0%");
-  const [ordersTrend, setOrdersTrend] = useState<string>("0%");
-  const [inventoryTrend, setInventoryTrend] = useState<string>("0%");
+  const [listingsTrend, setListingsTrend] = useState<string>("0% new");
+  const [ordersTrend, setOrdersTrend] = useState<string>("0% pending");
+  const [inventoryTrend, setInventoryTrend] = useState<string>("0 this month");
+  const [lastMonthInventory, setLastMonthInventory] = useState<number>(0);
 
   // Get farmer ID from context
   useEffect(() => {
@@ -244,14 +232,24 @@ export default function Dashboard() {
         }
       }
 
-      // Process pending orders
+      // In your orders processing:
       if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) {
-        try {
-          const data = await ordersRes.value.json();
-          setPendingOrders(data.data?.length || 0);
-        } catch (e) {
-          console.error("Error parsing orders:", e);
+        const data = await ordersRes.value.json();
+        const currentPending = data.data?.length || 0;
+        setPendingOrders(currentPending);
+        
+        const lastPending = parseInt(localStorage.getItem('lastPendingOrders') || '0');
+        const change = currentPending - lastPending;
+        
+        if (change > 0) {
+          setOrdersTrend(`+${change} new`);
+        } else if (change < 0) {
+          setOrdersTrend(`${change} fewer`);
+        } else {
+          setOrdersTrend('No change');
         }
+        
+        localStorage.setItem('lastPendingOrders', currentPending.toString());
       }
 
       // In your listings processing:
@@ -260,13 +258,18 @@ export default function Dashboard() {
         const currentActive = data.data?.length || 0;
         setActiveListings(currentActive);
         
-        // Compare with previous value from localStorage
-        const prevActive = parseInt(localStorage.getItem('prevActiveListings') || '0');
-        if (prevActive > 0) {
-          const change = ((currentActive - prevActive) / prevActive) * 100;
-          setListingsTrend(`${change >= 0 ? '+' : ''}${change.toFixed(1)}%`);
+        const lastActive = parseInt(localStorage.getItem('lastActiveListings') || '0');
+        const change = currentActive - lastActive;
+        
+        if (change > 0) {
+          setListingsTrend(`+${change} new`);
+        } else if (change < 0) {
+          setListingsTrend(`${change} new`);
+        } else {
+          setListingsTrend('No change');
         }
-        localStorage.setItem('prevActiveListings', currentActive.toString());
+        
+        localStorage.setItem('lastActiveListings', currentActive.toString());
       }
 
       // Process market prices
@@ -287,7 +290,27 @@ export default function Dashboard() {
       if (inventoryRes.status === 'fulfilled' && inventoryRes.value.ok) {
         try {
           const data = await inventoryRes.value.json();
+          const currentTotal = data.data?.length || 0;
           
+          // Get last month's total from localStorage
+          const lastMonthTotal = parseInt(localStorage.getItem('lastMonthInventory') || '0');
+          
+          // Calculate change
+          const change = currentTotal - lastMonthTotal;
+          
+          // Format trend message
+          if (change > 0) {
+            setInventoryTrend(`+${change} this month`);
+          } else if (change < 0) {
+            setInventoryTrend(`${change} this month`);
+          } else {
+            setInventoryTrend('No change');
+          }
+          
+          // Store current total for next month
+          localStorage.setItem('lastMonthInventory', currentTotal.toString());
+          
+          // Process categories for pie chart
           const categoryCounts: Record<string, number> = {};
           
           if (data.data && Array.isArray(data.data)) {
@@ -303,9 +326,12 @@ export default function Dashboard() {
           }));
           
           setInventoryStats({
-            total: data.data?.length || 0,
+            total: currentTotal,
             categories
           });
+          
+          console.log(`📦 Inventory: ${currentTotal} items, change: ${change}`);
+          
         } catch (e) {
           console.error("Error parsing inventory:", e);
         }
@@ -745,7 +771,7 @@ export default function Dashboard() {
                     label="Pending Orders" 
                     value={pendingOrders.toString()}
                     icon={<ShoppingCart size={24} />}
-                    trend={pendingOrders > 0 ? 'Action needed' : 'All clear'}
+                    trend={ordersTrend}
                     color="from-yellow-500 to-orange-600"
                     onClick={() => setMarketsOpen(true)}
                   />
@@ -753,7 +779,7 @@ export default function Dashboard() {
                     label="Inventory Items" 
                     value={inventoryStats.total.toString()}
                     icon={<Package size={24} />}
-                    trend="+5 this month"
+                    trend={inventoryTrend}
                     color="from-purple-500 to-pink-600"
                     onClick={() => setProductsOpen(true)}
                   />

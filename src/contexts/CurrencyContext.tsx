@@ -19,13 +19,24 @@ interface CurrencyContextType {
   currencies: typeof SUPPORTED_CURRENCIES;
   rates: Record<string, number>;
   setSelectedCurrency: (currency: string) => void;
-  convertAmount: (amount: number, fromCurrency?: string) => number;
-  formatAmount: (amount: number, fromCurrency?: string) => string;
+  convertFromKES: (amountInKES: number) => number;  // Convert KES to selected currency
+  convertToKES: (amount: number, fromCurrency: string) => number;  // Convert any currency to KES
+  formatKES: (amountInKES: number) => string;  // Format KES amount in selected currency
+  formatAmount: (amount: number, fromCurrency: string) => string;  // Legacy - specify source currency
   isLoading: boolean;
   lastUpdated: Date | null;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
+
+// Default fallback rates (KES as base)
+const DEFAULT_RATES = {
+  KES: 1,
+  USD: 0.0077,  // 1 KES = 0.0077 USD
+  UGX: 28.7,    // 1 KES = 28.7 UGX
+  TZS: 19.4,    // 1 KES = 19.4 TZS
+  EUR: 0.0071,  // 1 KES = 0.0071 EUR
+};
 
 export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load saved preference or default to KES
@@ -34,17 +45,11 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return saved || 'KES';
   });
   
-  const [rates, setRates] = useState<Record<string, number>>({
-    KES: 130, // Default approximate rates
-    UGX: 3700,
-    TZS: 2500,
-    USD: 1,
-    EUR: 0.92,
-  });
+  const [rates, setRates] = useState<Record<string, number>>(DEFAULT_RATES);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Load rates on mount and when currency changes
+  // Load rates on mount
   useEffect(() => {
     loadRates();
   }, []);
@@ -59,36 +64,70 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const response = await fetch(CURRENCY_API);
       const data = await response.json();
-      setRates(data.rates);
+      
+      // Convert USD-based rates to KES-based rates
+      // API gives rates relative to USD, so we need to convert
+      const usdToKes = data.rates.KES || 130;
+      
+      const kesBasedRates: Record<string, number> = {
+        KES: 1,
+        USD: 1 / usdToKes,
+        UGX: (data.rates.UGX || 3700) / usdToKes,
+        TZS: (data.rates.TZS || 2500) / usdToKes,
+        EUR: (data.rates.EUR || 0.92) / usdToKes,
+      };
+      
+      setRates(kesBasedRates);
       setLastUpdated(new Date());
+      console.log("✅ Currency rates loaded (KES-based):", kesBasedRates);
     } catch (error) {
-      console.error('Error loading currency rates:', error);
-      // Keep using default rates
+      console.error('Error loading currency rates, using defaults:', error);
+      // Keep using DEFAULT_RATES
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Convert amount from source currency to selected currency
-  const convertAmount = (amount: number, fromCurrency: string = 'USD'): number => {
-    if (!amount || isNaN(amount)) return 0;
-    if (fromCurrency === selectedCurrency) return amount;
+  // Convert KES to selected currency
+  const convertFromKES = (amountInKES: number): number => {
+    if (!amountInKES || isNaN(amountInKES)) return 0;
+    if (selectedCurrency === 'KES') return amountInKES;
     
     try {
-      // Convert to USD first (base), then to target
-      const inUSD = fromCurrency === 'USD' ? amount : amount / (rates[fromCurrency] || 1);
-      const converted = selectedCurrency === 'USD' ? inUSD : inUSD * (rates[selectedCurrency] || 1);
-      
+      const rate = rates[selectedCurrency] || 1;
+      const converted = amountInKES * rate;
       return Math.round(converted * 100) / 100; // Round to 2 decimals
     } catch (error) {
-      console.error('Error converting amount:', error);
+      console.error('Error converting from KES:', error);
+      return amountInKES;
+    }
+  };
+
+  // Convert any currency to KES
+  const convertToKES = (amount: number, fromCurrency: string): number => {
+    if (!amount || isNaN(amount)) return 0;
+    if (fromCurrency === 'KES') return amount;
+    
+    try {
+      const rate = rates[fromCurrency] || 1;
+      const inKES = amount / rate;
+      return Math.round(inKES * 100) / 100;
+    } catch (error) {
+      console.error('Error converting to KES:', error);
       return amount;
     }
   };
 
-  // Format amount using your existing formatter
+  // Format KES amount in selected currency
+  const formatKES = (amountInKES: number): string => {
+    const converted = convertFromKES(amountInKES);
+    return formatCurrency(converted, selectedCurrency);
+  };
+
+  // Legacy: format amount with source currency specified
   const formatAmount = (amount: number, fromCurrency: string = 'USD'): string => {
-    const converted = convertAmount(amount, fromCurrency);
+    const inKES = convertToKES(amount, fromCurrency);
+    const converted = convertFromKES(inKES);
     return formatCurrency(converted, selectedCurrency);
   };
 
@@ -98,7 +137,9 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       currencies: SUPPORTED_CURRENCIES,
       rates,
       setSelectedCurrency,
-      convertAmount,
+      convertFromKES,
+      convertToKES,
+      formatKES,
       formatAmount,
       isLoading,
       lastUpdated,

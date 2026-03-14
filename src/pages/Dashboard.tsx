@@ -8,7 +8,7 @@ import React, { useState, useEffect } from "react";
 import WalletModal from "../components/Wallet/WalletModal";
 import ProductsModal from "../components/Products/ProductsModal";
 import MarketsModal from "../components/Markets/MarketsModal";
-// import { formatAmount } from "../utils/format";
+// import { formatKES } from "../utils/format";
 import CreditModal from "../components/Credit/CreditModal";
 import { 
   Menu, ChevronLeft, ChevronRight, LogOut, Wallet, Package, 
@@ -76,7 +76,9 @@ export default function Dashboard() {
   const [ordersTrend, setOrdersTrend] = useState<string>("0% pending");
   const [inventoryTrend, setInventoryTrend] = useState<string>("0 this month");
   const [lastMonthInventory, setLastMonthInventory] = useState<number>(0);
-  const { formatAmount, selectedCurrency, convertAmount } = useCurrency();
+  // const { formatKES, selectedCurrency, formatKES } = useCurrency();
+  const { formatKES, selectedCurrency } = useCurrency();
+
 
   // Get farmer ID from context
   useEffect(() => {
@@ -755,7 +757,7 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                   <MetricCard 
                     label="Wallet Balance" 
-                    value={formatAmount(walletBalance)}
+                    value={formatKES(walletBalance)}
                     icon={<Wallet size={24} />}
                     trend={walletTrend}
                     color="from-green-500 to-emerald-600"
@@ -835,7 +837,7 @@ export default function Dashboard() {
                               <span className={`font-bold ${
                                 tx.direction === 'in' ? 'text-green-600' : 'text-red-600'
                               }`}>
-                                {tx.direction === 'in' ? '+' : '-'}{formatAmount(tx.amount)}
+                                {tx.direction === 'in' ? '+' : '-'}{formatKES(tx.amount)}
                               </span>
                             </div>
                           ))}
@@ -1144,7 +1146,7 @@ function MetricCard({ label, value, icon, trend, color, onClick }: any) {
 }
 
 function MarketPricesCard({ marketPrices, onViewAll, getProductEmoji }: any) {
-  const { formatAmount } = useCurrency();
+  const { formatKES } = useCurrency();
   return (
     <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden hover:shadow-xl transition-shadow">
       <div className="p-6 border-b border-gray-200 dark:border-gray-800 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
@@ -1185,7 +1187,7 @@ function MarketPricesCard({ marketPrices, onViewAll, getProductEmoji }: any) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-brand-green">{formatAmount(price.retail_price)}</p>
+                  <p className="font-bold text-brand-green">{formatKES(price.retail_price)}</p>
                   <p className="text-xs text-gray-500">/{price.unit || 'unit'}</p>
                 </div>
               </div>
@@ -1216,7 +1218,7 @@ function ChartCard({ title, icon, children }: any) {
 }
 
 function PriceTrendsCard({ marketPrices }: any) {
-  const { formatAmount } = useCurrency();
+  const { formatKES } = useCurrency();
   return (
     <ChartCard title="Price Trends" icon={<TrendingUp size={20} className="text-brand-green" />}>
       {Array.isArray(marketPrices) && marketPrices.length > 0 ? (
@@ -1239,7 +1241,7 @@ function PriceTrendsCard({ marketPrices }: any) {
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                 fontSize: '12px'
               }}
-              formatter={(value: number) => [formatAmount(value), 'Price']}
+              formatter={(value: number) => [formatKES(value), 'Price']}
             />
             <Area
               type="monotone"

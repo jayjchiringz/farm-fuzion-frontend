@@ -1004,6 +1004,9 @@ export default function Dashboard() {
           onClose={() => setWeatherOpen(false)}
         />
       )}
+      {currencyOpen && (
+        <CurrencyModal onClose={() => setCurrencyOpen(false)} />
+      )}
       {knowledgeOpen && user?.id && (
         <KnowledgeModal
           farmerId={user.id}

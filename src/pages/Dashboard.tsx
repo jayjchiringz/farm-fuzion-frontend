@@ -8,7 +8,7 @@ import React, { useState, useEffect } from "react";
 import WalletModal from "../components/Wallet/WalletModal";
 import ProductsModal from "../components/Products/ProductsModal";
 import MarketsModal from "../components/Markets/MarketsModal";
-import { formatCurrencyKES } from "../utils/format";
+// import { formatKES } from "../utils/format";
 import CreditModal from "../components/Credit/CreditModal";
 import { 
   Menu, ChevronLeft, ChevronRight, LogOut, Wallet, Package, 
@@ -28,16 +28,11 @@ import LogisticsModal from "../components/Logistics/LogisticsModal";
 import InsuranceModal from "../components/Insurance/InsuranceModal";
 import { useAuth } from "../contexts/AuthContext";
 import { API_BASE } from "../services/config";
+import { useCurrency } from '../contexts/CurrencyContext';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-
   const { user, getFarmerId } = useAuth();
-
-  /*
-  const farmer = JSON.parse(localStorage.getItem("user") || "{}");
-  const farmerId = farmer?.id;
-  */
 
   // State for real data
   const [walletBalance, setWalletBalance] = useState(0);
@@ -64,22 +59,26 @@ export default function Dashboard() {
   const [productsOpen, setProductsOpen] = useState(false);
   const [marketsOpen, setMarketsOpen] = useState(false);
   const [creditOpen, setCreditOpen] = useState(false);
-
   const [farmerDetails, setFarmerDetails] = useState<any>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
-
-  // Add with other state declarations
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<string>("nairobi");
-
-  // Add with other modal states
   const [weatherOpen, setWeatherOpen] = useState(false);
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [knowledgeOpen, setKnowledgeOpen] = useState(false);
   const [logisticsOpen, setLogisticsOpen] = useState(false);
   const [insuranceOpen, setInsuranceOpen] = useState(false);
   const [farmerNumericId, setFarmerNumericId] = useState<number | null>(null);
+  const [walletTrend, setWalletTrend] = useState<string>("0%");
+  const [previousBalance, setPreviousBalance] = useState<number>(0);
+  const [listingsTrend, setListingsTrend] = useState<string>("0% new");
+  const [ordersTrend, setOrdersTrend] = useState<string>("0% pending");
+  const [inventoryTrend, setInventoryTrend] = useState<string>("0 this month");
+  const [lastMonthInventory, setLastMonthInventory] = useState<number>(0);
+  // const { formatKES, selectedCurrency, formatKES } = useCurrency();
+  const { formatKES, selectedCurrency } = useCurrency();
+
 
   // Get farmer ID from context
   useEffect(() => {
@@ -144,7 +143,6 @@ export default function Dashboard() {
     fetchWeather();
   }, []);
 
-  // Update loadDashboardData to use the correct IDs
   const loadDashboardData = async () => {
     if (!user?.id) return;
     
@@ -175,7 +173,188 @@ export default function Dashboard() {
         fetch(`${API_BASE}/wallet/${user.id}/transactions?limit=5`)
       ]);
 
-      // ... rest of the processing
+      // Process wallet balance
+      if (walletRes.status === 'fulfilled' && walletRes.value.ok) {
+        try {
+          const data = await walletRes.value.json();
+          const currentBalance = data.balance || 0;
+          setWalletBalance(currentBalance);
+          
+          // Calculate trend based on previous balance (from localStorage or state)
+          const prevBalance = previousBalance || currentBalance;
+          if (prevBalance > 0) {
+            const changePercent = ((currentBalance - prevBalance) / prevBalance) * 100;
+            const formattedChange = changePercent.toFixed(1);
+            setWalletTrend(`${changePercent >= 0 ? '+' : ''}${formattedChange}%`);
+          } else {
+            setWalletTrend('0%');
+          }
+          
+          // Update previous balance for next calculation
+          setPreviousBalance(currentBalance);
+          
+          console.log("💰 Wallet balance:", currentBalance, "Trend:", walletTrend);
+        } catch (e) {
+          console.error("Error parsing wallet balance:", e);
+        }
+      } else {
+        console.warn("Wallet balance fetch failed:", walletRes);
+      }
+
+      // Process recent transactions - also calculate trend from transaction history
+      if (transactionsRes.status === 'fulfilled' && transactionsRes.value.ok) {
+        try {
+          const response = await transactionsRes.value.json();
+          if (response && response.success && Array.isArray(response.transactions)) {
+            setRecentTransactions(response.transactions.slice(0, 3));
+            
+            // Calculate trend from transaction history (last 30 days vs previous 30 days)
+            const now = new Date();
+            const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
+            const sixtyDaysAgo = new Date(now.setDate(now.getDate() - 60));
+            
+            const recent30DaysTotal = response.transactions
+              .filter((t: any) => new Date(t.created_at) > thirtyDaysAgo)
+              .reduce((sum: number, t: any) => sum + (t.direction === 'in' ? t.amount : 0), 0);
+            
+            const previous30DaysTotal = response.transactions
+              .filter((t: any) => {
+                const date = new Date(t.created_at);
+                return date > sixtyDaysAgo && date <= thirtyDaysAgo;
+              })
+              .reduce((sum: number, t: any) => sum + (t.direction === 'in' ? t.amount : 0), 0);
+            
+            if (previous30DaysTotal > 0) {
+              const changePercent = ((recent30DaysTotal - previous30DaysTotal) / previous30DaysTotal) * 100;
+              setWalletTrend(`${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(1)}%`);
+            }
+          } else {
+            setRecentTransactions([]);
+          }
+        } catch (e) {
+          console.error("Error parsing transactions:", e);
+        }
+      }
+
+      // In your orders processing:
+      if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) {
+        const data = await ordersRes.value.json();
+        const currentPending = data.data?.length || 0;
+        setPendingOrders(currentPending);
+        
+        const lastPending = parseInt(localStorage.getItem('lastPendingOrders') || '0');
+        const change = currentPending - lastPending;
+        
+        if (change > 0) {
+          setOrdersTrend(`+${change} new`);
+        } else if (change < 0) {
+          setOrdersTrend(`${change} fewer`);
+        } else {
+          setOrdersTrend('No change');
+        }
+        
+        localStorage.setItem('lastPendingOrders', currentPending.toString());
+      }
+
+      // In your listings processing:
+      if (listingsRes.status === 'fulfilled' && listingsRes.value.ok) {
+        const data = await listingsRes.value.json();
+        const currentActive = data.data?.length || 0;
+        setActiveListings(currentActive);
+        
+        const lastActive = parseInt(localStorage.getItem('lastActiveListings') || '0');
+        const change = currentActive - lastActive;
+        
+        if (change > 0) {
+          setListingsTrend(`+${change} new`);
+        } else if (change < 0) {
+          setListingsTrend(`${change} new`);
+        } else {
+          setListingsTrend('No change');
+        }
+        
+        localStorage.setItem('lastActiveListings', currentActive.toString());
+      }
+
+      // Process market prices
+      if (pricesRes.status === 'fulfilled' && pricesRes.value.ok) {
+        try {
+          const response = await pricesRes.value.json();
+          if (response && Array.isArray(response.data)) {
+            setMarketPrices(response.data.slice(0, 5));
+          } else {
+            setMarketPrices([]);
+          }
+        } catch (e) {
+          console.error("Error parsing market prices:", e);
+        }
+      }
+
+      // Process inventory
+      if (inventoryRes.status === 'fulfilled' && inventoryRes.value.ok) {
+        try {
+          const data = await inventoryRes.value.json();
+          const currentTotal = data.data?.length || 0;
+          
+          // Get last month's total from localStorage
+          const lastMonthTotal = parseInt(localStorage.getItem('lastMonthInventory') || '0');
+          
+          // Calculate change
+          const change = currentTotal - lastMonthTotal;
+          
+          // Format trend message
+          if (change > 0) {
+            setInventoryTrend(`+${change} this month`);
+          } else if (change < 0) {
+            setInventoryTrend(`${change} this month`);
+          } else {
+            setInventoryTrend('No change');
+          }
+          
+          // Store current total for next month
+          localStorage.setItem('lastMonthInventory', currentTotal.toString());
+          
+          // Process categories for pie chart
+          const categoryCounts: Record<string, number> = {};
+          
+          if (data.data && Array.isArray(data.data)) {
+            data.data.forEach((item: any) => {
+              const category = item.category || 'Uncategorized';
+              categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+            });
+          }
+          
+          const categories = Object.entries(categoryCounts).map(([name, value]) => ({ 
+            name, 
+            value
+          }));
+          
+          setInventoryStats({
+            total: currentTotal,
+            categories
+          });
+          
+          console.log(`📦 Inventory: ${currentTotal} items, change: ${change}`);
+          
+        } catch (e) {
+          console.error("Error parsing inventory:", e);
+        }
+      }
+
+      // Process recent transactions
+      if (transactionsRes.status === 'fulfilled' && transactionsRes.value.ok) {
+        try {
+          const response = await transactionsRes.value.json();
+          if (response && response.success && Array.isArray(response.transactions)) {
+            setRecentTransactions(response.transactions.slice(0, 3));
+          } else {
+            setRecentTransactions([]);
+          }
+        } catch (e) {
+          console.error("Error parsing transactions:", e);
+        }
+      }
+
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     } finally {
@@ -354,7 +533,7 @@ export default function Dashboard() {
             />
             <NavItem 
               icon={<DollarSign size={22} />} 
-              label="Currency" 
+              label="Currency" value={selectedCurrency}
               onClick={() => setCurrencyOpen(true)} 
               collapsed={sidebarCollapsed} 
             />
@@ -578,9 +757,9 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                   <MetricCard 
                     label="Wallet Balance" 
-                    value={formatCurrencyKES(walletBalance)}
+                    value={formatKES(walletBalance)}
                     icon={<Wallet size={24} />}
-                    trend="+12.5%"
+                    trend={walletTrend}
                     color="from-green-500 to-emerald-600"
                     onClick={() => setWalletOpen(true)}
                   />
@@ -588,7 +767,7 @@ export default function Dashboard() {
                     label="Active Listings" 
                     value={activeListings.toString()}
                     icon={<Package size={24} />}
-                    trend={activeListings > 0 ? '+2 new' : 'No change'}
+                    trend={listingsTrend}
                     color="from-blue-500 to-indigo-600"
                     onClick={() => setProductsOpen(true)}
                   />
@@ -596,7 +775,7 @@ export default function Dashboard() {
                     label="Pending Orders" 
                     value={pendingOrders.toString()}
                     icon={<ShoppingCart size={24} />}
-                    trend={pendingOrders > 0 ? 'Action needed' : 'All clear'}
+                    trend={ordersTrend}
                     color="from-yellow-500 to-orange-600"
                     onClick={() => setMarketsOpen(true)}
                   />
@@ -604,7 +783,7 @@ export default function Dashboard() {
                     label="Inventory Items" 
                     value={inventoryStats.total.toString()}
                     icon={<Package size={24} />}
-                    trend="+5 this month"
+                    trend={inventoryTrend}
                     color="from-purple-500 to-pink-600"
                     onClick={() => setProductsOpen(true)}
                   />
@@ -658,7 +837,7 @@ export default function Dashboard() {
                               <span className={`font-bold ${
                                 tx.direction === 'in' ? 'text-green-600' : 'text-red-600'
                               }`}>
-                                {tx.direction === 'in' ? '+' : '-'}{formatCurrencyKES(tx.amount)}
+                                {tx.direction === 'in' ? '+' : '-'}{formatKES(tx.amount)}
                               </span>
                             </div>
                           ))}
@@ -757,7 +936,7 @@ export default function Dashboard() {
 
                   <ActionCard
                     icon={<DollarSign size={24} />}
-                    title="Currency"
+                    title={`Currency (${selectedCurrency})`}
                     description="Live exchange rates and currency settings"
                     color="from-emerald-500 to-teal-600"
                     onClick={() => setCurrencyOpen(true)}
@@ -828,6 +1007,9 @@ export default function Dashboard() {
           }}
           onClose={() => setWeatherOpen(false)}
         />
+      )}
+      {currencyOpen && (
+        <CurrencyModal onClose={() => setCurrencyOpen(false)} />
       )}
       {knowledgeOpen && user?.id && (
         <KnowledgeModal
@@ -964,6 +1146,7 @@ function MetricCard({ label, value, icon, trend, color, onClick }: any) {
 }
 
 function MarketPricesCard({ marketPrices, onViewAll, getProductEmoji }: any) {
+  const { formatKES } = useCurrency();
   return (
     <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden hover:shadow-xl transition-shadow">
       <div className="p-6 border-b border-gray-200 dark:border-gray-800 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
@@ -1004,7 +1187,7 @@ function MarketPricesCard({ marketPrices, onViewAll, getProductEmoji }: any) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-brand-green">{formatCurrencyKES(price.retail_price)}</p>
+                  <p className="font-bold text-brand-green">{formatKES(price.retail_price)}</p>
                   <p className="text-xs text-gray-500">/{price.unit || 'unit'}</p>
                 </div>
               </div>
@@ -1035,6 +1218,7 @@ function ChartCard({ title, icon, children }: any) {
 }
 
 function PriceTrendsCard({ marketPrices }: any) {
+  const { formatKES } = useCurrency();
   return (
     <ChartCard title="Price Trends" icon={<TrendingUp size={20} className="text-brand-green" />}>
       {Array.isArray(marketPrices) && marketPrices.length > 0 ? (
@@ -1057,7 +1241,7 @@ function PriceTrendsCard({ marketPrices }: any) {
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                 fontSize: '12px'
               }}
-              formatter={(value: number) => [`KSh ${value.toLocaleString()}`, 'Price']}
+              formatter={(value: number) => [formatKES(value), 'Price']}
             />
             <Area
               type="monotone"

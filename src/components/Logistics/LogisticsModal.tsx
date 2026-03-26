@@ -2,45 +2,40 @@
 import React, { useState, useEffect } from "react";
 import { 
   X, Truck, Package, MapPin, Clock, Search, 
-  Plus, Eye, RefreshCw, CheckCircle, 
+  Plus, RefreshCw, CheckCircle, 
   Clock3, AlertCircle, TrendingUp, Calendar,
-  Phone, Mail, User, Navigation, Loader2,
-  ShoppingCart, Store, ClipboardList, Send,
-  Warehouse, Box, Scale, DollarSign, Receipt
+  Phone, Navigation, Loader2,
+  ShoppingCart, Send, Receipt, 
+  XCircle, TruckIcon
 } from "lucide-react";
 import logisticsService, { Parcel, DashboardData } from "../../services/logistics";
-import { farmProductsApi, FarmProduct } from "../../services/farmProductsApi";
-import { marketplaceApi, MarketplaceProduct, ShoppingCart as MarketplaceCartType, MarketplaceOrder } from "../../services/marketplaceApi";
+import { marketplaceApi, MarketplaceOrder } from "../../services/marketplaceApi";
 import { useCurrency } from "../../contexts/CurrencyContext";
 
 interface LogisticsModalProps {
   onClose: () => void;
   farmerId?: number;
   farmerName?: string;
+  farmerPhone?: string;
+  farmerEmail?: string;
 }
 
-type ViewType = 'dashboard' | 'inventory' | 'marketplace' | 'orders' | 'create' | 'track' | 'shipping' | 'reports';
+type ViewType = 'dashboard' | 'orders' | 'create' | 'track' | 'reports';
 
-interface CartItem {
-  id: string;
-  product_name: string;
-  quantity: number;
-  unit_price: number;
-  unit: string;
-  item_total: number;
-  marketplace_product_id: string;
-}
-
-interface SellerCart {
-  id: string;
-  seller_id: string;
-  seller_name: string;
-  items: CartItem[];
-  total: number;
+interface OrderWithShipping extends MarketplaceOrder {
+  shippingDetails?: {
+    sender_name: string;
+    sender_phone: string;
+    receiver_name: string;
+    receiver_phone: string;
+    receiver_address: string;
+    tracking_number?: string;
+    parcel_status?: string;
+  };
 }
 
 // ============================================
-// Helper Components (Moved OUTSIDE main component)
+// Helper Components
 // ============================================
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -49,14 +44,13 @@ const StatusBadge = ({ status }: { status: string }) => {
     'confirmed': { color: 'bg-blue-100 text-blue-700', icon: <CheckCircle size={12} /> },
     'shipping': { color: 'bg-purple-100 text-purple-700', icon: <Truck size={12} /> },
     'delivered': { color: 'bg-green-100 text-green-700', icon: <CheckCircle size={12} /> },
-    'cancelled': { color: 'bg-red-100 text-red-700', icon: <AlertCircle size={12} /> },
+    'cancelled': { color: 'bg-red-100 text-red-700', icon: <XCircle size={12} /> },
+    'paid': { color: 'bg-green-100 text-green-700', icon: <CheckCircle size={12} /> },
     'Registered': { color: 'bg-gray-100 text-gray-700', icon: <Clock3 size={12} /> },
     'Ready for dispatch': { color: 'bg-yellow-100 text-yellow-700', icon: <Clock size={12} /> },
     'Dispatched': { color: 'bg-blue-100 text-blue-700', icon: <Truck size={12} /> },
     'In Transit': { color: 'bg-purple-100 text-purple-700', icon: <Navigation size={12} /> },
     'Delivered': { color: 'bg-green-100 text-green-700', icon: <CheckCircle size={12} /> },
-    'Received': { color: 'bg-emerald-100 text-emerald-700', icon: <CheckCircle size={12} /> },
-    'Under incidence': { color: 'bg-red-100 text-red-700', icon: <AlertCircle size={12} /> },
   };
   
   const config = statusConfig[status] || { color: 'bg-gray-100 text-gray-700', icon: <Package size={12} /> };
@@ -84,7 +78,7 @@ const StatCard = ({ label, value, icon, color }: { label: string; value: string;
 };
 
 // ============================================
-// Dashboard View Component (Defined BEFORE use)
+// Dashboard View
 // ============================================
 
 const DashboardView = ({ dashboardData, parcels, onNavigate }: any) => {
@@ -128,9 +122,7 @@ const DashboardView = ({ dashboardData, parcels, onNavigate }: any) => {
             <div 
               key={parcel.tracking_number}
               className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-              onClick={() => {
-                onNavigate('track', parcel.tracking_number);
-              }}
+              onClick={() => onNavigate('track', parcel.tracking_number)}
             >
               <div className="flex justify-between items-start mb-1">
                 <div>
@@ -145,7 +137,7 @@ const DashboardView = ({ dashboardData, parcels, onNavigate }: any) => {
                 {parcel.description && (
                   <>
                     <span>•</span>
-                    <span>{parcel.description}</span>
+                    <span className="truncate max-w-[200px]">{parcel.description}</span>
                   </>
                 )}
               </div>
@@ -179,49 +171,37 @@ const DashboardView = ({ dashboardData, parcels, onNavigate }: any) => {
 // Main LogisticsModal Component
 // ============================================
 
-export default function LogisticsModal({ onClose, farmerId, farmerName }: LogisticsModalProps) {
+export default function LogisticsModal({ onClose, farmerId, farmerName, farmerPhone, farmerEmail }: LogisticsModalProps) {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [parcels, setParcels] = useState<Parcel[]>([]);  // ← Added this!
-  const [inventory, setInventory] = useState<FarmProduct[]>([]);
-  const [marketplaceProducts, setMarketplaceProducts] = useState<MarketplaceProduct[]>([]);
-  const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
-  const [carts, setCarts] = useState<SellerCart[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<MarketplaceProduct | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<MarketplaceOrder | null>(null);
+  const [parcels, setParcels] = useState<Parcel[]>([]);
+  const [orders, setOrders] = useState<OrderWithShipping[]>([]);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingResult, setTrackingResult] = useState<any>(null);
   const [trackingLoading, setTrackingLoading] = useState(false);
-  const [publishingProduct, setPublishingProduct] = useState<string | null>(null);
-  const [orderStatusUpdating, setOrderStatusUpdating] = useState<string | null>(null);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [dispatchLoading, setDispatchLoading] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    sender_name: '',
-    sender_phone: '',
+    sender_name: farmerName || '',
+    sender_phone: farmerPhone || '',
+    sender_email: farmerEmail || '',
     receiver_name: '',
     receiver_phone: '',
+    receiver_address: '',
     origin_location: '',
     destination: '',
     parcel_type: '',
     description: '',
-    delivery_to_address: false,
-    receiver_address: '',
-    shipping_cart_id: '',
+    delivery_to_address: true,
   });
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
-  const [inventoryLoading, setInventoryLoading] = useState(false);
-  const [marketplaceLoading, setMarketplaceLoading] = useState(false);
   const { formatKES: formatCurrency } = useCurrency();
 
-  // Load dashboard data on mount
+  // Load data on mount
   useEffect(() => {
     loadDashboard();
-    loadInventory();
-    loadMarketplaceProducts();
     loadOrders();
-    loadCarts();
   }, [farmerId]);
 
   const loadDashboard = async () => {
@@ -229,7 +209,6 @@ export default function LogisticsModal({ onClose, farmerId, farmerName }: Logist
     try {
       const data = await logisticsService.getDashboard();
       setDashboardData(data);
-      // Also load parcels separately if needed
       const parcelsData = await logisticsService.getParcels();
       setParcels(parcelsData);
     } catch (error) {
@@ -239,130 +218,100 @@ export default function LogisticsModal({ onClose, farmerId, farmerName }: Logist
     }
   };
 
-  const loadInventory = async () => {
-    if (!farmerId) return;
-    setInventoryLoading(true);
-    try {
-      const response = await farmProductsApi.getFarmerProducts(farmerId.toString(), 1, 50);
-      setInventory(response.data);
-    } catch (error) {
-      console.error('Error loading inventory:', error);
-    } finally {
-      setInventoryLoading(false);
-    }
-  };
-
-  const loadMarketplaceProducts = async () => {
-    if (!farmerId) return;
-    setMarketplaceLoading(true);
-    try {
-      const response = await marketplaceApi.getProducts({ farmer_id: farmerId.toString() });
-      setMarketplaceProducts(response.data);
-    } catch (error) {
-      console.error('Error loading marketplace products:', error);
-    } finally {
-      setMarketplaceLoading(false);
-    }
-  };
-
   const loadOrders = async () => {
     if (!farmerId) return;
     try {
       const response = await marketplaceApi.getSellerOrders(farmerId.toString());
-      setOrders(response.data);
+      // Filter orders that need shipping (paid but not yet shipped)
+      const ordersToShip = response.data.filter(
+        (order: MarketplaceOrder) => 
+          order.payment_status === 'paid' && 
+          order.status !== 'shipping' && 
+          order.status !== 'delivered'
+      );
+      setOrders(ordersToShip);
     } catch (error) {
       console.error('Error loading orders:', error);
     }
   };
 
-  const loadCarts = async () => {
-    if (!farmerId) return;
+  const handleDispatchOrder = async (order: OrderWithShipping) => {
+    setDispatchLoading(order.id);
     try {
-      const response = await marketplaceApi.getCart(farmerId.toString());
-      setCarts(Array.isArray(response) ? response : []);
-    } catch (error) {
-      console.error('Error loading carts:', error);
-    }
-  };
+      // Auto-populate sender details from farmer profile
+      const parcelData = {
+        sender_name: farmerName || order.buyer_first_name || 'Farmer',
+        sender_phone: farmerPhone || '',
+        receiver_name: order.buyer_first_name || 'Customer',
+        receiver_phone: order.buyer_mobile || '',
+        receiver_address: order.shipping_address || 'Customer address',
+        origin_location: 1, // Default station ID - could be set from farmer's location
+        destination: 1, // Default station ID - could be set from customer's location
+        parcel_type: 1, // Default parcel type
+        description: `Order ${order.order_number} - ${order.items?.length || 0} items`,
+        delivery_to_address: true,
+      };
 
-  const handlePublishToMarketplace = async (productId: string) => {
-    if (!farmerId) return;
-    setPublishingProduct(productId);
-    try {
-      const product = inventory.find(p => p.id === productId);
-      if (!product) return;
-
-      await marketplaceApi.publishProduct({
-        farm_product_id: productId,
-        price: product.price || 0,
-        farmer_id: farmerId.toString(),
+      const result = await logisticsService.createParcel(parcelData);
+      
+      // Update order status to shipping with tracking number
+      await marketplaceApi.updateOrderStatus(order.id, {
+        status: 'shipping',
+        tracking_number: result.tracking_number,
+        farmer_id: farmerId!.toString(),
       });
-
-      await loadInventory();
-      await loadMarketplaceProducts();
-      alert('Product published to marketplace successfully!');
-    } catch (error) {
-      console.error('Error publishing product:', error);
-      alert('Failed to publish product');
-    } finally {
-      setPublishingProduct(null);
-    }
-  };
-
-  const handleCreateShippingOrder = async (cart: SellerCart) => {
-    setCheckoutLoading(true);
-    try {
-      const checkoutResult = await marketplaceApi.checkout({
-        cart_id: cart.id,
-        shipping_address: formData.receiver_address || 'Farm collection point',
-        payment_method: 'wallet',
-        buyer_id: farmerId!.toString(),
-      });
-
-      if (checkoutResult.success) {
-        const parcelData = {
-          sender_name: farmerName || 'Farmer',
-          sender_phone: formData.sender_phone || farmerId?.toString() || '',
-          receiver_name: cart.seller_name,
-          receiver_phone: '',
-          origin_location: 1,
-          destination: 1,
-          parcel_type: 1,
-          description: `Order ${checkoutResult.order_number} - ${cart.items.length} items`,
-          delivery_to_address: true,
-          receiver_address: 'Customer address',
-        };
-
-        await logisticsService.createParcel(parcelData);
-        
-        await loadOrders();
-        await loadCarts();
-        alert(`Order ${checkoutResult.order_number} created and shipping arranged!`);
-        setCurrentView('orders');
-      }
-    } catch (error) {
-      console.error('Error creating shipping order:', error);
-      alert('Failed to create shipping order');
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
-
-  const handleUpdateOrderStatus = async (orderId: string, status: string) => {
-    if (!farmerId) return;
-    setOrderStatusUpdating(orderId);
-    try {
-      await marketplaceApi.updateOrderStatus(orderId, {
-        status,
-        farmer_id: farmerId.toString(),
-      });
+      
+      // Refresh data
       await loadOrders();
-      alert(`Order status updated to ${status}`);
+      await loadDashboard();
+      
+      alert(`Order ${order.order_number} dispatched! Tracking: ${result.tracking_number}`);
+      setCurrentView('track');
+      setTrackingNumber(result.tracking_number);
+      setTimeout(() => handleTrackParcel(), 100);
     } catch (error) {
-      console.error('Error updating order status:', error);
-      alert('Failed to update order status');
+      console.error('Error dispatching order:', error);
+      alert('Failed to dispatch order. Please try again.');
     } finally {
-      setOrderStatusUpdating(null);
+      setDispatchLoading(null);
+    }
+  };
+
+  const handleCreateParcel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormSubmitting(true);
+    setFormError('');
+    
+    try {
+      const result = await logisticsService.createParcel({
+        ...formData,
+        origin_location: parseInt(formData.origin_location) || 1,
+        destination: parseInt(formData.destination) || 1,
+        parcel_type: parseInt(formData.parcel_type) || 1,
+      });
+      
+      // Reset form
+      setFormData({
+        sender_name: farmerName || '',
+        sender_phone: farmerPhone || '',
+        sender_email: farmerEmail || '',
+        receiver_name: '',
+        receiver_phone: '',
+        receiver_address: '',
+        origin_location: '',
+        destination: '',
+        parcel_type: '',
+        description: '',
+        delivery_to_address: true,
+      });
+      
+      await loadDashboard();
+      setCurrentView('dashboard');
+      alert(`Parcel created! Tracking number: ${result.tracking_number}`);
+    } catch (error: any) {
+      setFormError(error.message || 'Failed to create parcel');
+    } finally {
+      setFormSubmitting(false);
     }
   };
 
@@ -381,43 +330,6 @@ export default function LogisticsModal({ onClose, farmerId, farmerName }: Logist
     }
   };
 
-  const handleCreateParcel = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormSubmitting(true);
-    setFormError('');
-    
-    try {
-      const result = await logisticsService.createParcel({
-        ...formData,
-        origin_location: parseInt(formData.origin_location),
-        destination: parseInt(formData.destination),
-        parcel_type: parseInt(formData.parcel_type),
-      });
-      
-      setFormData({
-        sender_name: '',
-        sender_phone: '',
-        receiver_name: '',
-        receiver_phone: '',
-        origin_location: '',
-        destination: '',
-        parcel_type: '',
-        description: '',
-        delivery_to_address: false,
-        receiver_address: '',
-        shipping_cart_id: '',
-      });
-      
-      await loadDashboard();
-      setCurrentView('dashboard');
-      alert(`Parcel created! Tracking number: ${result.tracking_number}`);
-    } catch (error: any) {
-      setFormError(error.message || 'Failed to create parcel');
-    } finally {
-      setFormSubmitting(false);
-    }
-  };
-
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose();
   };
@@ -428,264 +340,91 @@ export default function LogisticsModal({ onClose, farmerId, farmerName }: Logist
     }
     setCurrentView(view);
     if (view === 'track' && trackingNumber) {
-      // Auto-track if tracking number is provided
       setTimeout(() => handleTrackParcel(), 100);
     }
   };
 
-  // Helper function for product emojis
-  const getProductEmoji = (productName: string): string => {
-    const name = productName.toLowerCase();
-    if (name.includes('maize') || name.includes('corn')) return '🌽';
-    if (name.includes('tomato')) return '🍅';
-    if (name.includes('potato')) return '🥔';
-    if (name.includes('onion')) return '🧅';
-    if (name.includes('carrot')) return '🥕';
-    if (name.includes('cabbage')) return '🥬';
-    if (name.includes('bean')) return '🫘';
-    if (name.includes('wheat')) return '🌾';
-    if (name.includes('milk')) return '🥛';
-    if (name.includes('egg')) return '🥚';
-    if (name.includes('chicken')) return '🐔';
-    if (name.includes('coffee')) return '☕';
-    if (name.includes('tea')) return '🫖';
-    return '🌱';
-  };
-
-  // Inventory View
-  const InventoryView = () => (
+  // Orders View - Ready to Dispatch
+  const OrdersView = () => (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="font-medium text-gray-900 dark:text-white">Farm Inventory</h3>
+        <h3 className="font-medium text-gray-900 dark:text-white">Ready to Dispatch</h3>
         <button
-          onClick={() => setCurrentView('create')}
-          className="text-sm text-brand-green hover:text-green-700 flex items-center gap-1"
+          onClick={loadOrders}
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          title="Refresh"
         >
-          <Plus size={14} />
-          New Product
+          <RefreshCw size={16} />
         </button>
       </div>
       
-      {inventoryLoading ? (
-        <div className="flex justify-center py-8">
-          <Loader2 size={24} className="animate-spin text-brand-green" />
-        </div>
-      ) : inventory.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          <Package size={48} className="mx-auto mb-3 opacity-50" />
-          <p>No farm products yet</p>
-          <button
-            onClick={() => setCurrentView('create')}
-            className="mt-2 text-brand-green text-sm"
-          >
-            Add your first product →
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-2 max-h-[500px] overflow-y-auto">
-          {inventory.map((product) => (
-            <div key={product.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{getProductEmoji(product.product_name)}</span>
-                    <p className="font-medium">{product.product_name}</p>
-                    <StatusBadge status={product.status || 'available'} />
-                  </div>
-                  <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-500">
-                    <span className="flex items-center gap-1"><Package size={12} /> {product.quantity} {product.unit}</span>
-                    <span className="flex items-center gap-1"><DollarSign size={12} /> {formatCurrency(product.price || 0)}</span>
-                    {product.category && <span className="flex items-center gap-1"><Box size={12} /> {product.category}</span>}
-                  </div>
+      <div className="space-y-3 max-h-[500px] overflow-y-auto">
+        {orders.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <CheckCircle size={48} className="mx-auto mb-3 opacity-50" />
+            <p>No orders to dispatch</p>
+            <p className="text-xs mt-1">Orders will appear here after payment is confirmed</p>
+          </div>
+        ) : (
+          orders.map((order) => (
+            <div key={order.id} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <p className="font-mono text-sm font-medium text-brand-green">#{order.order_number}</p>
+                  <p className="text-sm mt-1">
+                    <span className="font-medium">Customer:</span> {order.buyer_first_name} {order.buyer_last_name}
+                  </p>
+                  {order.buyer_mobile && (
+                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                      <Phone size={12} /> {order.buyer_mobile}
+                    </p>
+                  )}
                 </div>
-                <div className="flex gap-2">
-                  {product.status === 'available' && (
-                    <button
-                      onClick={() => handlePublishToMarketplace(product.id!.toString())}
-                      disabled={publishingProduct === product.id}
-                      className="px-2 py-1 text-xs bg-brand-green text-white rounded hover:bg-green-700"
-                    >
-                      {publishingProduct === product.id ? <Loader2 size={12} className="animate-spin" /> : 'Publish'}
-                    </button>
+                <StatusBadge status="paid" />
+              </div>
+              
+              {/* Order Items */}
+              <div className="mb-3">
+                <p className="text-sm font-medium mb-1">Items:</p>
+                <div className="space-y-1">
+                  {order.items?.slice(0, 3).map((item) => (
+                    <div key={item.id} className="flex justify-between text-xs">
+                      <span>{item.product_name} x{item.quantity}</span>
+                      <span>{formatCurrency(item.total_price)}</span>
+                    </div>
+                  ))}
+                  {order.items && order.items.length > 3 && (
+                    <p className="text-xs text-gray-400">+{order.items.length - 3} more items</p>
                   )}
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  // Marketplace View
-  const MarketplaceView = () => (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="font-medium text-gray-900 dark:text-white">Active Marketplace Listings</h3>
-        <button
-          onClick={() => setCurrentView('inventory')}
-          className="text-sm text-brand-green hover:text-green-700"
-        >
-          Add from Inventory →
-        </button>
-      </div>
-      
-      {marketplaceLoading ? (
-        <div className="flex justify-center py-8">
-          <Loader2 size={24} className="animate-spin text-brand-green" />
-        </div>
-      ) : marketplaceProducts.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          <Store size={48} className="mx-auto mb-3 opacity-50" />
-          <p>No active marketplace listings</p>
-          <p className="text-xs mt-1">Publish products from your inventory</p>
-        </div>
-      ) : (
-        <div className="space-y-2 max-h-[500px] overflow-y-auto">
-          {marketplaceProducts.map((product) => (
-            <div key={product.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{getProductEmoji(product.product_name)}</span>
-                    <p className="font-medium">{product.product_name}</p>
-                    <StatusBadge status={product.status} />
-                  </div>
-                  <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-500">
-                    <span className="flex items-center gap-1"><Package size={12} /> {product.quantity} {product.unit}</span>
-                    <span className="flex items-center gap-1"><DollarSign size={12} /> {formatCurrency(product.price)}/{product.unit}</span>
-                    <span className="flex items-center gap-1"><TrendingUp size={12} /> {product.total_sales || 0} sold</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  // Orders View
-  const OrdersView = () => (
-    <div className="space-y-4">
-      <h3 className="font-medium text-gray-900 dark:text-white">Incoming Orders</h3>
-      
-      <div className="space-y-3 max-h-[500px] overflow-y-auto">
-        {orders.map((order) => (
-          <div key={order.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="font-mono text-sm font-medium">{order.order_number}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <StatusBadge status={order.status} />
-                  <span className="text-xs text-gray-500">
-                    {new Date(order.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                <p className="text-sm mt-1">
-                  {order.items?.length || 0} items • {formatCurrency(order.total_amount)}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                {order.status === 'pending' && (
-                  <button
-                    onClick={() => handleUpdateOrderStatus(order.id, 'confirmed')}
-                    disabled={orderStatusUpdating === order.id}
-                    className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                  >
-                    Confirm
-                  </button>
-                )}
-                {order.status === 'confirmed' && (
-                  <button
-                    onClick={() => handleUpdateOrderStatus(order.id, 'shipping')}
-                    disabled={orderStatusUpdating === order.id}
-                    className="px-2 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600"
-                  >
-                    Ship
-                  </button>
-                )}
-                {order.status === 'shipping' && (
-                  <button
-                    onClick={() => {
-                      setSelectedOrder(order);
-                      setCurrentView('track');
-                    }}
-                    className="px-2 py-1 text-xs bg-brand-green text-white rounded hover:bg-green-700"
-                  >
-                    Track
-                  </button>
-                )}
-              </div>
-            </div>
-            
-            {order.items && order.items.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                {order.items.slice(0, 2).map((item) => (
-                  <div key={item.id} className="flex justify-between text-xs text-gray-600 py-1">
-                    <span>{item.product_name} x{item.quantity}</span>
-                    <span>{formatCurrency(item.total_price)}</span>
-                  </div>
-                ))}
-                {order.items.length > 2 && (
-                  <p className="text-xs text-gray-400">+{order.items.length - 2} more items</p>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-        
-        {orders.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            <Receipt size={48} className="mx-auto mb-3 opacity-50" />
-            <p>No orders yet</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  // Shopping Carts View
-  const ShippingView = () => (
-    <div className="space-y-4">
-      <h3 className="font-medium text-gray-900 dark:text-white">Pending Shipments</h3>
-      
-      {carts.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          <ShoppingCart size={48} className="mx-auto mb-3 opacity-50" />
-          <p>No pending shipments</p>
-          <p className="text-xs mt-1">Customer orders will appear here</p>
-        </div>
-      ) : (
-        <div className="space-y-3 max-h-[500px] overflow-y-auto">
-          {carts.map((cart) => (
-            <div key={cart.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div className="flex justify-between items-start">
+              
+              <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
                 <div>
-                  <p className="font-medium">Order from {cart.seller_name || 'Customer'}</p>
-                  <p className="text-sm mt-1">{cart.items.length} items • {formatCurrency(cart.total)}</p>
+                  <p className="text-sm font-bold">{formatCurrency(order.total_amount)}</p>
+                  {order.shipping_address && (
+                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                      <MapPin size={10} /> {order.shipping_address}
+                    </p>
+                  )}
                 </div>
                 <button
-                  onClick={() => handleCreateShippingOrder(cart)}
-                  disabled={checkoutLoading}
-                  className="px-3 py-1 bg-brand-green text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50 flex items-center gap-1"
+                  onClick={() => handleDispatchOrder(order)}
+                  disabled={dispatchLoading === order.id}
+                  className="px-4 py-2 bg-brand-green text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
                 >
-                  {checkoutLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                  Process & Ship
+                  {dispatchLoading === order.id ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <TruckIcon size={16} />
+                  )}
+                  Dispatch
                 </button>
               </div>
-              <div className="mt-2 space-y-1">
-                {cart.items.slice(0, 2).map((item) => (
-                  <div key={item.id} className="flex justify-between text-xs">
-                    <span>{item.product_name} x{item.quantity}</span>
-                    <span>{formatCurrency(item.item_total)}</span>
-                  </div>
-                ))}
-              </div>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </div>
   );
 
@@ -698,7 +437,7 @@ export default function LogisticsModal({ onClose, farmerId, farmerName }: Logist
           placeholder="Enter tracking number"
           value={trackingNumber}
           onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
-          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 font-mono"
         />
         <button
           onClick={handleTrackParcel}
@@ -721,9 +460,9 @@ export default function LogisticsModal({ onClose, farmerId, farmerName }: Logist
               <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <p className="font-mono font-bold">{trackingResult.tracking_number}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {trackingResult.sender_name} → {trackingResult.receiver_name}
+                    <p className="font-mono font-bold text-lg">{trackingResult.tracking_number}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      📦 {trackingResult.sender_name} → {trackingResult.receiver_name}
                     </p>
                   </div>
                   <StatusBadge status={trackingResult.status} />
@@ -731,14 +470,14 @@ export default function LogisticsModal({ onClose, farmerId, farmerName }: Logist
                 
                 {trackingResult.current_location?.latitude && (
                   <div className="mt-3 p-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-center text-sm">
-                    📍 Current Location: {trackingResult.current_location.latitude}, {trackingResult.current_location.longitude}
+                    📍 Current Location: {trackingResult.current_location.latitude.toFixed(4)}, {trackingResult.current_location.longitude.toFixed(4)}
                   </div>
                 )}
               </div>
 
               {trackingResult.events && trackingResult.events.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="font-medium">Tracking History</h4>
+                  <h4 className="font-medium text-gray-900 dark:text-white">Tracking History</h4>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {trackingResult.events.map((event: any, idx: number) => (
                       <div key={idx} className="flex gap-3 p-2 border-l-2 border-brand-green ml-2">
@@ -759,10 +498,101 @@ export default function LogisticsModal({ onClose, farmerId, farmerName }: Logist
     </div>
   );
 
+  // Create Parcel View
+  const CreateParcelView = () => (
+    <form onSubmit={handleCreateParcel} className="space-y-4">
+      {formError && (
+        <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-lg text-sm">
+          {formError}
+        </div>
+      )}
+      
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Sender Name</label>
+          <input
+            type="text"
+            value={formData.sender_name}
+            onChange={(e) => setFormData({ ...formData, sender_name: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+            required
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Sender Phone</label>
+          <input
+            type="tel"
+            value={formData.sender_phone}
+            onChange={(e) => setFormData({ ...formData, sender_phone: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Receiver Name</label>
+          <input
+            type="text"
+            value={formData.receiver_name}
+            onChange={(e) => setFormData({ ...formData, receiver_name: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+            required
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Receiver Phone</label>
+          <input
+            type="tel"
+            value={formData.receiver_phone}
+            onChange={(e) => setFormData({ ...formData, receiver_phone: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs text-gray-500 mb-1 block">Receiver Address</label>
+        <textarea
+          value={formData.receiver_address}
+          onChange={(e) => setFormData({ ...formData, receiver_address: e.target.value })}
+          rows={2}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 resize-none"
+          placeholder="Full delivery address"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="text-xs text-gray-500 mb-1 block">Description</label>
+        <input
+          type="text"
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          placeholder="What are you sending?"
+          required
+        />
+      </div>
+
+      <div className="flex gap-3 pt-2">
+        <button type="submit" disabled={formSubmitting} className="flex-1 bg-brand-green text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2">
+          {formSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+          {formSubmitting ? 'Creating...' : 'Create Parcel'}
+        </button>
+        <button type="button" onClick={() => setCurrentView('dashboard')} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+
   // Reports View
   const ReportsView = () => (
     <div className="space-y-4">
-      <h3 className="font-medium">Logistics Reports</h3>
+      <h3 className="font-medium text-gray-900 dark:text-white">Logistics Reports</h3>
       
       {dashboardData && (
         <div className="grid grid-cols-2 gap-3">
@@ -787,53 +617,17 @@ export default function LogisticsModal({ onClose, farmerId, farmerName }: Logist
       
       <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
         <h4 className="font-medium mb-2">Recent Activity</h4>
-        {dashboardData?.recent_parcels.slice(0, 5).map((parcel) => (
-          <div key={parcel.tracking_number} className="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-            <span className="font-mono text-sm">{parcel.tracking_number}</span>
-            <StatusBadge status={parcel.status} />
-            <span className="text-xs text-gray-500">{new Date(parcel.created_at).toLocaleDateString()}</span>
-          </div>
-        ))}
+        <div className="space-y-2">
+          {dashboardData?.recent_parcels.slice(0, 5).map((parcel) => (
+            <div key={parcel.tracking_number} className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+              <span className="font-mono text-sm">{parcel.tracking_number}</span>
+              <StatusBadge status={parcel.status} />
+              <span className="text-xs text-gray-500">{new Date(parcel.created_at).toLocaleDateString()}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
-  );
-
-  // Create Parcel View (simplified for brevity - add this if needed)
-  const CreateParcelView = () => (
-    <form onSubmit={handleCreateParcel} className="space-y-4">
-      {formError && (
-        <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-lg text-sm">
-          {formError}
-        </div>
-      )}
-      <div className="grid grid-cols-2 gap-3">
-        <input
-          type="text"
-          placeholder="Sender Name"
-          value={formData.sender_name}
-          onChange={(e) => setFormData({ ...formData, sender_name: e.target.value })}
-          className="px-3 py-2 border rounded-lg"
-          required
-        />
-        <input
-          type="tel"
-          placeholder="Sender Phone"
-          value={formData.sender_phone}
-          onChange={(e) => setFormData({ ...formData, sender_phone: e.target.value })}
-          className="px-3 py-2 border rounded-lg"
-          required
-        />
-      </div>
-      {/* Add more form fields as needed */}
-      <div className="flex gap-3">
-        <button type="submit" disabled={formSubmitting} className="flex-1 bg-brand-green text-white py-2 rounded-lg">
-          {formSubmitting ? 'Creating...' : 'Create Parcel'}
-        </button>
-        <button type="button" onClick={() => setCurrentView('dashboard')} className="px-4 py-2 border rounded-lg">
-          Cancel
-        </button>
-      </div>
-    </form>
   );
 
   return (
@@ -851,7 +645,7 @@ export default function LogisticsModal({ onClose, farmerId, farmerName }: Logist
               </div>
               <div>
                 <h2 className="text-xl font-bold">Farm Logistics Hub</h2>
-                <p className="text-white/80 text-sm">Manage farm deliveries & marketplace orders</p>
+                <p className="text-white/80 text-sm">Dispatch orders & track deliveries</p>
               </div>
             </div>
             <button 
@@ -864,7 +658,7 @@ export default function LogisticsModal({ onClose, farmerId, farmerName }: Logist
 
           {/* Tab Navigation */}
           <div className="flex flex-wrap gap-1 mt-4">
-            {(['dashboard', 'inventory', 'marketplace', 'orders', 'shipping', 'track', 'reports'] as ViewType[]).map((view) => (
+            {(['dashboard', 'orders', 'create', 'track', 'reports'] as ViewType[]).map((view) => (
               <button
                 key={view}
                 onClick={() => setCurrentView(view)}
@@ -875,10 +669,8 @@ export default function LogisticsModal({ onClose, farmerId, farmerName }: Logist
                 }`}
               >
                 {view === 'dashboard' && <span className="flex items-center gap-1"><Truck size={14} /> Dashboard</span>}
-                {view === 'inventory' && <span className="flex items-center gap-1"><Package size={14} /> Inventory</span>}
-                {view === 'marketplace' && <span className="flex items-center gap-1"><Store size={14} /> Marketplace</span>}
-                {view === 'orders' && <span className="flex items-center gap-1"><ClipboardList size={14} /> Orders</span>}
-                {view === 'shipping' && <span className="flex items-center gap-1"><Send size={14} /> Ship</span>}
+                {view === 'orders' && <span className="flex items-center gap-1"><ShoppingCart size={14} /> Dispatch</span>}
+                {view === 'create' && <span className="flex items-center gap-1"><Plus size={14} /> New Parcel</span>}
                 {view === 'track' && <span className="flex items-center gap-1"><Search size={14} /> Track</span>}
                 {view === 'reports' && <span className="flex items-center gap-1"><TrendingUp size={14} /> Reports</span>}
               </button>
@@ -901,13 +693,10 @@ export default function LogisticsModal({ onClose, farmerId, farmerName }: Logist
                   onNavigate={handleNavigate} 
                 />
               )}
-              {currentView === 'inventory' && <InventoryView />}
-              {currentView === 'marketplace' && <MarketplaceView />}
               {currentView === 'orders' && <OrdersView />}
-              {currentView === 'shipping' && <ShippingView />}
+              {currentView === 'create' && <CreateParcelView />}
               {currentView === 'track' && <TrackParcelView />}
               {currentView === 'reports' && <ReportsView />}
-              {currentView === 'create' && <CreateParcelView />}
             </>
           )}
         </div>

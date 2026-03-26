@@ -1017,8 +1017,11 @@ export default function Dashboard() {
           onClose={() => setKnowledgeOpen(false)}
         />
       )}
-      {logisticsOpen && (
-        <LogisticsModal onClose={() => setLogisticsOpen(false)} />
+      {logisticsOpen && farmerNumericId && (
+        <LogisticsModal 
+          onClose={() => setLogisticsOpen(false)} 
+          farmerId={farmerNumericId}
+        />
       )}
       {insuranceOpen && ( 
         <InsuranceModal onClose={() => setInsuranceOpen(false)} />

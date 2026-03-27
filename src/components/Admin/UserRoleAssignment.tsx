@@ -18,6 +18,7 @@ import {
   Building2
 } from 'lucide-react';
 import { API_BASE } from "../../services/config";
+import { getRoles } from "../../services/roles";
 
 interface User {
   id: string;
@@ -25,7 +26,8 @@ interface User {
   first_name: string | null;
   last_name: string | null;
   middle_name?: string | null;
-  role: string;
+  role_id: string;
+  role_name: string;
   group_id: string | null;
   group_name?: string;
   created_at: string;
@@ -42,12 +44,6 @@ interface UserRoleAssignmentProps {
   onClose: () => void;
   onSuccess?: () => void;
 }
-
-/*
-const API_BASE = import.meta.env.MODE === "development"
-  ? "/api"
-  : "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
-*/
 
 export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserRoleAssignmentProps) {
   const [users, setUsers] = useState<User[]>([]);
@@ -67,7 +63,8 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
   // Load users and roles when modal opens
   useEffect(() => {
     if (isOpen) {
-      Promise.all([fetchUsers(), fetchRoles()]);
+      fetchUsers();
+      fetchRoles();
     }
   }, [isOpen]);
 
@@ -84,13 +81,13 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
       );
     }
     
-    // Apply role filter
+    // Apply role filter - use role_name for filtering
     if (selectedRoleFilter !== 'all') {
-      filtered = filtered.filter(user => user.role === selectedRoleFilter);
+      filtered = filtered.filter(user => user.role_name === selectedRoleFilter);
     }
     
     setFilteredUsers(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   }, [users, searchTerm, selectedRoleFilter]);
 
   const fetchUsers = async () => {
@@ -100,7 +97,13 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
       const response = await fetch(`${API_BASE}/admin/users?limit=100`);
       if (response.ok) {
         const data = await response.json();
-        setUsers(data.users || []);
+        // Ensure we have proper role data
+        const usersWithRoles = (data.users || []).map((user: any) => ({
+          ...user,
+          role_name: user.role_name || user.role || 'farmer',
+          role_id: user.role_id || ''
+        }));
+        setUsers(usersWithRoles);
       } else {
         const error = await response.json();
         setShowError(error.error || 'Failed to fetch users');
@@ -115,22 +118,17 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
 
   const fetchRoles = async () => {
     try {
-      const response = await fetch('${API_BASE}/getRoles');
-      if (response.ok) {
-        const data = await response.json();
-        setRoles(data);
-      } else {
-        console.error('Failed to fetch roles');
-      }
+      const rolesData = await getRoles();
+      setRoles(rolesData);
     } catch (error) {
       console.error('Error fetching roles:', error);
     }
   };
 
-  const handleRoleChange = (userId: string, newRole: string) => {
+  const handleRoleChange = (userId: string, newRoleId: string) => {
     setEditedRoles(prev => ({
       ...prev,
-      [userId]: newRole
+      [userId]: newRoleId
     }));
   };
 
@@ -139,12 +137,13 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
     if (!newRoleId) return;
 
     setUpdating(userId);
+    setShowError(null);
     
     try {
       const response = await fetch(`${API_BASE}/admin/users/${userId}/role`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role_id: newRoleId }) // Send role_id, not role name
+        body: JSON.stringify({ role_id: newRoleId })
       });
 
       if (response.ok) {
@@ -154,22 +153,31 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
           user.id === userId 
             ? { 
                 ...user, 
-                role_id: data.user.role_id,
-                role_name: data.user.role_name 
+                role_id: data.user.role_id || newRoleId,
+                role_name: data.user.role_name || roles.find(r => r.id === newRoleId)?.name || user.role_name
               }
             : user
         ));
         
-        setShowSuccess(`Role updated successfully`);
+        setShowSuccess(`Role updated successfully for ${users.find(u => u.id === userId)?.email}`);
+        setTimeout(() => setShowSuccess(null), 3000);
+        
         setEditedRoles(prev => {
           const newState = { ...prev };
           delete newState[userId];
           return newState;
         });
+        
+        if (onSuccess) onSuccess();
+      } else {
+        const error = await response.json();
+        setShowError(error.error || 'Failed to update role');
+        setTimeout(() => setShowError(null), 3000);
       }
     } catch (error) {
       console.error('Error updating role:', error);
-      setShowError('Failed to update role');
+      setShowError('Failed to update role. Please try again.');
+      setTimeout(() => setShowError(null), 3000);
     } finally {
       setUpdating(null);
     }
@@ -182,21 +190,24 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
     let successCount = 0;
     let errorCount = 0;
 
-    for (const [userId, newRole] of updates) {
+    for (const [userId, newRoleId] of updates) {
       try {
         const response = await fetch(`${API_BASE}/admin/users/${userId}/role`, {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ role: newRole })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role_id: newRoleId })
         });
 
         if (response.ok) {
+          const data = await response.json();
           successCount++;
           setUsers(prev => prev.map(user => 
             user.id === userId 
-              ? { ...user, role: newRole }
+              ? { 
+                  ...user, 
+                  role_id: data.user.role_id || newRoleId,
+                  role_name: data.user.role_name || roles.find(r => r.id === newRoleId)?.name || user.role_name
+                }
               : user
           ));
         } else {
@@ -211,21 +222,22 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
     
     if (successCount > 0) {
       setShowSuccess(`Successfully updated ${successCount} user${successCount > 1 ? 's' : ''}${errorCount > 0 ? `, ${errorCount} failed` : ''}`);
+      setTimeout(() => setShowSuccess(null), 3000);
       if (onSuccess) onSuccess();
     }
     
     if (errorCount > 0) {
       setShowError(`Failed to update ${errorCount} user${errorCount > 1 ? 's' : ''}`);
+      setTimeout(() => setShowError(null), 3000);
     }
   };
 
   const getRoleBadgeColor = (roleName: string) => {
-    // You can customize colors based on role names
     switch (roleName?.toLowerCase()) {
       case 'admin':
         return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800';
-      case 'sacco':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800';
+      case 'group_admin':
+        return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800';
       case 'farmer':
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800';
       default:
@@ -237,8 +249,8 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
     switch (roleName?.toLowerCase()) {
       case 'admin':
         return '👑';
-      case 'sacco':
-        return '🏦';
+      case 'group_admin':
+        return '🏢';
       case 'farmer':
         return '🌾';
       default:
@@ -392,7 +404,7 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
                             <td className="px-6 py-4">
                               <div className="flex items-center">
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center text-lg">
-                                  <span>{getRoleIcon(user.role)}</span>
+                                  <span>{getRoleIcon(user.role_name)}</span>
                                 </div>
                                 <div className="ml-3">
                                   <p className="font-medium text-gray-900 dark:text-white">
@@ -423,13 +435,13 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
                               </div>
                             </td>
                             <td className="px-6 py-4">
-                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
-                                {user.role?.toUpperCase() || 'NO ROLE'}
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role_name)}`}>
+                                {user.role_name?.toUpperCase() || 'NO ROLE'}
                               </span>
                             </td>
                             <td className="px-6 py-4">
                               <select
-                                value={editedRoles[user.id] || user.role || ''}
+                                value={editedRoles[user.id] || user.role_id || ''}
                                 onChange={(e) => handleRoleChange(user.id, e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                               >
@@ -437,10 +449,10 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
                                 {roles.map(role => (
                                   <option 
                                     key={role.id} 
-                                    value={role.name}
-                                    disabled={role.name === user.role}
+                                    value={role.id}
+                                    disabled={role.id === user.role_id}
                                   >
-                                    {role.name} {role.name === user.role ? '(current)' : ''}
+                                    {role.name} {role.id === user.role_id ? '(current)' : ''}
                                   </option>
                                 ))}
                               </select>
@@ -509,7 +521,7 @@ export default function UserRoleAssignment({ isOpen, onClose, onSuccess }: UserR
                   <UserCog size={16} />
                   Available Roles
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {roles.map(role => (
                     <div key={role.id} className="flex items-start gap-2">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(role.name)}`}>

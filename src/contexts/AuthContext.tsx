@@ -21,13 +21,13 @@ interface AuthContextType {
   setUser: (user: User | null) => void;
   logout: () => void;
   getFarmerId: () => Promise<number | null>;
-  getCooperativeId: () => Promise<string | null>;  // New: Get cooperative ID for group admins
+  getCooperativeId: () => Promise<string | null>;
   hasRole: (roleName: string) => boolean;
   isAdmin: boolean;
   isFarmer: boolean;
-  isGroupAdmin: boolean;      // New: Group Admin role
+  isGroupAdmin: boolean;
   isSacco: boolean;
-  userRole: string | null;     // New: Current user role name
+  userRole: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -124,7 +124,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // New: Get cooperative ID for group admins
   const getCooperativeId = async (): Promise<string | null> => {
     if (!user) {
       console.log("getCooperativeId: No user");
@@ -135,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("getCooperativeId: Fetching for user:", user.id, "role:", user.role_name);
       
       // If user is a group admin and already has group_id, return it
-      if (user.role_name?.toLowerCase() === 'group_admin' && user.group_id) {
+      if (user.role_name?.toLowerCase() === 'group admin' && user.group_id) {
         console.log("getCooperativeId: Using user.group_id:", user.group_id);
         return user.group_id;
       }
@@ -157,15 +156,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const hasRole = (roleName: string): boolean => {
     if (!user || !user.role_name) return false;
-    return user.role_name.toLowerCase() === roleName.toLowerCase();
+    
+    const userRoleLower = user.role_name.toLowerCase();
+    const targetRoleLower = roleName.toLowerCase();
+    
+    // Special handling for group admin (could be "group admin" or "group_admin")
+    if (targetRoleLower === 'group_admin') {
+      return userRoleLower === 'group admin' || userRoleLower === 'group_admin';
+    }
+    
+    // Special handling for admin (could be "admin" or "super_admin")
+    if (targetRoleLower === 'admin') {
+      return userRoleLower === 'admin' || userRoleLower === 'super_admin';
+    }
+    
+    return userRoleLower === targetRoleLower;
   };
 
   // Computed properties
-  const isAdmin = hasRole('admin') || hasRole('super_admin');
+  const isAdmin = hasRole('admin');
   const isFarmer = hasRole('farmer');
-  const isGroupAdmin = hasRole('group_admin');
+  const isGroupAdmin = hasRole('group_admin');  // Now handles both "group admin" and "group_admin"
   const isSacco = hasRole('sacco');
   const userRole = user?.role_name || null;
+
+  // Debug logging
+  console.log("🔐 AuthContext state:", {
+    userRole,
+    isAdmin,
+    isFarmer,
+    isGroupAdmin,
+    isSacco
+  });
 
   return (
     <AuthContext.Provider value={{ 
@@ -175,13 +197,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser,
       logout, 
       getFarmerId,
-      getCooperativeId,  // New
+      getCooperativeId,
       hasRole,
       isAdmin,
       isFarmer,
-      isGroupAdmin,      // New
+      isGroupAdmin,
       isSacco,
-      userRole           // New
+      userRole
     }}>
       {children}
     </AuthContext.Provider>

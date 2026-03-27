@@ -57,6 +57,7 @@ export default function VerifyOtp() {
       };
 
       console.log("✅ Formatted user:", formattedUser);
+      console.log("✅ Role from backend:", formattedUser.role_name);
 
       // Set user via context
       setUser(formattedUser);
@@ -64,25 +65,35 @@ export default function VerifyOtp() {
       // Store token if present
       if (response.token) {
         localStorage.setItem("token", response.token);
+        localStorage.setItem("auth_token", response.token); // Also store as auth_token for consistency
       }
 
       // Clear pending email
       localStorage.removeItem("pendingEmail");
 
-      // Navigate based on role
+      // Navigate based on role - handle actual role values
       const role = formattedUser.role_name?.toLowerCase();
-      console.log("🎯 Navigating based on role:", role);
+      console.log("🎯 Role (lowercase):", role);
       
+      // Check for specific role values
       if (role === "admin") {
+        console.log("🚀 Navigating to admin dashboard");
         navigate("/admin-dashboard");
-      } else if (role === "group_admin") {
+      } else if (role === "group admin") {  // Note: space between group and admin
+        console.log("🚀 Navigating to group dashboard");
         navigate("/group-dashboard");
       } else if (role === "farmer") {
+        console.log("🚀 Navigating to farmer dashboard");
         navigate("/dashboard");
       } else {
-        // Default fallback
-        console.warn("⚠️ Unknown role, defaulting to farmer dashboard:", role);
-        navigate("/dashboard");
+        // Default fallback - check if it's group admin by any variation
+        if (formattedUser.role_name?.includes("Group") || formattedUser.role_name?.includes("group")) {
+          console.log("🚀 Detected group admin by name, navigating to group dashboard");
+          navigate("/group-dashboard");
+        } else {
+          console.warn("⚠️ Unknown role, defaulting to farmer dashboard:", role);
+          navigate("/dashboard");
+        }
       }
       
     } catch (err: any) {

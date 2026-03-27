@@ -743,14 +743,14 @@ export default function AdminDashboard() {
                       onClick={() => setUserRoleModalOpen(true)}
                     />
                     <SubNavItem 
-                      icon={<UserCog size={14} />}
-                      label="Assign Roles"
-                      onClick={() => setUserRoleAssignmentOpen(true)} // New for assigning roles to users
-                    />
-                    <SubNavItem 
                       icon={<Shield size={14} />}
                       label="Register Group Admin"
                       onClick={() => navigate("/register-group-admin")}
+                    />
+                    <SubNavItem 
+                      icon={<UserCog size={14} />}
+                      label="Assign Roles"
+                      onClick={() => setUserRoleAssignmentOpen(true)}
                     />
                   </div>
                 )}

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import VerifyOtp from "./pages/VerifyOtp";
 import Dashboard from "./pages/Dashboard";
+import GroupAdminDashboard from "./pages/GroupAdminDashboard";
 import PrivateRoute from "./components/Auth/PrivateRoute";
 import MainLayout from "./layouts/MainLayout";
 import RegisterFarmerUnderGroup from "./pages/RegisterFarmerUnderGroup";
@@ -35,6 +36,16 @@ export default function App() {
               }
             />
             
+            {/* Group Admin routes - Cooperative/Group Dashboard */}
+            <Route
+              path="/group-dashboard"
+              element={
+                <PrivateRoute requiredRole="group_admin">
+                  <GroupAdminDashboard />
+                </PrivateRoute>
+              }
+            />
+            
             {/* Admin only routes */}
             <Route
               path="/admin-dashboard"
@@ -54,11 +65,11 @@ export default function App() {
               }
             />
             
-            {/* Routes accessible by both admin and sacco */}
+            {/* Routes accessible by both admin and group_admin */}
             <Route
               path="/register-farmer"
               element={
-                <PrivateRoute requiredRole={['admin', 'sacco']}>
+                <PrivateRoute requiredRole={['admin', 'group_admin']}>
                   <RegisterFarmerUnderGroup />
                 </PrivateRoute>
               }
@@ -88,25 +99,32 @@ export default function App() {
 
 // Separate component to use the auth context
 function RedirectBasedOnAuth() {
-  const { user, isFarmer, isAdmin } = useAuth();
+  const { user, isFarmer, isAdmin, isGroupAdmin, userRole } = useAuth();
   
   // If no user, redirect to login
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
+  // Log the user role for debugging
+  console.log("🔐 RedirectBasedOnAuth - User role:", userRole, "isGroupAdmin:", isGroupAdmin);
+
   // Redirect based on role name from database
   if (isFarmer) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Admin and any other roles go to admin dashboard
-  // This can be expanded later for SACCO-specific dashboards
+  // Group Admin - redirect to their cooperative dashboard
+  if (isGroupAdmin) {
+    return <Navigate to="/group-dashboard" replace />;
+  }
+
+  // Admin and super admin go to admin dashboard
   if (isAdmin) {
     return <Navigate to="/admin-dashboard" replace />;
   }
 
-  // For any other roles (like sacco), send to admin dashboard for now
-  // Later we can add a SACCO-specific dashboard
+  // For any other roles, default to admin dashboard
+  console.warn("⚠️ Unknown user role, defaulting to admin dashboard:", userRole);
   return <Navigate to="/admin-dashboard" replace />;
 }

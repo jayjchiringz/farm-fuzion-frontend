@@ -16,6 +16,7 @@ import PublicMarketplace from "./pages/PublicMarketplace";
 import React from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { CurrencyProvider } from './contexts/CurrencyContext';
+import RegisterGroupAdmin from "./pages/RegisterGroupAdmin";
 
 export default function App() {
   return (
@@ -90,6 +91,15 @@ export default function App() {
             } />
 
             <Route path="/marketplace" element={<PublicMarketplace />} />
+
+            <Route
+              path="/register-group-admin"
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <RegisterGroupAdmin />
+                </PrivateRoute>
+              }
+            />
 
             {/* Fallback route */}
             <Route path="*" element={<Navigate to="/" />} />

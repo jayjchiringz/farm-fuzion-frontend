@@ -11,7 +11,8 @@ import {
   Plus, LogOut, Settings2, Building2, UserPlus, FileText, CheckCircle,
   XCircle, Clock, ChevronRight, ChevronLeft, Search, Filter, RefreshCw,
   Sparkles, BarChart3, Home, LayoutDashboard, UserCog, FolderTree,
-  X, MapPin, Info, AlertTriangle, Trash2
+  X, MapPin, Info, AlertTriangle, Trash2,
+  Shield
 } from "lucide-react";
 import { constituencies, counties, county, wards } from "kenya-locations";
 import { OverviewStats, GroupStats, FarmerStats } from "../components/Dashboard/DashboardStatsUI";
@@ -19,6 +20,7 @@ import { usePagination } from "../hooks/usePagination";
 import PaginationFooter from "../components/Pagination/PaginationFooter";
 import UserRoleAssignment from "../components/Admin/UserRoleAssignment";
 import { API_BASE } from "../services/config";
+import { useNavigate } from "react-router-dom";
 
 /*Interfaces*/
 // -------------------------------------------------------------------------------------------------------------------------------  
@@ -606,6 +608,8 @@ export default function AdminDashboard() {
     paginatedItems: paginatedFarmers,
   } = usePagination(farmers);
 
+  const navigate = useNavigate();
+
   return (
     <MainLayout>
       <ThemeToggle />
@@ -742,6 +746,11 @@ export default function AdminDashboard() {
                       icon={<UserCog size={14} />}
                       label="Assign Roles"
                       onClick={() => setUserRoleAssignmentOpen(true)} // New for assigning roles to users
+                    />
+                    <SubNavItem 
+                      icon={<Shield size={14} />}
+                      label="Register Group Admin"
+                      onClick={() => navigate("/register-group-admin")}
                     />
                   </div>
                 )}

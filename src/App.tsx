@@ -110,7 +110,6 @@ export default function App() {
   );
 }
 
-// Separate component to use the auth context
 function RedirectBasedOnAuth() {
   const { user, isFarmer, isAdmin, isGroupAdmin, userRole } = useAuth();
   

@@ -70,11 +70,18 @@ export default function VerifyOtp() {
       localStorage.removeItem("pendingEmail");
 
       // Navigate based on role
-      if (formattedUser.role_name?.toLowerCase() === "admin") {
+      const role = formattedUser.role_name?.toLowerCase();
+      console.log("🎯 Navigating based on role:", role);
+      
+      if (role === "admin") {
         navigate("/admin-dashboard");
-      } else if (formattedUser.role_name?.toLowerCase() === "farmer") {
+      } else if (role === "group_admin") {
+        navigate("/group-dashboard");
+      } else if (role === "farmer") {
         navigate("/dashboard");
       } else {
+        // Default fallback
+        console.warn("⚠️ Unknown role, defaulting to farmer dashboard:", role);
         navigate("/dashboard");
       }
       

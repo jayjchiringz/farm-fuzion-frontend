@@ -2457,15 +2457,29 @@ export default function AdminDashboard() {
                     className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
                     <option value="">Select a cooperative/group</option>
-                    {groups.filter(g => g.status === 'approved').map((group) => (
+                    {/* Show only ACTIVE groups (status = 'active') */}
+                    {groups.filter(g => g.status === 'active').map((group) => (
                       <option key={group.id} value={group.id}>
-                        {group.name} {group.registration_number ? `(${group.registration_number})` : ''}
+                        {group.name} 
+                        {group.registration_number ? ` (${group.registration_number})` : ''}
                       </option>
                     ))}
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">Only approved groups are shown</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Only active groups are shown. Pending groups must be approved first.
+                  </p>
                 </div>
               </div>
+
+              {/* Show message if no active groups */}
+              {groups.filter(g => g.status === 'active').length === 0 && (
+                <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-300 flex items-center gap-2">
+                    <AlertTriangle size={16} />
+                    No active groups available. Please register and approve a group first before adding a Group Admin.
+                  </p>
+                </div>
+              )}
 
               <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                 <p className="text-xs text-blue-800 dark:text-blue-300 flex items-start gap-2">
@@ -2487,7 +2501,7 @@ export default function AdminDashboard() {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || groups.filter(g => g.status === 'active').length === 0}
                   className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading ? (

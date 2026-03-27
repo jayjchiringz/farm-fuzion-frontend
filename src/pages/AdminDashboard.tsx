@@ -133,6 +133,7 @@ export default function AdminDashboard() {
   const adminName = admin.first_name || admin.email?.split('@')[0] || 'Administrator';
 
   const [isUserRoleAssignmentOpen, setUserRoleAssignmentOpen] = useState(false);
+  const [isGroupAdminModalOpen, setGroupAdminModalOpen] = useState(false);
 
   useEffect(() => { 
     fetchData(); 
@@ -745,7 +746,7 @@ export default function AdminDashboard() {
                     <SubNavItem 
                       icon={<Shield size={14} />}
                       label="Register Group Admin"
-                      onClick={() => navigate("/register-group-admin")}
+                      onClick={() => setGroupAdminModalOpen(true)}  // Change to open modal
                     />
                     <SubNavItem 
                       icon={<UserCog size={14} />}
@@ -2289,6 +2290,126 @@ export default function AdminDashboard() {
         onClose={() => setUserRoleAssignmentOpen(false)}
         onSuccess={fetchData} // Refresh data after role changes
       />
+
+      {/* Register Group Admin Modal */}
+      <Dialog
+        open={isGroupAdminModalOpen}
+        onClose={() => setGroupAdminModalOpen(false)}
+        className="fixed z-50 inset-0 overflow-y-auto"
+      >
+        <div className="flex items-center justify-center min-h-screen p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" aria-hidden="true" onClick={() => setGroupAdminModalOpen(false)} />
+          
+          <DialogPanel className="relative bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl shadow-2xl transform transition-all animate-slide-up">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-gray-800 dark:to-gray-900 px-6 py-4 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-xl">
+                    <Shield size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-xl font-bold text-white">
+                      Register Group Admin
+                    </DialogTitle>
+                    <p className="text-sm text-white/80">Assign administrators to cooperatives</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setGroupAdminModalOpen(false)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Form Content */}
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">First Name *</label>
+                  <input
+                    type="text"
+                    placeholder="John"
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Middle Name</label>
+                  <input
+                    type="text"
+                    placeholder="Mwangi"
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Last Name *</label>
+                  <input
+                    type="text"
+                    placeholder="Doe"
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email *</label>
+                  <input
+                    type="email"
+                    placeholder="admin@cooperative.com"
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Mobile Number *</label>
+                  <input
+                    type="tel"
+                    placeholder="254712345678"
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Assign to Group *</label>
+                  <select className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700">
+                    <option value="">Select a cooperative/group</option>
+                    {groups.map((group) => (
+                      <option key={group.id} value={group.id}>{group.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <p className="text-xs text-blue-800 dark:text-blue-300 flex items-start gap-2">
+                  <Shield size={14} className="mt-0.5 flex-shrink-0" />
+                  <span>
+                    Group Admins can: manage cooperative products, process bulk orders, 
+                    respond to tenders, and view logistics reports.
+                  </span>
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4 mt-2">
+                <button
+                  onClick={() => setGroupAdminModalOpen(false)}
+                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    // Add your submit logic here
+                    alert("Group Admin registration coming soon!");
+                    setGroupAdminModalOpen(false);
+                  }}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 rounded-lg hover:from-purple-700 hover:to-indigo-700"
+                >
+                  Register Group Admin
+                </button>
+              </div>
+            </div>
+          </DialogPanel>
+        </div>
+      </Dialog>      
     </MainLayout>
   );
 }

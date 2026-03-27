@@ -2325,56 +2325,145 @@ export default function AdminDashboard() {
             </div>
 
             {/* Form Content */}
-            <div className="p-6 max-h-[70vh] overflow-y-auto">
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              
+              const groupAdminData = {
+                first_name: formData.get('first_name') as string,
+                middle_name: formData.get('middle_name') as string,
+                last_name: formData.get('last_name') as string,
+                email: formData.get('email') as string,
+                mobile: formData.get('mobile') as string,
+                group_id: formData.get('group_id') as string,
+              };
+
+              // Validate required fields
+              if (!groupAdminData.first_name || !groupAdminData.last_name || 
+                  !groupAdminData.email || !groupAdminData.mobile || !groupAdminData.group_id) {
+                alert('Please fill in all required fields');
+                return;
+              }
+
+              // Email validation
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+              if (!emailRegex.test(groupAdminData.email)) {
+                alert('Please enter a valid email address');
+                return;
+              }
+
+              // Phone validation (Kenyan format)
+              const phoneRegex = /^(254|0)[7-9][0-9]{8}$/;
+              if (!phoneRegex.test(groupAdminData.mobile)) {
+                alert('Please enter a valid phone number (e.g., 254712345678 or 0712345678)');
+                return;
+              }
+
+              setLoading(true);
+              
+              try {
+                const response = await fetch(`${API_BASE}/group-admins`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                  },
+                  body: JSON.stringify(groupAdminData),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                  alert(`✅ Group Admin registered successfully!\n\nEmail: ${groupAdminData.email}\nPassword will be sent to their email.`);
+                  setGroupAdminModalOpen(false);
+                  // Refresh data to show new group admin
+                  fetchData();
+                } else {
+                  alert(`❌ Registration failed: ${data.error || 'Unknown error'}`);
+                }
+              } catch (error) {
+                console.error('Error registering group admin:', error);
+                alert('Failed to register group admin. Please try again.');
+              } finally {
+                setLoading(false);
+              }
+            }} className="p-6 max-h-[70vh] overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">First Name *</label>
+                  <label className="block text-sm font-medium mb-1">
+                    First Name <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
+                    name="first_name"
                     placeholder="John"
-                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+                    required
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Middle Name</label>
                   <input
                     type="text"
+                    name="middle_name"
                     placeholder="Mwangi"
-                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Last Name *</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
+                    name="last_name"
                     placeholder="Doe"
-                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+                    required
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Email *</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Email <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="email"
+                    name="email"
                     placeholder="admin@cooperative.com"
-                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+                    required
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Mobile Number *</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Mobile Number <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="tel"
+                    name="mobile"
                     placeholder="254712345678"
-                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+                    required
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Format: 254712345678 or 0712345678</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Assign to Group *</label>
-                  <select className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700">
+                  <label className="block text-sm font-medium mb-1">
+                    Assign to Group <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="group_id"
+                    required
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
                     <option value="">Select a cooperative/group</option>
-                    {groups.map((group) => (
-                      <option key={group.id} value={group.id}>{group.name}</option>
+                    {groups.filter(g => g.status === 'approved').map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name} {group.registration_number ? `(${group.registration_number})` : ''}
+                      </option>
                     ))}
                   </select>
+                  <p className="text-xs text-gray-500 mt-1">Only approved groups are shown</p>
                 </div>
               </div>
 
@@ -2383,33 +2472,41 @@ export default function AdminDashboard() {
                   <Shield size={14} className="mt-0.5 flex-shrink-0" />
                   <span>
                     Group Admins can: manage cooperative products, process bulk orders, 
-                    respond to tenders, and view logistics reports.
+                    respond to tenders, and view logistics reports. A temporary password will be sent to their email.
                   </span>
                 </p>
               </div>
 
               <div className="flex gap-3 pt-4 mt-2">
                 <button
+                  type="button"
                   onClick={() => setGroupAdminModalOpen(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={async () => {
-                    // Add your submit logic here
-                    alert("Group Admin registration coming soon!");
-                    setGroupAdminModalOpen(false);
-                  }}
-                  className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 rounded-lg hover:from-purple-700 hover:to-indigo-700"
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Register Group Admin
+                  {loading ? (
+                    <>
+                      <RefreshCw size={16} className="animate-spin" />
+                      Registering...
+                    </>
+                  ) : (
+                    <>
+                      <Shield size={16} />
+                      Register Group Admin
+                    </>
+                  )}
                 </button>
               </div>
-            </div>
+            </form>
           </DialogPanel>
         </div>
-      </Dialog>      
+      </Dialog>
     </MainLayout>
   );
 }

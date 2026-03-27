@@ -158,7 +158,7 @@ export default function RegisterGroupAdmin() {
 
         {/* Group Selection */}
         <div>
-          <label htmlFor="group_id" className="block text-sm font-medium mb-1 flex items-center gap-2">
+          <label htmlFor="group_id" className="text-sm font-medium mb-1 flex items-center gap-2">
             <Building2 size={16} />
             Assign to Cooperative/Group <span className="text-red-500">*</span>
           </label>
@@ -221,7 +221,7 @@ export default function RegisterGroupAdmin() {
 function Input({ label, name, icon, ...props }: any) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium mb-1 flex items-center gap-1">
+      <label htmlFor={name} className="text-sm font-medium mb-1 flex items-center gap-1">
         {icon}
         {label}
       </label>

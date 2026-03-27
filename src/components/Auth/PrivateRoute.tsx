@@ -42,7 +42,6 @@ export default function PrivateRoute({ children, requiredRole }: PrivateRoutePro
 
   // Role-based access guard - Redirect to appropriate dashboard based on role
   if (isFarmerDashboard && !isFarmer) {
-    // Farmer trying to access farmer dashboard but not a farmer
     if (isGroupAdmin) {
       return <Navigate to="/group-dashboard" replace />;
     }
@@ -53,32 +52,23 @@ export default function PrivateRoute({ children, requiredRole }: PrivateRoutePro
   }
 
   if (isGroupAdminDashboard && !isGroupAdmin) {
-    // Non-group admin trying to access group dashboard
     if (isFarmer) {
       return <Navigate to="/dashboard" replace />;
     }
     if (isAdmin) {
-      // Admins can also access group dashboard? Maybe they should be able to view all
-      // For now, allow admins to access group dashboard
+      // Allow admins to access group dashboard for oversight
       // return <Navigate to="/admin-dashboard" replace />;
-      // Uncomment the line above if you want to restrict admins from group dashboard
     }
-    // If admin, allow access (optional - for oversight)
   }
 
   if (isAdminRoute && isFarmer) {
-    // Farmer trying to access admin routes
     return <Navigate to="/dashboard" replace />;
   }
 
   if (isAdminRoute && isGroupAdmin && !isAdmin) {
-    // Group admin trying to access super admin routes
-    // Group admins should not have access to super admin features
     if (location.pathname === "/admin-dashboard") {
-      // Group admin trying to access main admin dashboard - redirect to group dashboard
       return <Navigate to="/group-dashboard" replace />;
     }
-    // For other admin routes, restrict access
     return <Navigate to="/group-dashboard" replace />;
   }
 
@@ -87,13 +77,29 @@ export default function PrivateRoute({ children, requiredRole }: PrivateRoutePro
     const requiredRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
     const userRoleLower = userRole?.toLowerCase();
     
+    // Normalize user role for comparison (convert "group admin" to "group_admin")
+    const normalizedUserRole = userRoleLower === "group admin" ? "group_admin" : userRoleLower;
+    
     // Check if user has any of the required roles
-    const hasRequiredRole = requiredRoles.some(role => 
-      role.toLowerCase() === userRoleLower ||
-      (role.toLowerCase() === 'admin' && isAdmin) ||
-      (role.toLowerCase() === 'farmer' && isFarmer) ||
-      (role.toLowerCase() === 'group_admin' && isGroupAdmin)
-    );
+    const hasRequiredRole = requiredRoles.some(role => {
+      const normalizedRequired = role.toLowerCase();
+      
+      // Special handling for group_admin - compare normalized values
+      if (normalizedRequired === "group_admin") {
+        return normalizedUserRole === "group_admin" || userRoleLower === "group admin" || isGroupAdmin;
+      }
+      
+      // Check using role flags for reliability
+      if (normalizedRequired === "admin") {
+        return isAdmin;
+      }
+      if (normalizedRequired === "farmer") {
+        return isFarmer;
+      }
+      
+      // Fallback to direct string comparison
+      return normalizedUserRole === normalizedRequired;
+    });
     
     if (!hasRequiredRole) {
       console.warn(`⛔ Access denied. User role: ${userRole}, Required: ${requiredRoles.join(', ')}`);

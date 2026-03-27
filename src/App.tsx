@@ -11,6 +11,7 @@ import Loans from "./pages/Loans";
 import LoanRepayments from "./pages/LoanRepayments";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserRoleManagement from './pages/admin/UserRoleManagement';
+import PublicMarketplace from "./pages/PublicMarketplace";
 
 import React from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -87,6 +88,8 @@ export default function App() {
                 <LoanRepayments />
               </PrivateRoute>
             } />
+
+            <Route path="/marketplace" element={<PublicMarketplace />} />
 
             {/* Fallback route */}
             <Route path="*" element={<Navigate to="/" />} />

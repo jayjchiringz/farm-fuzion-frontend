@@ -575,7 +575,7 @@ export default function GroupAdminDashboard() {
                         className="h-12 w-12 object-contain relative z-10 opacity-90 hover:opacity-100 transition-opacity"
                       />
                     </div>
-                    <span className="text-xl font-light text-white/90 tracking-wide">Group Admin</span>
+                    <span className="text-xl font-light text-white/90 tracking-wide">FarmFuzion</span>
                   </div>
                 ) : (
                   <div className="relative flex justify-center">

@@ -6,7 +6,7 @@ import {
   Truck, Search, Filter, RefreshCw, Loader2, MapPin,
   DollarSign, Calendar, Globe, FileText, Send, Mail,
   LogOut, ChevronLeft, ChevronRight, LayoutDashboard, Shield,
-  Menu, X, Home, BarChart3, Sparkles, Settings
+  Menu, X, Home, BarChart3, Sparkles, Settings, AlertTriangle
 } from "lucide-react";
 import MainLayout from "../layouts/MainLayout";
 import ThemeToggle from "../components/ThemeToggle";
@@ -313,96 +313,265 @@ export default function GroupAdminDashboard() {
   );
 
   // Products Management View
-  const ProductsView = () => (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Cooperative Products</h2>
-        <button
-          onClick={() => {
-            setEditingProduct(null);
-            setProductForm({
-              product_name: '',
-              category: '',
-              quantity: 0,
-              unit: 'kg',
-              price_per_unit: 0,
-              certification: '',
-              description: '',
-              currency: 'KES',
-              available: true,
-            });
-            setIsProductModalOpen(true);
-          }}
-          className="px-4 py-2 bg-brand-green text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-        >
-          <Plus size={18} /> Add Product
-        </button>
-      </div>
+  const ProductsView = () => {
+    const [recallingProduct, setRecallingProduct] = useState<string | null>(null);
+    const [showRecallModal, setShowRecallModal] = useState(false);
+    const [selectedProductForRecall, setSelectedProductForRecall] = useState<CooperativeProduct | null>(null);
+    const [recallQuantity, setRecallQuantity] = useState(0);
+    const [recallReason, setRecallReason] = useState('');
+    const [recallLoading, setRecallLoading] = useState(false);
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map(product => (
-          <div key={product.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-            <div className="p-4">
-              <div className="flex justify-between items-start">
-                <h3 className="font-bold text-lg truncate">{product.product_name}</h3>
-                {product.available ? (
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Available</span>
-                ) : (
-                  <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">Out of Stock</span>
-                )}
-              </div>
-              
-              <div className="mt-3 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Quantity:</span>
-                  <span className="font-medium">{product.quantity} {product.unit}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Price:</span>
-                  <span className="font-bold text-brand-green">{formatKES(product.price_per_unit)}/{product.unit}</span>
-                </div>
-                {product.certification && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Certification:</span>
-                    <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">{product.certification}</span>
+    const handleRecall = (product: CooperativeProduct) => {
+      setSelectedProductForRecall(product);
+      setRecallQuantity(product.quantity);
+      setRecallReason('');
+      setShowRecallModal(true);
+    };
+
+    const confirmRecall = async () => {
+      if (!selectedProductForRecall) return;
+      
+      if (recallQuantity <= 0 || recallQuantity > selectedProductForRecall.quantity) {
+        alert('Please enter a valid quantity');
+        return;
+      }
+
+      if (!recallReason.trim()) {
+        alert('Please provide a reason for recall');
+        return;
+      }
+
+      setRecallLoading(true);
+      try {
+        // Call the recall endpoint (you'll need to add this to cooperativeApi)
+        await cooperativeApi.recallProduct(
+          selectedProductForRecall.id,
+          recallQuantity,
+          recallReason
+        );
+        
+        alert(`✅ Successfully recalled ${recallQuantity} ${selectedProductForRecall.unit} back to farmer inventory`);
+        await loadData(); // Refresh the products list
+        setShowRecallModal(false);
+      } catch (error) {
+        console.error('Error recalling product:', error);
+        alert('Failed to recall product. Please try again.');
+      } finally {
+        setRecallLoading(false);
+        setRecallingProduct(null);
+      }
+    };
+
+    return (
+      <>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold">Cooperative Products</h2>
+            <button
+              onClick={() => {
+                setEditingProduct(null);
+                setProductForm({
+                  product_name: '',
+                  category: '',
+                  quantity: 0,
+                  unit: 'kg',
+                  price_per_unit: 0,
+                  certification: '',
+                  description: '',
+                  currency: 'KES',
+                  available: true,
+                });
+                setIsProductModalOpen(true);
+              }}
+              className="px-4 py-2 bg-brand-green text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+            >
+              <Plus size={18} /> Add Product
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {products.map(product => (
+              <div key={product.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                <div className="p-4">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-bold text-lg truncate">{product.product_name}</h3>
+                    {product.available ? (
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Available</span>
+                    ) : (
+                      <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">Out of Stock</span>
+                    )}
                   </div>
-                )}
+                  
+                  <div className="mt-3 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Quantity:</span>
+                      <span className="font-medium">{product.quantity} {product.unit}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Price:</span>
+                      <span className="font-bold text-brand-green">{formatKES(product.price_per_unit)}/{product.unit}</span>
+                    </div>
+                    {product.certification && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Certification:</span>
+                        <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">{product.certification}</span>
+                      </div>
+                    )}
+                    {/* Source farmer info if available */}
+                    {(product as any).source_farmer_name && (
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>Source:</span>
+                        <span className="truncate max-w-[150px]">{(product as any).source_farmer_name}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mt-4 flex gap-2">
+                    <button 
+                      onClick={() => {
+                        setEditingProduct(product);
+                        setProductForm({
+                          product_name: product.product_name,
+                          category: product.category,
+                          quantity: product.quantity,
+                          unit: product.unit,
+                          price_per_unit: product.price_per_unit,
+                          certification: product.certification || '',
+                          description: product.description || '',
+                          currency: product.currency || 'KES',
+                          available: product.available,
+                        });
+                        setIsProductModalOpen(true);
+                      }}
+                      className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-1"
+                    >
+                      <Edit2 size={14} /> Edit
+                    </button>
+                    <button 
+                      onClick={() => handleRecall(product)}
+                      disabled={product.quantity === 0 || recallingProduct === product.id}
+                      className={`flex-1 px-3 py-1.5 text-sm border rounded-lg flex items-center justify-center gap-1 transition-colors ${
+                        product.quantity === 0 
+                          ? 'border-gray-300 text-gray-400 cursor-not-allowed' 
+                          : 'border-orange-300 text-orange-600 hover:bg-orange-50'
+                      }`}
+                      title="Recall unused stock back to farmer inventory"
+                    >
+                      {recallingProduct === product.id ? (
+                        <RefreshCw size={14} className="animate-spin" />
+                      ) : (
+                        <RefreshCw size={14} />
+                      )}
+                      Recall
+                    </button>
+                    <button 
+                      onClick={() => cooperativeApi.deleteProduct(product.id).then(loadData)}
+                      className="flex-1 px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50 flex items-center justify-center gap-1"
+                    >
+                      <Trash2 size={14} /> Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recall Modal */}
+        {showRecallModal && selectedProductForRecall && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-xl w-full max-w-md">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-bold">Recall Product from Marketplace</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  This will return stock to the farmer's inventory
+                </p>
               </div>
               
-              <div className="mt-4 flex gap-2">
-                <button 
-                  onClick={() => {
-                    setEditingProduct(product);
-                    setProductForm({
-                      product_name: product.product_name,
-                      category: product.category,
-                      quantity: product.quantity,
-                      unit: product.unit,
-                      price_per_unit: product.price_per_unit,
-                      certification: product.certification || '',
-                      description: product.description || '',
-                      currency: product.currency || 'KES',
-                      available: product.available,
-                    });
-                    setIsProductModalOpen(true);
-                  }}
-                  className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-1"
+              <div className="p-4 space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                  <p className="font-medium">{selectedProductForRecall.product_name}</p>
+                  <div className="flex justify-between text-sm mt-1">
+                    <span className="text-gray-500">Available:</span>
+                    <span>{selectedProductForRecall.quantity} {selectedProductForRecall.unit}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Unit Price:</span>
+                    <span className="text-brand-green font-medium">{formatKES(selectedProductForRecall.price_per_unit)}</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Quantity to Recall *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={selectedProductForRecall.quantity}
+                    value={recallQuantity}
+                    onChange={(e) => setRecallQuantity(parseInt(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Maximum: {selectedProductForRecall.quantity} {selectedProductForRecall.unit}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Reason for Recall *
+                  </label>
+                  <textarea
+                    value={recallReason}
+                    onChange={(e) => setRecallReason(e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 resize-none"
+                    placeholder="e.g., Quality issues, Overstock, Order cancellation, etc."
+                    required
+                  />
+                </div>
+                
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-300 flex items-start gap-2">
+                    <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                    <span>This action will return the recalled quantity to the farmer's inventory. The cooperative listing will be updated accordingly.</span>
+                  </p>
+                </div>
+              </div>
+              
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex gap-3">
+                <button
+                  onClick={() => setShowRecallModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
-                  <Edit2 size={14} /> Edit
+                  Cancel
                 </button>
-                <button 
-                  onClick={() => cooperativeApi.deleteProduct(product.id).then(loadData)}
-                  className="flex-1 px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50 flex items-center justify-center gap-1"
+                <button
+                  onClick={confirmRecall}
+                  disabled={recallLoading || recallQuantity <= 0 || recallQuantity > selectedProductForRecall.quantity || !recallReason.trim()}
+                  className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  <Trash2 size={14} /> Delete
+                  {recallLoading ? (
+                    <>
+                      <RefreshCw size={16} className="animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw size={16} />
+                      Confirm Recall
+                    </>
+                  )}
                 </button>
               </div>
             </div>
           </div>
-        ))}
-      </div>
-    </div>
-  );
+        )}
+      </>
+    );
+  };
 
   // Orders Management View
   const OrdersView = () => (

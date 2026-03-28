@@ -10,8 +10,11 @@ import { farmActivitiesApi, FarmSeason } from "../../services/farmActivitiesApi"
 import { FarmPlanner } from "../FarmActivities/FarmPlanner";
 import { FarmDiary } from "../FarmActivities/FarmDiary";
 import { SeasonOverview } from "../FarmActivities/SeasonOverview";
-import { Edit, Plus, Info, ShoppingCart } from "lucide-react";
+import { Edit, Plus, Info, ShoppingCart, Truck, Globe, Building2,
+  AlertTriangle, RefreshCw
+} from "lucide-react";
 import { marketplaceApi } from "../../services/marketplaceApi";
+import { cooperativeApi } from "../../services/cooperativeApi";
 import { API_BASE } from "../../services/config";
 
 export type FarmProduct = ApiFarmProduct & {
@@ -54,6 +57,8 @@ export default function ProductsModal({
   const [loading, setLoading] = useState(false);
   const [loadingInventory, setLoadingInventory] = useState(false);
   const [seasons, setSeasons] = useState<FarmSeason[]>([]);
+  const [publishingToMarketplace, setPublishingToMarketplace] = useState<string | null>(null);
+  const [publishingToCooperative, setPublishingToCooperative] = useState<string | null>(null);
   
   const [activeTab, setActiveTab] = useState<
     "details" | "pricing" | "status" | "inventory" | "planner" | "seasons" | "diary"
@@ -69,18 +74,17 @@ export default function ProductsModal({
   const itemsPerPage = 5;
   const unitPrice = form.quantity && form.quantity > 0 ? (form.price ?? 0) / form.quantity : 0;
 
-  // ALL useEffect hooks come next, in a consistent order
+  // ALL useEffect hooks come next
   useEffect(() => {
     setIsMounted(true);
     return () => setIsMounted(false);
   }, []);
 
-  // SINGLE validation useEffect - remove the duplicate one later
+  // SINGLE validation useEffect
   useEffect(() => {
     const validateFarmerId = async () => {
       console.log("ProductsModal received farmerId:", farmerId, "type:", typeof farmerId);
       
-      // Case 1: It's already a valid number
       if (typeof farmerId === 'number' && !isNaN(farmerId) && farmerId > 0) {
         console.log("✅ Valid numeric farmerId:", farmerId);
         setValidFarmerId(farmerId);
@@ -88,9 +92,7 @@ export default function ProductsModal({
         return;
       }
       
-      // Case 2: It's a string that might be a UUID
       if (typeof farmerId === 'string') {
-        // Check if it looks like a UUID (contains hyphens and is long)
         if (farmerId.includes('-') && farmerId.length > 20) {
           console.log("📝 Detected UUID, fetching numeric ID from backend...");
           setIsLoadingFarmerId(true);
@@ -105,9 +107,9 @@ export default function ProductsModal({
             const data = await response.json();
             console.log("Backend response:", data);
             
-            if (data && data.farmer_id) {
-              console.log("✅ Fetched numeric farmerId:", data.farmer_id);
-              setValidFarmerId(data.farmer_id);
+            if (data && data.id) {
+              console.log("✅ Fetched numeric farmerId:", data.id);
+              setValidFarmerId(data.id);
               setValidationError(null);
             } else {
               setValidationError("Could not find farmer profile");
@@ -123,7 +125,6 @@ export default function ProductsModal({
           return;
         }
         
-        // Case 3: It's a string that might be a number
         const parsed = parseInt(farmerId, 10);
         if (!isNaN(parsed) && parsed > 0) {
           console.log("✅ Parsed string to number:", parsed);
@@ -154,7 +155,7 @@ export default function ProductsModal({
     }
   }, [product]);
 
-  // Load seasons when validFarmerId or activeTab changes
+  // Load seasons
   useEffect(() => {
     const loadSeasons = async () => {
       if (!validFarmerId) return;
@@ -172,7 +173,7 @@ export default function ProductsModal({
     }
   }, [validFarmerId, activeTab]);
 
-  // Load inventory when activeTab or filters change - WITH BETTER ERROR HANDLING
+  // Load inventory
   useEffect(() => {
     const loadInventory = async () => {
       if (!farmerId || activeTab !== "inventory") return;
@@ -180,7 +181,6 @@ export default function ProductsModal({
       setLoadingInventory(true);
       try {
         console.log("📦 Loading inventory for farmer (UUID):", farmerId);
-        console.log("📊 With filters:", { currentPage, searchTerm, filterCategory, filterStatus });
         
         const data = await farmProductsApi.getFarmerProducts(
           String(farmerId),
@@ -197,11 +197,6 @@ export default function ProductsModal({
         setInventory(data);
       } catch (err: any) {
         console.error("❌ Error loading inventory:", err);
-        if (err.response) {
-          console.error("Response data:", err.response.data);
-          console.error("Response status:", err.response.status);
-        }
-        // Set empty inventory on error to prevent UI from breaking
         setInventory({
           data: [],
           total: 0,
@@ -270,7 +265,6 @@ export default function ProductsModal({
       if (product?.id || form.id) {
         await farmProductsApi.update(String(product?.id || form.id), payload);
       } else {
-        // Use the numeric ID (validFarmerId) for farm-products API
         console.log("Saving product with farmer_id (numeric):", validFarmerId);
         await farmProductsApi.add({ ...payload, farmer_id: validFarmerId } as FarmProduct);
       }
@@ -314,6 +308,104 @@ export default function ProductsModal({
     setActiveTab("seasons");
   };
 
+  // NEW: Publish to Local Marketplace (Individual Sales)
+  const handlePublishToMarketplace = async (product: FarmProduct) => {
+    if (!farmerId) {
+      alert("Please log in to publish products");
+      return;
+    }
+
+    const price = prompt(
+      `Enter listing price for ${product.product_name} (per ${product.unit}):`,
+      product.price?.toString() || "0"
+    );
+
+    if (price === null) return;
+
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      alert("Please enter a valid price");
+      return;
+    }
+
+    setPublishingToMarketplace(String(product.id));
+    try {
+      await marketplaceApi.publishProduct({
+        farm_product_id: String(product.id),
+        price: numericPrice,
+        farmer_id: String(farmerId),
+      });
+      
+      alert(`✅ ${product.product_name} published to local marketplace!`);
+      if (onProductAdded) onProductAdded();
+    } catch (error: any) {
+      console.error("Error publishing product:", error);
+      alert(error.response?.data?.error || "Failed to publish product");
+    } finally {
+      setPublishingToMarketplace(null);
+    }
+  };
+
+  // NEW: Publish to Cooperative/Group Public Marketplace (Bulk Sales)
+  const handlePublishToCooperative = async (product: FarmProduct) => {
+    if (!farmerId) {
+      alert("Please log in to publish products to cooperative");
+      return;
+    }
+
+    // Ask for cooperative listing price (bulk price)
+    const price = prompt(
+      `Enter BULK price for ${product.product_name} (per ${product.unit}) for cooperative sales:\n\nThis price will be visible to group admins for bulk purchases.`,
+      product.price?.toString() || "0"
+    );
+
+    if (price === null) return;
+
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      alert("Please enter a valid price");
+      return;
+    }
+
+    // Ask for minimum quantity for bulk order
+    const minQuantity = prompt(
+      `Enter minimum quantity for bulk purchase (in ${product.unit}):\n\nBuyers must purchase at least this amount.`,
+      "100"
+    );
+
+    if (minQuantity === null) return;
+
+    const minQty = parseFloat(minQuantity);
+    if (isNaN(minQty) || minQty <= 0) {
+      alert("Please enter a valid minimum quantity");
+      return;
+    }
+
+    setPublishingToCooperative(String(product.id));
+    try {
+      // Call the cooperative API to add this product to the group's bulk listing
+      await cooperativeApi.createProduct({
+        product_name: product.product_name,
+        category: product.category || "produce",
+        quantity: product.quantity || 0,
+        unit: product.unit || "kg",
+        price_per_unit: numericPrice,
+        certification: "",
+        description: `From farmer inventory. Minimum order: ${minQty} ${product.unit}.`,
+        currency: "KES",
+        available: true,
+      });
+      
+      alert(`✅ ${product.product_name} published to cooperative public marketplace!\n\nBulk price: KES ${numericPrice}/${product.unit}\nMin order: ${minQty} ${product.unit}`);
+      if (onProductAdded) onProductAdded();
+    } catch (error: any) {
+      console.error("Error publishing to cooperative:", error);
+      alert(error.response?.data?.error || "Failed to publish to cooperative marketplace");
+    } finally {
+      setPublishingToCooperative(null);
+    }
+  };
+
   const getModalTitle = () => {
     if (activeTab === "inventory") return "Farm Inventory";
     if (activeTab === "planner") return "🌱 Farm Planner";
@@ -326,49 +418,13 @@ export default function ProductsModal({
 
   const DebugInfo = () => (
     <div className="mb-2 p-2 bg-green-100 dark:bg-green-900 text-xs rounded space-y-1">
-      <p>✅ UUID farmerId: <span className="font-mono">{farmerId}</span></p>
-      <p>✅ Numeric farmerId: <span className="font-mono">{validFarmerId}</span></p>
+      <p>✅ Farmer ID: <span className="font-mono">{validFarmerId}</span></p>
       <p className="text-yellow-600 dark:text-yellow-400 text-[10px]">
-        ℹ️ UUID used for fetching inventory, numeric ID used for saving products
+        ℹ️ Publish to Local Marketplace = individual sales<br/>
+        Publish to Cooperative = bulk sales via group admin dashboard
       </p>
     </div>
   );
-
-  const handlePublishToMarketplace = async (product: FarmProduct) => {
-    if (!farmerId) {
-      alert("Please log in to publish products");
-      return;
-    }
-
-    // Ask for listing price
-    const price = prompt(
-      `Enter listing price for ${product.product_name} (per ${product.unit}):`,
-      product.price?.toString() || "0"
-    );
-
-    if (price === null) return; // User cancelled
-
-    const numericPrice = parseFloat(price);
-    if (isNaN(numericPrice) || numericPrice <= 0) {
-      alert("Please enter a valid price");
-      return;
-    }
-
-    try {
-      await marketplaceApi.publishProduct({
-        farm_product_id: String(product.id),
-        price: numericPrice,
-        farmer_id: String(farmerId),
-      });
-      
-      alert(`✅ ${product.product_name} published to marketplace!`);
-      // Refresh your products list
-      if (onProductAdded) onProductAdded();
-    } catch (error: any) {
-      console.error("Error publishing product:", error);
-      alert(error.response?.data?.error || "Failed to publish product");
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -452,7 +508,7 @@ export default function ProductsModal({
           </div>
         )}
 
-        {/* Content - All your existing tabs remain exactly the same */}
+        {/* Content */}
         <div className="space-y-3 max-h-[70vh] overflow-y-auto px-1">
           {/* PRODUCT DETAILS TAB */}
           {activeTab === "details" && (
@@ -593,7 +649,7 @@ export default function ProductsModal({
             </>
           )}
 
-          {/* INVENTORY TAB */}
+          {/* INVENTORY TAB - WITH BOTH PUBLISH BUTTONS */}
           {activeTab === "inventory" && (
             <div className="overflow-x-auto">
               {/* Filter Bar */}
@@ -672,6 +728,9 @@ export default function ProductsModal({
                     <tbody>
                       {inventory.data.map((p) => {
                         const unitPrice = p.quantity && p.quantity > 0 ? (p.price ?? 0) / p.quantity : 0;
+                        const isPublishingMarket = publishingToMarketplace === String(p.id);
+                        const isPublishingCoop = publishingToCooperative === String(p.id);
+                        
                         return (
                           <tr key={p.id} className="border-t dark:border-gray-700">
                             <td className="px-3 py-2">{p.product_name}</td>
@@ -697,14 +756,42 @@ export default function ProductsModal({
                                 >
                                   <Edit size={16} />
                                 </button>
-                                {/* Add Publish button - only show for available products not already published */}
+                                
+                                {/* Publish to Local Marketplace (Individual Sales) */}
                                 {p.status === 'available' && (
                                   <button
                                     onClick={() => handlePublishToMarketplace(p)}
-                                    className="text-green-600 hover:text-green-800 dark:text-green-400"
-                                    title="Publish to Marketplace"
+                                    disabled={isPublishingMarket}
+                                    className="text-green-600 hover:text-green-800 dark:text-green-400 disabled:opacity-50"
+                                    title="Publish to Local Marketplace (Individual Sales)"
                                   >
-                                    <ShoppingCart size={16} />
+                                    {isPublishingMarket ? (
+                                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                                      </svg>
+                                    ) : (
+                                      <ShoppingCart size={16} />
+                                    )}
+                                  </button>
+                                )}
+                                
+                                {/* Publish to Cooperative Public Marketplace (Bulk Sales) */}
+                                {p.status === 'available' && (
+                                  <button
+                                    onClick={() => handlePublishToCooperative(p)}
+                                    disabled={publishingToCooperative === String(p.id)}
+                                    className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 disabled:opacity-50"
+                                    title="Publish to Cooperative Marketplace (Bulk Sales)"
+                                  >
+                                    {publishingToCooperative === String(p.id) ? (
+                                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                                      </svg>
+                                    ) : (
+                                      <Building2 size={16} />
+                                    )}
                                   </button>
                                 )}
                               </div>

@@ -35,6 +35,10 @@ export interface CooperativeProduct {
   description?: string;
   images?: string[];
   created_at: string;
+  // Add these for tracking
+  source_farmer_id?: number;
+  source_farm_product_id?: string;
+  source_farmer_name?: string;  // Added for display
 }
 
 export interface BulkOrder {
@@ -287,6 +291,15 @@ class CooperativeApiService {
       body: JSON.stringify(response),
     });
   }
+
+  // Recall product back to farmer inventory
+  async recallProduct(productId: string, quantity: number, reason: string): Promise<void> {
+    await this.fetchWithAuth(`/cooperatives/products/${productId}/recall`, {
+      method: 'POST',
+      body: JSON.stringify({ quantity, reason }),
+    });
+  }
+
 }
 
 export const cooperativeApi = new CooperativeApiService();

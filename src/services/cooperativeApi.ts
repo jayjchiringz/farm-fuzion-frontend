@@ -3,7 +3,7 @@ import { API_BASE } from "./config";
 
 // Add the public API URL from environment
 const PUBLIC_API_URL = import.meta.env.VITE_PUBLIC_API_URL || "https://farmfuzion-public-api.onrender.com";
-const PUBLIC_API_KEY = import.meta.env.VITE_PUBLIC_API_KEY || "";
+const PUBLIC_API_KEY = import.meta.env.VITE_PUBLIC_API_KEY || "76071ef74feb1524869b8d3cb3ce05eb";
 
 export interface Cooperative {
   id: string;
@@ -35,10 +35,9 @@ export interface CooperativeProduct {
   description?: string;
   images?: string[];
   created_at: string;
-  // Add these for tracking
   source_farmer_id?: number;
   source_farm_product_id?: string;
-  source_farmer_name?: string;  // Added for display
+  source_farmer_name?: string;
 }
 
 export interface BulkOrder {
@@ -74,24 +73,6 @@ export interface Tender {
   created_at: string;
 }
 
-export interface PublicProductResponse {
-  data: CooperativeProduct[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
-export interface MarketplaceStats {
-  total_products: number;
-  total_cooperatives: number;
-  total_orders: number;
-  categories: { name: string; count: number }[];
-}
-
-export interface CategoriesResponse {
-  categories: string[];
-}
-
 class CooperativeApiService {
   private getAuthToken(): string | null {
     return localStorage.getItem('auth_token');
@@ -118,77 +99,26 @@ class CooperativeApiService {
     return response.json();
   }
 
-  // ============================================
-  // Public API Methods (for marketplace)
-  // ============================================
+  // NEW: Call the public marketplace API with API key
+  private async fetchPublicAPI(endpoint: string, options: RequestInit = {}) {
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-API-Key': PUBLIC_API_KEY,
+      ...options.headers,
+    };
 
-  // Get all products from public API
-  async getAllProducts(params?: {
-    category?: string;
-    min_price?: number;
-    max_price?: number;
-    search?: string;
-    limit?: number;
-    offset?: number;
-  }): Promise<PublicProductResponse> {
-    const queryParams = new URLSearchParams();
-    if (params?.category) queryParams.append('category', params.category);
-    if (params?.min_price) queryParams.append('min_price', params.min_price.toString());
-    if (params?.max_price) queryParams.append('max_price', params.max_price.toString());
-    if (params?.search) queryParams.append('search', params.search);
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.offset) queryParams.append('offset', params.offset.toString());
-    
-    const url = `${PUBLIC_API_URL}/api/v1/products${queryParams.toString() ? `?${queryParams}` : ''}`;
-    const response = await fetch(url);
-    
+    const response = await fetch(`${PUBLIC_API_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
+
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to fetch products');
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.detail || error.error || `HTTP ${response.status}`);
     }
-    
+
     return response.json();
   }
-
-  // Get all categories from public API
-  async getCategories(): Promise<CategoriesResponse> {
-    const response = await fetch(`${PUBLIC_API_URL}/api/v1/categories`);
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to fetch categories');
-    }
-    
-    return response.json();
-  }
-
-  // Get marketplace stats from public API
-  async getMarketplaceStats(): Promise<MarketplaceStats> {
-    const response = await fetch(`${PUBLIC_API_URL}/api/v1/stats`);
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to fetch stats');
-    }
-    
-    return response.json();
-  }
-
-  // Get single product from public API
-  async getPublicProduct(productId: string): Promise<CooperativeProduct> {
-    const response = await fetch(`${PUBLIC_API_URL}/api/v1/products/${productId}`);
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to fetch product');
-    }
-    
-    return response.json();
-  }
-
-  // ============================================
-  // Authenticated Methods (for group admin)
-  // ============================================
 
   // Get cooperative details for current admin
   async getMyCooperative(): Promise<Cooperative | null> {
@@ -206,57 +136,69 @@ class CooperativeApiService {
     return response;
   }
 
-  // Create new product listing (posts to public API)
+  // Create new product listing (Group Admin creates product)
   async createProduct(product: Omit<CooperativeProduct, 'id' | 'cooperative_id' | 'created_at' | 'total_price'>): Promise<CooperativeProduct> {
-    const response = await fetch(`${PUBLIC_API_URL}/api/v1/products`, {
+    const response = await this.fetchWithAuth('/cooperatives/products', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': PUBLIC_API_KEY,
-      },
       body: JSON.stringify(product),
     });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to create product');
-    }
-    
-    return response.json();
+    return response;
   }
 
-  // Update product in public API
+  // NEW: Publish farmer's product to public marketplace (with API key)
+  async publishToPublicMarketplace(product: {
+    farm_product_id: string;
+    product_name: string;
+    category: string;
+    quantity: number;
+    unit: string;
+    price_per_unit: number;
+    certification?: string;
+    description?: string;
+    farmer_id: number;
+  }): Promise<CooperativeProduct> {
+    // First, get the group ID for this farmer
+    const farmerResponse = await fetch(`${API_BASE}/farmers/${product.farmer_id}`);
+    const farmerData = await farmerResponse.json();
+    
+    if (!farmerData.group_id) {
+      throw new Error('Farmer not assigned to any group');
+    }
+
+    // Create the product in the cooperative database
+    const response = await this.fetchWithAuth('/cooperatives/products/publish', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...product,
+        group_id: farmerData.group_id,
+      }),
+    });
+    
+    return response;
+  }
+
+  // Update product
   async updateProduct(productId: string, updates: Partial<CooperativeProduct>): Promise<CooperativeProduct> {
-    const response = await fetch(`${PUBLIC_API_URL}/api/v1/products/${productId}`, {
+    const response = await this.fetchWithAuth(`/cooperatives/products/${productId}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': PUBLIC_API_KEY,
-      },
       body: JSON.stringify(updates),
     });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to update product');
-    }
-    
-    return response.json();
+    return response;
   }
 
-  // Delete product from public API
+  // Delete product
   async deleteProduct(productId: string): Promise<void> {
-    const response = await fetch(`${PUBLIC_API_URL}/api/v1/products/${productId}`, {
+    await this.fetchWithAuth(`/cooperatives/products/${productId}`, {
       method: 'DELETE',
-      headers: {
-        'X-API-Key': PUBLIC_API_KEY,
-      },
     });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to delete product');
-    }
+  }
+
+  // Recall product back to farmer inventory
+  async recallProduct(productId: string, quantity: number, reason: string): Promise<void> {
+    await this.fetchWithAuth(`/cooperatives/products/${productId}/recall`, {
+      method: 'POST',
+      body: JSON.stringify({ quantity, reason }),
+    });
   }
 
   // Get orders for this cooperative
@@ -270,6 +212,13 @@ class CooperativeApiService {
     await this.fetchWithAuth(`/cooperatives/orders/${orderId}`, {
       method: 'PATCH',
       body: JSON.stringify({ status, tracking_number: trackingNumber }),
+    });
+  }
+
+  // Complete order and update inventory
+  async completeOrder(orderId: string): Promise<void> {
+    await this.fetchWithAuth(`/cooperatives/orders/${orderId}/complete`, {
+      method: 'PATCH',
     });
   }
 
@@ -291,15 +240,6 @@ class CooperativeApiService {
       body: JSON.stringify(response),
     });
   }
-
-  // Recall product back to farmer inventory
-  async recallProduct(productId: string, quantity: number, reason: string): Promise<void> {
-    await this.fetchWithAuth(`/cooperatives/products/${productId}/recall`, {
-      method: 'POST',
-      body: JSON.stringify({ quantity, reason }),
-    });
-  }
-
 }
 
 export const cooperativeApi = new CooperativeApiService();

@@ -357,7 +357,7 @@ export default function ProductsModal({
     }
   };
 
-  // NEW: Publish to Cooperative/Group Public Marketplace (Bulk Sales)
+  // In ProductsModal.tsx
   const handlePublishToCooperative = async (product: FarmProduct) => {
     if (!farmerId) {
       alert("Please log in to publish products to cooperative");
@@ -394,8 +394,14 @@ export default function ProductsModal({
 
     setPublishingToCooperative(String(product.id));
     try {
+      // First get the numeric farmer ID
+      const farmerIdResponse = await fetch(`${API_BASE}/farmers/by-user/${farmerId}`);
+      const farmerData = await farmerIdResponse.json();
+      const numericFarmerId = farmerData.farmer_id || farmerData.id;
+      
       // Call the cooperative API to add this product to the group's bulk listing
-      await cooperativeApi.createProduct({
+      await cooperativeApi.publishToPublicMarketplace({
+        farm_product_id: String(product.id),
         product_name: product.product_name,
         category: product.category || "produce",
         quantity: product.quantity || 0,
@@ -403,15 +409,14 @@ export default function ProductsModal({
         price_per_unit: numericPrice,
         certification: "",
         description: `From farmer inventory. Minimum order: ${minQty} ${product.unit}.`,
-        currency: "KES",
-        available: true,
+        farmer_id: numericFarmerId,
       });
       
       alert(`✅ ${product.product_name} published to cooperative public marketplace!\n\nBulk price: KES ${numericPrice}/${product.unit}\nMin order: ${minQty} ${product.unit}`);
       if (onProductAdded) onProductAdded();
     } catch (error: any) {
       console.error("Error publishing to cooperative:", error);
-      alert(error.response?.data?.error || "Failed to publish to cooperative marketplace");
+      alert(error.message || "Failed to publish to cooperative marketplace");
     } finally {
       setPublishingToCooperative(null);
     }

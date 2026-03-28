@@ -108,10 +108,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const response = await api.get(`/farmers/by-user/${user.id}`);
         console.log("getFarmerId: Response:", response.data);
         
-        if (response.data && response.data.id) {
-          const numericId = response.data.id;
+        // FIX: Check for farmer_id (backend returns farmer_id)
+        if (response.data && response.data.farmer_id) {
+          const numericId = response.data.farmer_id;
           console.log("getFarmerId: Got numeric ID:", numericId);
           return numericId;
+        }
+        // Fallback to id field if farmer_id not present
+        if (response.data && response.data.id) {
+          return response.data.id;
         }
       } else {
         console.log("getFarmerId: User is not a farmer, role:", user.role_name);

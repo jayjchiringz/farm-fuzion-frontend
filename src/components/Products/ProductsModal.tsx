@@ -82,9 +82,11 @@ export default function ProductsModal({
 
   // SINGLE validation useEffect
   useEffect(() => {
+    // In ProductsModal.tsx, update the validateFarmerId function
     const validateFarmerId = async () => {
       console.log("ProductsModal received farmerId:", farmerId, "type:", typeof farmerId);
       
+      // Case 1: It's already a valid number
       if (typeof farmerId === 'number' && !isNaN(farmerId) && farmerId > 0) {
         console.log("✅ Valid numeric farmerId:", farmerId);
         setValidFarmerId(farmerId);
@@ -92,7 +94,9 @@ export default function ProductsModal({
         return;
       }
       
+      // Case 2: It's a string that might be a UUID
       if (typeof farmerId === 'string') {
+        // Check if it looks like a UUID (contains hyphens and is long)
         if (farmerId.includes('-') && farmerId.length > 20) {
           console.log("📝 Detected UUID, fetching numeric ID from backend...");
           setIsLoadingFarmerId(true);
@@ -107,11 +111,17 @@ export default function ProductsModal({
             const data = await response.json();
             console.log("Backend response:", data);
             
-            if (data && data.id) {
-              console.log("✅ Fetched numeric farmerId:", data.id);
+            // FIX: Check for farmer_id (not just id)
+            if (data && data.farmer_id) {
+              console.log("✅ Fetched numeric farmerId:", data.farmer_id);
+              setValidFarmerId(data.farmer_id);
+              setValidationError(null);
+            } else if (data && data.id) {
+              console.log("✅ Fetched numeric farmerId from id field:", data.id);
               setValidFarmerId(data.id);
               setValidationError(null);
             } else {
+              console.error("No farmer ID found in response:", data);
               setValidationError("Could not find farmer profile");
               setValidFarmerId(null);
             }
@@ -125,6 +135,7 @@ export default function ProductsModal({
           return;
         }
         
+        // Case 3: It's a string that might be a number
         const parsed = parseInt(farmerId, 10);
         if (!isNaN(parsed) && parsed > 0) {
           console.log("✅ Parsed string to number:", parsed);

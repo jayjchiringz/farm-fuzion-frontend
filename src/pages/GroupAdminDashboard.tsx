@@ -58,7 +58,7 @@ export default function GroupAdminDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Get user info
+  // Get user info from auth context
   const adminName = user?.first_name || user?.email?.split('@')[0] || 'Group Admin';
   const groupName = cooperative?.name || 'Loading...';
 
@@ -80,6 +80,16 @@ export default function GroupAdminDashboard() {
       setProducts(productsData);
       setOrders(ordersData);
       setTenders(tendersData);
+      
+      // Log the cooperative data for debugging
+      if (coopData) {
+        console.log("✅ Group Admin Dashboard - Cooperative loaded:", {
+          name: coopData.name,
+          registration_number: coopData.registration_number,
+          county: coopData.county,
+          constituency: coopData.constituency
+        });
+      }
     } catch (error) {
       console.error('Error loading group admin data:', error);
     } finally {

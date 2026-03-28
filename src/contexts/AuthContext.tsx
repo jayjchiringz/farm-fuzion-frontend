@@ -133,20 +133,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("getCooperativeId: Fetching for user:", user.id, "role:", user.role_name);
       
+      // Normalize role name for comparison
+      const normalizedRole = user.role_name?.toLowerCase();
+      const isGroupAdminRole = normalizedRole === 'group admin' || normalizedRole === 'group_admin';
+      
       // If user is a group admin and already has group_id, return it
-      if (user.role_name?.toLowerCase() === 'group admin' && user.group_id) {
+      if (isGroupAdminRole && user.group_id) {
         console.log("getCooperativeId: Using user.group_id:", user.group_id);
         return user.group_id;
       }
       
-      // Otherwise, fetch from API
-      const response = await api.get(`/cooperatives/by-admin/${user.id}`);
-      console.log("getCooperativeId: Response:", response.data);
-      
-      if (response.data && response.data.id) {
-        return response.data.id;
+      // Otherwise, fetch from API - this endpoint might need to be created
+      // For now, if group_id exists in user object, use it
+      if (user.group_id) {
+        return user.group_id;
       }
       
+      console.log("getCooperativeId: No cooperative ID found for user");
       return null;
     } catch (error) {
       console.error('Error fetching cooperative ID:', error);
@@ -168,6 +171,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Special handling for admin (could be "admin" or "super_admin")
     if (targetRoleLower === 'admin') {
       return userRoleLower === 'admin' || userRoleLower === 'super_admin';
+    }
+    
+    // Special handling for farmer
+    if (targetRoleLower === 'farmer') {
+      return userRoleLower === 'farmer';
     }
     
     return userRoleLower === targetRoleLower;

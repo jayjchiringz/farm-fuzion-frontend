@@ -4,12 +4,16 @@ import {
   Building2, Package, TrendingUp, Users, ShoppingCart, 
   Plus, Edit2, Trash2, Eye, CheckCircle, XCircle, Clock,
   Truck, Search, Filter, RefreshCw, Loader2, MapPin,
-  DollarSign, Calendar, Globe, FileText, Send, Mail
+  DollarSign, Calendar, Globe, FileText, Send, Mail,
+  LogOut, ChevronLeft, ChevronRight, LayoutDashboard, Shield,
+  Menu, X, Home, BarChart3, Sparkles, Settings
 } from "lucide-react";
 import MainLayout from "../layouts/MainLayout";
 import ThemeToggle from "../components/ThemeToggle";
 import { useCurrency } from "../contexts/CurrencyContext";
 import { cooperativeApi, Cooperative, CooperativeProduct, BulkOrder, Tender } from "../services/cooperativeApi";
+import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 type TabType = 'dashboard' | 'products' | 'orders' | 'tenders';
 
@@ -47,10 +51,16 @@ export default function GroupAdminDashboard() {
     available: true,
   });
   const [formSubmitting, setFormSubmitting] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const { formatKES } = useCurrency();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
-  const admin = JSON.parse(localStorage.getItem("user") || "{}");
-  const adminName = admin.first_name || admin.email?.split('@')[0] || 'Group Admin';
+  // Get user info
+  const adminName = user?.first_name || user?.email?.split('@')[0] || 'Group Admin';
+  const groupName = cooperative?.name || 'Loading...';
 
   useEffect(() => {
     loadData();
@@ -74,6 +84,25 @@ export default function GroupAdminDashboard() {
       console.error('Error loading group admin data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const toggleSidebar = () => {
+    if (window.innerWidth < 768) {
+      setSidebarOpen(!sidebarOpen);
+    } else {
+      setIsSidebarOpen(!isSidebarOpen);
     }
   };
 
@@ -181,20 +210,25 @@ export default function GroupAdminDashboard() {
   const DashboardView = () => (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white">
-        <h2 className="text-2xl font-bold">Welcome, {adminName}!</h2>
-        <p className="text-white/80 mt-1">
-          Manage your cooperative's products and connect with global buyers
-        </p>
-        {cooperative && (
-          <div className="mt-4 flex items-center gap-2 text-sm text-white/90">
-            <Building2 size={16} />
-            <span>{cooperative.name}</span>
-            <span className="w-1 h-1 bg-white/50 rounded-full"></span>
-            <MapPin size={14} />
-            <span>{cooperative.county}, {cooperative.constituency}</span>
-          </div>
-        )}
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-16 -mb-16"></div>
+        
+        <div className="relative z-10">
+          <h2 className="text-2xl font-bold">Welcome, {adminName}!</h2>
+          <p className="text-white/80 mt-1">
+            Manage your cooperative's products and connect with global buyers
+          </p>
+          {cooperative && (
+            <div className="mt-4 flex items-center gap-2 text-sm text-white/90">
+              <Building2 size={16} />
+              <span>{cooperative.name}</span>
+              <span className="w-1 h-1 bg-white/50 rounded-full"></span>
+              <MapPin size={14} />
+              <span>{cooperative.county}, {cooperative.constituency}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -502,58 +536,220 @@ export default function GroupAdminDashboard() {
   return (
     <MainLayout>
       <ThemeToggle />
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl">
-                <Building2 size={28} className="text-white" />
+      <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        {/* Sophisticated Sidebar with Translucent Effects */}
+        <aside
+          className={`${
+            isSidebarOpen ? "w-72" : "w-24"
+          } transition-all duration-500 ease-in-out 
+            bg-brand-green/95 backdrop-blur-md
+            dark:bg-gray-900/95 dark:backdrop-blur-md
+            text-white flex flex-col justify-between py-8 px-4 shadow-2xl relative overflow-hidden
+            border-r border-white/10`}
+        >
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.1)_0%,_transparent_50%)]"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(0,0,0,0.05)_0%,_transparent_50%)]"></div>
+          
+          {/* Sidebar Header */}
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-8">
+              {/* Logo with subtle elegance */}
+              <div className="transition-all duration-500">
+                {isSidebarOpen ? (
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <img
+                        src="/Logos/FF Logo only transparent background.png"
+                        alt="Farm Fuzion"
+                        className="h-12 w-12 object-contain relative z-10 opacity-90 hover:opacity-100 transition-opacity"
+                      />
+                    </div>
+                    <span className="text-xl font-light text-white/90 tracking-wide">Group Admin</span>
+                  </div>
+                ) : (
+                  <div className="relative flex justify-center">
+                    <img
+                      src="/Logos/FF Logo only transparent background.png"
+                      alt="FF"
+                      className="h-14 w-14 object-contain mx-auto transition-all duration-300 hover:scale-110 opacity-90 hover:opacity-100"
+                    />
+                  </div>
+                )}
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Cooperative Dashboard</h1>
-                <p className="text-gray-600 dark:text-gray-400">Manage your group's agricultural exports</p>
-              </div>
+              
+              {/* Subtle toggle button */}
+              <button
+                onClick={toggleSidebar}
+                className="p-2 hover:bg-white/10 rounded-lg transition-all duration-300 backdrop-blur-sm text-white/70 hover:text-white"
+                title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+              >
+                {isSidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+              </button>
             </div>
-            <button onClick={loadData} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-              <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+
+            {/* Navigation with refined styling */}
+            <nav className="space-y-1">
+              <NavItem 
+                icon={<LayoutDashboard size={isSidebarOpen ? 18 : 22} />}
+                label="Dashboard"
+                active={activeTab === 'dashboard'}
+                onClick={() => setActiveTab('dashboard')}
+                collapsed={!isSidebarOpen}
+              />
+              <NavItem 
+                icon={<Package size={isSidebarOpen ? 18 : 22} />}
+                label="Products"
+                active={activeTab === 'products'}
+                onClick={() => setActiveTab('products')}
+                collapsed={!isSidebarOpen}
+              />
+              <NavItem 
+                icon={<ShoppingCart size={isSidebarOpen ? 18 : 22} />}
+                label="Orders"
+                active={activeTab === 'orders'}
+                onClick={() => setActiveTab('orders')}
+                collapsed={!isSidebarOpen}
+              />
+              <NavItem 
+                icon={<FileText size={isSidebarOpen ? 18 : 22} />}
+                label="Tenders"
+                active={activeTab === 'tenders'}
+                onClick={() => setActiveTab('tenders')}
+                collapsed={!isSidebarOpen}
+              />
+            </nav>
+          </div>
+
+          {/* Group Info & Logout */}
+          <div className="relative z-10">
+            {/* Group Info Card */}
+            {cooperative && isSidebarOpen && (
+              <div className="mb-4 p-3 bg-white/10 rounded-xl backdrop-blur-sm">
+                <p className="text-xs text-white/70 mb-1">Your Group</p>
+                <p className="text-sm font-medium text-white truncate">{cooperative.name}</p>
+                <p className="text-xs text-white/50 mt-1">{cooperative.registration_number}</p>
+              </div>
+            )}
+            
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 cursor-pointer ${
+                !isSidebarOpen ? 'justify-center' : ''
+              } bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl`}
+              title="Logout"
+            >
+              <LogOut size={isSidebarOpen ? 20 : 24} />
+              {isSidebarOpen && <span className="text-sm font-medium">Logout</span>}
             </button>
           </div>
+        </aside>
 
-          {/* Tabs */}
-          <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
-            {(['dashboard', 'products', 'orders', 'tenders'] as TabType[]).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  activeTab === tab
-                    ? 'text-brand-green border-b-2 border-brand-green'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {tab === 'dashboard' && <span className="flex items-center gap-2"><TrendingUp size={16} /> Dashboard</span>}
-                {tab === 'products' && <span className="flex items-center gap-2"><Package size={16} /> Products</span>}
-                {tab === 'orders' && <span className="flex items-center gap-2"><ShoppingCart size={16} /> Orders</span>}
-                {tab === 'tenders' && <span className="flex items-center gap-2"><FileText size={16} /> Tenders</span>}
-              </button>
-            ))}
+        {/* Mobile Menu Button */}
+        <button
+          onClick={toggleSidebar}
+          className="fixed top-4 left-4 z-60 md:hidden text-white bg-brand-green rounded-lg p-2.5 shadow-lg hover:bg-green-700 transition-colors"
+        >
+          <Menu size={20} />
+        </button>
+
+        {/* Mobile Overlay */}
+        {sidebarOpen && (
+          <div
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 bg-black/50 z-40 md:hidden animate-fade-in"
+          />
+        )}
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto">
+          {/* Top Bar */}
+          <div className="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {/* Admin avatar */}
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                    {adminName.charAt(0)}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
+                </div>
+                
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {cooperative ? `${cooperative.name} Admin` : 'Group Admin Dashboard'}
+                  </h1>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                    <span className="flex items-center gap-1">
+                      <Shield size={14} className="text-purple-600" />
+                      Group Administrator
+                    </span>
+                    <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+                    <span>Welcome back, {adminName}</span>
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleRefresh}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors relative"
+                  disabled={refreshing}
+                >
+                  <RefreshCw size={20} className={refreshing ? 'animate-spin text-brand-green' : 'text-gray-600 dark:text-gray-400'} />
+                </button>
+                
+                <ThemeToggle />
+              </div>
+            </div>
           </div>
 
-          {/* Content */}
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 size={32} className="animate-spin text-brand-green" />
-            </div>
-          ) : (
-            <>
-              {activeTab === 'dashboard' && <DashboardView />}
-              {activeTab === 'products' && <ProductsView />}
-              {activeTab === 'orders' && <OrdersView />}
-              {activeTab === 'tenders' && <TendersView />}
-            </>
-          )}
-        </div>
+          {/* Dashboard Content */}
+          <div className="p-6">
+            {/* Welcome Banner - Only show if no cooperative loaded yet */}
+            {!cooperative && !loading && (
+              <div className="mb-8 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-16 -mb-16"></div>
+                
+                <div className="relative z-10">
+                  <h2 className="text-3xl font-bold mb-2">Group Admin Dashboard</h2>
+                  <p className="text-white/90 max-w-2xl">
+                    Manage your cooperative's products, track bulk orders, and respond to international tenders.
+                  </p>
+                  <div className="flex gap-4 mt-4">
+                    <div className="flex items-center gap-2 bg-white/20 rounded-lg px-3 py-1.5">
+                      <Sparkles size={16} />
+                      <span className="text-sm">Cooperative Management</span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-white/20 rounded-lg px-3 py-1.5">
+                      <BarChart3 size={16} />
+                      <span className="text-sm">Global Marketplace</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Content */}
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="relative">
+                  <div className="w-16 h-16 border-4 border-purple-500/30 rounded-full"></div>
+                  <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+                </div>
+              </div>
+            ) : (
+              <>
+                {activeTab === 'dashboard' && <DashboardView />}
+                {activeTab === 'products' && <ProductsView />}
+                {activeTab === 'orders' && <OrdersView />}
+                {activeTab === 'tenders' && <TendersView />}
+              </>
+            )}
+          </div>
+        </main>
       </div>
 
       {/* Product Modal */}
@@ -717,6 +913,24 @@ export default function GroupAdminDashboard() {
         </div>
       )}
     </MainLayout>
+  );
+}
+
+// ==================== Subcomponents ====================
+
+function NavItem({ icon, label, active = false, onClick, collapsed }: any) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 ${
+        active 
+          ? 'bg-white/15 text-white' 
+          : 'text-white/70 hover:bg-white/10 hover:text-white'
+      } ${collapsed ? 'justify-center' : ''}`}
+    >
+      <span className={active ? 'text-white' : 'text-white/70'}>{icon}</span>
+      {!collapsed && <span className="text-sm font-light tracking-wide">{label}</span>}
+    </button>
   );
 }
 

@@ -357,9 +357,8 @@ export default function ProductsModal({
     }
   };
 
-  // In ProductsModal.tsx
   const handlePublishToCooperative = async (product: FarmProduct) => {
-    if (!farmerId) {
+    if (!farmerId || !validFarmerId) {
       alert("Please log in to publish products to cooperative");
       return;
     }
@@ -394,10 +393,9 @@ export default function ProductsModal({
 
     setPublishingToCooperative(String(product.id));
     try {
-      // First get the numeric farmer ID
-      const farmerIdResponse = await fetch(`${API_BASE}/farmers/by-user/${farmerId}`);
-      const farmerData = await farmerIdResponse.json();
-      const numericFarmerId = farmerData.farmer_id || farmerData.id;
+      // Use validFarmerId which we already have from validation
+      // validFarmerId is the numeric farmer ID (e.g., 1196)
+      console.log("Publishing to cooperative with farmer ID:", validFarmerId);
       
       // Call the cooperative API to add this product to the group's bulk listing
       await cooperativeApi.publishToPublicMarketplace({
@@ -409,7 +407,7 @@ export default function ProductsModal({
         price_per_unit: numericPrice,
         certification: "",
         description: `From farmer inventory. Minimum order: ${minQty} ${product.unit}.`,
-        farmer_id: numericFarmerId,
+        farmer_id: validFarmerId,  // Use the numeric ID we already have
       });
       
       alert(`✅ ${product.product_name} published to cooperative public marketplace!\n\nBulk price: KES ${numericPrice}/${product.unit}\nMin order: ${minQty} ${product.unit}`);

@@ -155,11 +155,12 @@ class CooperativeApiService {
     price_per_unit: number;
     certification?: string;
     description?: string;
-    farmer_id: number;
+    farmer_id: number;  // This is the numeric farmer ID
   }): Promise<CooperativeProduct> {
-    // First, get the group ID for this farmer
-    const farmerResponse = await fetch(`${API_BASE}/farmers/${product.farmer_id}`);
-    const farmerData = await farmerResponse.json();
+    // Get the group ID for this farmer
+    // Note: The farmer might be assigned to a group, so we need to fetch that
+    const farmerResponse = await this.fetchWithAuth(`/farmers/${product.farmer_id}/group`);
+    const farmerData = await farmerResponse;
     
     if (!farmerData.group_id) {
       throw new Error('Farmer not assigned to any group');

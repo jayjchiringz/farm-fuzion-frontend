@@ -2,8 +2,8 @@
 import { API_BASE } from "./config";
 
 // Add the public API URL from environment
-const PUBLIC_API_URL = import.meta.env.VITE_PUBLIC_API_URL;
-const PUBLIC_API_KEY = import.meta.env.VITE_PUBLIC_API_KEY;
+const PUBLIC_API_URL = import.meta.env.VITE_PUBLIC_API_URL || "https://farmfuzion-public-api.onrender.com";
+const PUBLIC_API_KEY = import.meta.env.VITE_PUBLIC_API_KEY || "";
 
 export interface Cooperative {
   id: string;
@@ -38,6 +38,11 @@ export interface CooperativeProduct {
   source_farmer_id?: number;
   source_farm_product_id?: string;
   source_farmer_name?: string;
+  cooperative_name?: string;  // ✅ ADD THIS - for public marketplace display
+  published_to_global?: boolean;
+  global_product_id?: string;
+  global_price?: number;
+  global_min_quantity?: number;
 }
 
 export interface PublicProduct {
@@ -129,7 +134,6 @@ class CooperativeApiService {
       'Content-Type': 'application/json',
     };
     
-    // Only add API key for non-GET requests that need authentication
     if (options.method && options.method !== 'GET' && PUBLIC_API_KEY) {
       headers['X-API-Key'] = PUBLIC_API_KEY;
     }
@@ -147,10 +151,6 @@ class CooperativeApiService {
     return response.json();
   }
 
-  // ============================================
-  // COOPERATIVE MANAGEMENT (Authenticated)
-  // ============================================
-
   // Get cooperative details for current admin
   async getMyCooperative(): Promise<Cooperative | null> {
     try {
@@ -164,6 +164,12 @@ class CooperativeApiService {
   // Get products for this cooperative
   async getCooperativeProducts(): Promise<CooperativeProduct[]> {
     const response = await this.fetchWithAuth('/cooperatives/products');
+    return response;
+  }
+
+  // Get single cooperative product
+  async getCooperativeProduct(productId: string): Promise<CooperativeProduct> {
+    const response = await this.fetchWithAuth(`/cooperatives/products/${productId}`);
     return response;
   }
 
@@ -206,6 +212,59 @@ class CooperativeApiService {
     });
     
     return response;
+  }
+
+  // Publish cooperative product to global public marketplace
+  async publishToGlobalMarketplace(productId: string, price_per_unit?: number, min_quantity?: number): Promise<any> {
+    // First get the product details
+    const product = await this.getCooperativeProduct(productId);
+    
+    // Get cooperative name (from the cooperative object)
+    const cooperative = await this.getMyCooperative();
+    const cooperativeName = cooperative?.name || 'Cooperative';
+    
+    // Call the public API to create/update product
+    const response = await this.fetchPublicAPI('/api/v1/products', {
+      method: 'POST',
+      body: JSON.stringify({
+        product_name: product.product_name,
+        category: product.category,
+        quantity: product.quantity,
+        unit: product.unit,
+        price_per_unit: price_per_unit || product.price_per_unit,
+        currency: 'KES',
+        certification: product.certification,
+        description: product.description,
+        cooperative_name: cooperativeName,
+        source_farmer_name: product.source_farmer_name ? `${product.source_farmer_name} (via Cooperative)` : `${cooperativeName} (Aggregated)`
+      }),
+    });
+    
+    // Update the cooperative product with global reference
+    await this.fetchWithAuth(`/cooperatives/products/${productId}/publish-global`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        published_to_global: true,
+        global_product_id: response.id,
+        global_price: price_per_unit || product.price_per_unit,
+        global_min_quantity: min_quantity || 100
+      }),
+    });
+    
+    return response;
+  }
+
+  // Unpublish from global marketplace
+  async unpublishFromGlobalMarketplace(productId: string, globalProductId: string): Promise<void> {
+    // Delete from public API
+    await this.fetchPublicAPI(`/api/v1/products/${globalProductId}`, {
+      method: 'DELETE',
+    });
+    
+    // Update cooperative product
+    await this.fetchWithAuth(`/cooperatives/products/${productId}/unpublish-global`, {
+      method: 'PATCH',
+    });
   }
 
   // Update product

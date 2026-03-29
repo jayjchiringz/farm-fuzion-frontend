@@ -343,7 +343,6 @@ export default function GroupAdminDashboard() {
 
       setRecallLoading(true);
       try {
-        // Call the recall endpoint (you'll need to add this to cooperativeApi)
         await cooperativeApi.recallProduct(
           selectedProductForRecall.id,
           recallQuantity,
@@ -351,7 +350,7 @@ export default function GroupAdminDashboard() {
         );
         
         alert(`✅ Successfully recalled ${recallQuantity} ${selectedProductForRecall.unit} back to farmer inventory`);
-        await loadData(); // Refresh the products list
+        await loadData();
         setShowRecallModal(false);
       } catch (error) {
         console.error('Error recalling product:', error);
@@ -417,14 +416,24 @@ export default function GroupAdminDashboard() {
                         <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">{product.certification}</span>
                       </div>
                     )}
-                    {/* Source farmer info if available */}
-                    {(product as any).source_farmer_name && (
-                      <div className="flex justify-between text-xs text-gray-500">
-                        <span>Source:</span>
-                        <span className="truncate max-w-[150px]">{(product as any).source_farmer_name}</span>
-                      </div>
-                    )}
                   </div>
+                  
+                  {/* Source farmer info - show first name only */}
+                  {(product as any).source_farmer_name && (
+                    <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                            <Users size={12} className="text-green-600 dark:text-green-400" />
+                          </div>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">Farmer:</span>
+                        </div>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {(product as any).source_farmer_name.split(' ')[0]}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="mt-4 flex gap-2">
                     <button 
@@ -499,6 +508,12 @@ export default function GroupAdminDashboard() {
                     <span className="text-gray-500">Unit Price:</span>
                     <span className="text-brand-green font-medium">{formatKES(selectedProductForRecall.price_per_unit)}</span>
                   </div>
+                  {(selectedProductForRecall as any).source_farmer_name && (
+                    <div className="flex justify-between text-sm mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <span className="text-gray-500">Farmer:</span>
+                      <span className="font-medium">{(selectedProductForRecall as any).source_farmer_name.split(' ')[0]}</span>
+                    </div>
+                  )}
                 </div>
                 
                 <div>

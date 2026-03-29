@@ -145,6 +145,7 @@ class CooperativeApiService {
     return response;
   }
 
+  /*
   // NEW: Publish farmer's product to public marketplace (with API key)
   async publishToPublicMarketplace(product: {
     farm_product_id: string;
@@ -172,6 +173,39 @@ class CooperativeApiService {
       body: JSON.stringify({
         ...product,
         group_id: farmerData.group_id,
+      }),
+    });
+    
+    return response;
+  }
+  */
+ 
+  async publishToPublicMarketplace(product: {
+    farm_product_id: string;
+    product_name: string;
+    category: string;
+    quantity: number;
+    unit: string;
+    price_per_unit: number;
+    certification?: string;
+    description?: string;
+    farmer_id: number;
+    group_id: string;  // Add this
+  }): Promise<CooperativeProduct> {
+    // Create the product in the cooperative database
+    const response = await this.fetchWithAuth('/cooperatives/products/publish', {
+      method: 'POST',
+      body: JSON.stringify({
+        farm_product_id: product.farm_product_id,
+        product_name: product.product_name,
+        category: product.category,
+        quantity: product.quantity,
+        unit: product.unit,
+        price_per_unit: product.price_per_unit,
+        certification: product.certification,
+        description: product.description,
+        farmer_id: product.farmer_id,
+        group_id: product.group_id,
       }),
     });
     

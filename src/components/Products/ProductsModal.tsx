@@ -70,6 +70,7 @@ export default function ProductsModal({
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState<ProductStatus | "">("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [farmerGroupId, setFarmerGroupId] = useState<string | null>(null);
 
   const itemsPerPage = 5;
   const unitPrice = form.quantity && form.quantity > 0 ? (form.price ?? 0) / form.quantity : 0;
@@ -82,7 +83,8 @@ export default function ProductsModal({
 
   // SINGLE validation useEffect
   useEffect(() => {
-    // In ProductsModal.tsx, update the validateFarmerId function
+
+    // Update the validateFarmerId function in ProductsModal.tsx
     const validateFarmerId = async () => {
       console.log("ProductsModal received farmerId:", farmerId, "type:", typeof farmerId);
       
@@ -91,12 +93,13 @@ export default function ProductsModal({
         console.log("✅ Valid numeric farmerId:", farmerId);
         setValidFarmerId(farmerId);
         setValidationError(null);
+        // Fetch the group_id for this farmer
+        await fetchFarmerGroup(farmerId);
         return;
       }
       
       // Case 2: It's a string that might be a UUID
       if (typeof farmerId === 'string') {
-        // Check if it looks like a UUID (contains hyphens and is long)
         if (farmerId.includes('-') && farmerId.length > 20) {
           console.log("📝 Detected UUID, fetching numeric ID from backend...");
           setIsLoadingFarmerId(true);
@@ -111,15 +114,17 @@ export default function ProductsModal({
             const data = await response.json();
             console.log("Backend response:", data);
             
-            // FIX: Check for farmer_id (not just id)
             if (data && data.farmer_id) {
               console.log("✅ Fetched numeric farmerId:", data.farmer_id);
               setValidFarmerId(data.farmer_id);
               setValidationError(null);
+              // Also fetch the group_id for this farmer
+              await fetchFarmerGroup(data.farmer_id);
             } else if (data && data.id) {
               console.log("✅ Fetched numeric farmerId from id field:", data.id);
               setValidFarmerId(data.id);
               setValidationError(null);
+              await fetchFarmerGroup(data.id);
             } else {
               console.error("No farmer ID found in response:", data);
               setValidationError("Could not find farmer profile");
@@ -135,12 +140,12 @@ export default function ProductsModal({
           return;
         }
         
-        // Case 3: It's a string that might be a number
         const parsed = parseInt(farmerId, 10);
         if (!isNaN(parsed) && parsed > 0) {
           console.log("✅ Parsed string to number:", parsed);
           setValidFarmerId(parsed);
           setValidationError(null);
+          await fetchFarmerGroup(parsed);
         } else {
           setValidationError("Invalid farmer ID format");
           setValidFarmerId(null);
@@ -150,6 +155,26 @@ export default function ProductsModal({
       
       setValidationError("Invalid farmer ID");
       setValidFarmerId(null);
+    };
+
+    // Add this function to fetch farmer's group
+    const fetchFarmerGroup = async (numericFarmerId: number) => {
+      try {
+        const response = await fetch(`${API_BASE}/farmers/${numericFarmerId}`);
+        if (response.ok) {
+          const farmerData = await response.json();
+          if (farmerData.group_id) {
+            setFarmerGroupId(farmerData.group_id);
+            console.log("✅ Farmer group ID:", farmerData.group_id);
+          } else {
+            console.warn("⚠️ Farmer has no group assigned:", numericFarmerId);
+          }
+        } else {
+          console.error("Failed to fetch farmer details:", response.status);
+        }
+      } catch (error) {
+        console.error("Error fetching farmer group:", error);
+      }
     };
 
     validateFarmerId();
@@ -363,6 +388,11 @@ export default function ProductsModal({
       return;
     }
 
+    if (!farmerGroupId) {
+      alert("You are not assigned to any cooperative group. Please contact your group admin.");
+      return;
+    }
+
     // Ask for cooperative listing price (bulk price)
     const price = prompt(
       `Enter BULK price for ${product.product_name} (per ${product.unit}) for cooperative sales:\n\nThis price will be visible to group admins for bulk purchases.`,
@@ -391,24 +421,24 @@ export default function ProductsModal({
       return;
     }
 
-    setPublishingToCooperative(String(product.id));
-    try {
-      // Use validFarmerId which we already have from validation
-      // validFarmerId is the numeric farmer ID (e.g., 1196)
-      console.log("Publishing to cooperative with farmer ID:", validFarmerId);
-      
-      // Call the cooperative API to add this product to the group's bulk listing
-      await cooperativeApi.publishToPublicMarketplace({
-        farm_product_id: String(product.id),
-        product_name: product.product_name,
-        category: product.category || "produce",
-        quantity: product.quantity || 0,
-        unit: product.unit || "kg",
-        price_per_unit: numericPrice,
-        certification: "",
-        description: `From farmer inventory. Minimum order: ${minQty} ${product.unit}.`,
-        farmer_id: validFarmerId,  // Use the numeric ID we already have
-      });
+  setPublishingToCooperative(String(product.id));
+  try {
+    console.log("Publishing to cooperative with farmer ID:", validFarmerId);
+    console.log("Publishing to cooperative with group ID:", farmerGroupId);
+    
+    // Call the cooperative API with group_id
+    await cooperativeApi.publishToPublicMarketplace({
+      farm_product_id: String(product.id),
+      product_name: product.product_name,
+      category: product.category || "produce",
+      quantity: product.quantity || 0,
+      unit: product.unit || "kg",
+      price_per_unit: numericPrice,
+      certification: "",
+      description: `From farmer inventory. Minimum order: ${minQty} ${product.unit}.`,
+      farmer_id: validFarmerId,
+      group_id: farmerGroupId,  // Pass the group_id
+    });
       
       alert(`✅ ${product.product_name} published to cooperative public marketplace!\n\nBulk price: KES ${numericPrice}/${product.unit}\nMin order: ${minQty} ${product.unit}`);
       if (onProductAdded) onProductAdded();

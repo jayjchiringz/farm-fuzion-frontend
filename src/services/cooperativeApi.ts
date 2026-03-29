@@ -2,8 +2,8 @@
 import { API_BASE } from "./config";
 
 // Add the public API URL from environment
-const PUBLIC_API_URL = import.meta.env.VITE_PUBLIC_API_URL || "https://farmfuzion-public-api.onrender.com";
-const PUBLIC_API_KEY = import.meta.env.VITE_PUBLIC_API_KEY || "76071ef74feb1524869b8d3cb3ce05eb";
+const PUBLIC_API_URL = import.meta.env.VITE_PUBLIC_API_URL;
+const PUBLIC_API_KEY = import.meta.env.VITE_PUBLIC_API_KEY;
 
 export interface Cooperative {
   id: string;
@@ -40,6 +40,23 @@ export interface CooperativeProduct {
   source_farmer_name?: string;
 }
 
+export interface PublicProduct {
+  id: string;
+  product_name: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  price_per_unit: number;
+  currency: string;
+  total_price: number;
+  available: boolean;
+  certification?: string;
+  description?: string;
+  created_at: string;
+  cooperative_name?: string;
+  source_farmer_name?: string;
+}
+
 export interface BulkOrder {
   id: string;
   cooperative_product_id: string;
@@ -73,6 +90,13 @@ export interface Tender {
   created_at: string;
 }
 
+export interface MarketplaceStats {
+  total_products: number;
+  total_cooperatives: number;
+  total_orders: number;
+  categories: Array<{ name: string; count: number }>;
+}
+
 class CooperativeApiService {
   private getAuthToken(): string | null {
     return localStorage.getItem('auth_token');
@@ -99,13 +123,16 @@ class CooperativeApiService {
     return response.json();
   }
 
-  // NEW: Call the public marketplace API with API key
+  // Call the public marketplace API (no auth required for GET, API key for POST)
   private async fetchPublicAPI(endpoint: string, options: RequestInit = {}) {
-    const headers = {
+    const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      'X-API-Key': PUBLIC_API_KEY,
-      ...options.headers,
     };
+    
+    // Only add API key for non-GET requests that need authentication
+    if (options.method && options.method !== 'GET' && PUBLIC_API_KEY) {
+      headers['X-API-Key'] = PUBLIC_API_KEY;
+    }
 
     const response = await fetch(`${PUBLIC_API_URL}${endpoint}`, {
       ...options,
@@ -119,6 +146,10 @@ class CooperativeApiService {
 
     return response.json();
   }
+
+  // ============================================
+  // COOPERATIVE MANAGEMENT (Authenticated)
+  // ============================================
 
   // Get cooperative details for current admin
   async getMyCooperative(): Promise<Cooperative | null> {
@@ -145,41 +176,7 @@ class CooperativeApiService {
     return response;
   }
 
-  /*
-  // NEW: Publish farmer's product to public marketplace (with API key)
-  async publishToPublicMarketplace(product: {
-    farm_product_id: string;
-    product_name: string;
-    category: string;
-    quantity: number;
-    unit: string;
-    price_per_unit: number;
-    certification?: string;
-    description?: string;
-    farmer_id: number;  // This is the numeric farmer ID
-  }): Promise<CooperativeProduct> {
-    // Get the group ID for this farmer
-    // Note: The farmer might be assigned to a group, so we need to fetch that
-    const farmerResponse = await this.fetchWithAuth(`/farmers/${product.farmer_id}/group`);
-    const farmerData = await farmerResponse;
-    
-    if (!farmerData.group_id) {
-      throw new Error('Farmer not assigned to any group');
-    }
-
-    // Create the product in the cooperative database
-    const response = await this.fetchWithAuth('/cooperatives/products/publish', {
-      method: 'POST',
-      body: JSON.stringify({
-        ...product,
-        group_id: farmerData.group_id,
-      }),
-    });
-    
-    return response;
-  }
-  */
- 
+  // Publish farmer's product to cooperative marketplace
   async publishToPublicMarketplace(product: {
     farm_product_id: string;
     product_name: string;
@@ -190,9 +187,8 @@ class CooperativeApiService {
     certification?: string;
     description?: string;
     farmer_id: number;
-    group_id: string;  // Add this
+    group_id: string;
   }): Promise<CooperativeProduct> {
-    // Create the product in the cooperative database
     const response = await this.fetchWithAuth('/cooperatives/products/publish', {
       method: 'POST',
       body: JSON.stringify({
@@ -274,6 +270,111 @@ class CooperativeApiService {
       method: 'POST',
       body: JSON.stringify(response),
     });
+  }
+
+  // ============================================
+  // PUBLIC MARKETPLACE (No authentication required)
+  // ============================================
+
+  // Get all products for public marketplace
+  async getAllProducts(filters?: {
+    category?: string;
+    search?: string;
+    min_price?: number;
+    max_price?: number;
+    sort?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ data: PublicProduct[]; total: number; limit: number; offset: number }> {
+    const params = new URLSearchParams();
+    if (filters?.category) params.append("category", filters.category);
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.min_price) params.append("min_price", filters.min_price.toString());
+    if (filters?.max_price) params.append("max_price", filters.max_price.toString());
+    if (filters?.sort) params.append("sort", filters.sort);
+    if (filters?.limit) params.append("limit", filters.limit.toString());
+    if (filters?.offset) params.append("offset", filters.offset.toString());
+    
+    const response = await fetch(`${PUBLIC_API_URL}/api/v1/products?${params}`);
+    if (!response.ok) throw new Error("Failed to fetch products");
+    return response.json();
+  }
+
+  // Get single product by ID
+  async getPublicProduct(productId: string): Promise<PublicProduct> {
+    const response = await fetch(`${PUBLIC_API_URL}/api/v1/products/${productId}`);
+    if (!response.ok) throw new Error("Product not found");
+    return response.json();
+  }
+
+  // Get all product categories
+  async getCategories(): Promise<{ categories: string[] }> {
+    const response = await fetch(`${PUBLIC_API_URL}/api/v1/categories`);
+    if (!response.ok) throw new Error("Failed to fetch categories");
+    return response.json();
+  }
+
+  // Get marketplace statistics
+  async getMarketplaceStats(): Promise<MarketplaceStats> {
+    const response = await fetch(`${PUBLIC_API_URL}/api/v1/stats`);
+    if (!response.ok) throw new Error("Failed to fetch stats");
+    return response.json();
+  }
+
+  // Get open tenders (public)
+  async getPublicTenders(): Promise<Tender[]> {
+    const response = await fetch(`${PUBLIC_API_URL}/api/v1/tenders/open`);
+    if (!response.ok) throw new Error("Failed to fetch tenders");
+    return response.json();
+  }
+
+  // Create a bulk order (public - no auth required)
+  async createBulkOrder(order: {
+    product_id: string;
+    buyer_name: string;
+    buyer_company?: string;
+    buyer_email: string;
+    buyer_phone?: string;
+    buyer_country: string;
+    quantity: number;
+    shipping_address?: string;
+    notes?: string;
+  }): Promise<{ id: string; order_number: string; total_amount: number; status: string }> {
+    const response = await fetch(`${PUBLIC_API_URL}/api/v1/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || "Order failed");
+    }
+    return response.json();
+  }
+
+  // Respond to a tender (requires API key - for cooperatives)
+  async respondToPublicTender(tenderId: string, response: {
+    cooperative_id: string;
+    offered_price: number;
+    available_quantity: number;
+    delivery_timeline: number;
+    message?: string;
+  }): Promise<{ message: string; response_id: string }> {
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (PUBLIC_API_KEY) {
+      headers['X-API-Key'] = PUBLIC_API_KEY;
+    }
+    
+    const apiResponse = await fetch(`${PUBLIC_API_URL}/api/v1/tenders/${tenderId}/respond`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(response),
+    });
+    if (!apiResponse.ok) {
+      const error = await apiResponse.json();
+      throw new Error(error.detail || "Failed to respond to tender");
+    }
+    return apiResponse.json();
   }
 }
 

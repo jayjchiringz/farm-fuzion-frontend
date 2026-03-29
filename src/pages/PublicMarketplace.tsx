@@ -317,7 +317,7 @@ export default function PublicMarketplace() {
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-brand-green to-green-700 text-white">
         <div className="max-w-7xl mx-auto px-4 py-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Kenyan Agricultural Marketplace</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">FarmFuzion Global Agro-Marketplace</h1>
           <p className="text-xl text-white/90 max-w-2xl mb-6">
             Connect directly with cooperatives and farmers for bulk agricultural produce
           </p>

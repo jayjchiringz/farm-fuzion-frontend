@@ -344,8 +344,20 @@ export default function GroupAdminDashboard() {
                     </div>
                   )}
                   <div className="mt-4 flex gap-2">
+                    {/* Edit Button */}
                     <button onClick={() => { setEditingProduct(product); setProductForm({ product_name: product.product_name, category: product.category, quantity: product.quantity, unit: product.unit, price_per_unit: product.price_per_unit, certification: product.certification || '', description: product.description || '', currency: product.currency || 'KES', available: product.available }); setIsProductModalOpen(true); }} className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-1"><Edit2 size={14} /> Edit</button>
+                    
+                    {/* Recall Button */}
                     <button onClick={() => handleRecall(product)} disabled={product.quantity === 0 || recallingProduct === product.id} className={`flex-1 px-3 py-1.5 text-sm border rounded-lg flex items-center justify-center gap-1 transition-colors ${product.quantity === 0 ? 'border-gray-300 text-gray-400 cursor-not-allowed' : 'border-orange-300 text-orange-600 hover:bg-orange-50'}`} title="Recall unused stock back to farmer inventory">{recallingProduct === product.id ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />} Recall</button>
+                    
+                    {/* Publish to Global Button */}
+                    {(product as any).published_to_global ? (
+                      <span className="flex-1 px-3 py-1.5 text-sm bg-green-100 text-green-600 rounded-lg flex items-center justify-center gap-1"><Globe size={14} /> Published</span>
+                    ) : (
+                      <button onClick={() => handlePublishToGlobal(product)} disabled={publishingToGlobal === product.id || product.quantity === 0} className="flex-1 px-3 py-1.5 text-sm border border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed" title="Publish to Global Public Marketplace">{publishingToGlobal === product.id ? <Loader2 size={14} className="animate-spin" /> : <Globe size={14} />} Publish Global</button>
+                    )}
+                    
+                    {/* Delete Button */}
                     <button onClick={() => cooperativeApi.deleteProduct(product.id).then(loadData)} className="flex-1 px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50 flex items-center justify-center gap-1"><Trash2 size={14} /> Delete</button>
                   </div>
                 </div>

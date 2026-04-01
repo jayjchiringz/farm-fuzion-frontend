@@ -7,11 +7,14 @@ import {
   Star, Calendar, ArrowUpRight, ShoppingCart, Building2,
   Menu, ChevronDown, LogOut, LayoutDashboard, BarChart3,
   Sparkles, Home, Settings, HelpCircle, Bell, Sun, Moon,
-  User, Wallet, TrendingDown, Activity, ArrowUp, ArrowDown
+  User, Wallet, TrendingDown, Activity, ArrowUp, ArrowDown,
+  Bot, MessageCircle
 } from "lucide-react";
 import { useCurrency } from "../contexts/CurrencyContext";
 import ThemeToggle from "../components/ThemeToggle";
 import MainLayout from "../layouts/MainLayout";
+import KnowledgeModal from "../components/Knowledge/KnowledgeModal";
+import { useAuth } from "../contexts/AuthContext";
 
 // Public API URL
 const PUBLIC_API_URL = import.meta.env.VITE_PUBLIC_API_URL || "https://farmfuzion-public-api.onrender.com";
@@ -50,9 +53,11 @@ interface MarketPrice {
 }
 
 export default function PublicMarketplace() {
+  const { user } = useAuth();
+  const [showKnowledgeModal, setShowKnowledgeModal] = useState(false);
+  
   // Responsive sidebar state - default collapsed on mobile
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
-    // Default to closed on mobile, open on desktop
     if (typeof window !== 'undefined') {
       return window.innerWidth >= 768;
     }
@@ -310,7 +315,7 @@ export default function PublicMarketplace() {
                 <th className="px-3 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase">Price (KES/unit)</th>
                 <th className="px-3 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase">Trend</th>
                 <th className="px-3 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase">Region</th>
-              </tr>
+               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {marketPrices.slice(0, 10).map((price, idx) => (
@@ -628,7 +633,7 @@ export default function PublicMarketplace() {
     );
   };
 
-  // Insight Card Component - with proper TypeScript typing
+  // Insight Card Component
   const InsightCard = ({ title, icon, description, color }: { 
     title: string; 
     icon: React.ReactNode; 
@@ -716,6 +721,13 @@ export default function PublicMarketplace() {
                 onClick={() => { setActiveTab('analytics'); closeSidebar(); }}
                 collapsed={!isSidebarOpen}
               />
+              <NavItem 
+                icon={<Bot size={isSidebarOpen ? 18 : 22} />}
+                label="Mkulima Halisi"
+                active={showKnowledgeModal}
+                onClick={() => { setShowKnowledgeModal(true); closeSidebar(); }}
+                collapsed={!isSidebarOpen}
+              />
             </nav>
           </div>
 
@@ -786,7 +798,17 @@ export default function PublicMarketplace() {
                   <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Buy directly from Kenyan cooperatives</p>
                 </div>
               </div>
-              <ThemeToggle />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowKnowledgeModal(true)}
+                  className="relative p-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg transition-all"
+                  title="Ask Mkulima Halisi"
+                >
+                  <Bot size={18} />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                </button>
+                <ThemeToggle />
+              </div>
             </div>
           </div>
 
@@ -831,6 +853,44 @@ export default function PublicMarketplace() {
       </div>
 
       {showDetailModal && <ProductDetailModal />}
+      
+      {/* Knowledge Modal - Mkulima Halisi Assistant */}
+      {showKnowledgeModal && user && (
+        <KnowledgeModal
+          farmerId={user.id}
+          farmerName={user.first_name || user.email?.split('@')[0]}
+          onClose={() => setShowKnowledgeModal(false)}
+        />
+      )}
+      
+      {/* If user not logged in, show simplified version */}
+      {showKnowledgeModal && !user && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl w-full max-w-md p-6">
+            <div className="text-center mb-4">
+              <Bot size={48} className="mx-auto text-brand-green mb-3" />
+              <h3 className="text-xl font-bold mb-2">Welcome to Mkulima Halisi!</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Sign in to chat with our AI farming assistant. Get personalized advice on crops, market prices, and farming tips.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowKnowledgeModal(false)}
+                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => window.location.href = "/login"}
+                className="flex-1 px-4 py-2 bg-brand-green text-white rounded-lg hover:bg-green-700"
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 }

@@ -4,16 +4,15 @@ import MainLayout from "../layouts/MainLayout";
 import { Dialog, DialogTitle, DialogPanel } from "@headlessui/react";
 import ThemeToggle from "../components/ThemeToggle";
 import axios from "axios"; 
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
-import { storage } from "../lib/firebase";
 import { getRoles, createRole, updateRole, deleteRole } from "../services/roles";
 import { 
   Users, UsersRound, Group, ShieldCheck, PlusSquare, Settings, Menu, 
   Plus, LogOut, Settings2, Building2, UserPlus, FileText, CheckCircle,
   XCircle, Clock, ChevronRight, ChevronLeft, Search, Filter, RefreshCw,
   Sparkles, BarChart3, Home, LayoutDashboard, UserCog, FolderTree,
-  X, MapPin, Info, AlertTriangle, Trash2
+  X, MapPin, Info, AlertTriangle, Trash2,
+  Shield
 } from "lucide-react";
 import { constituencies, counties, county, wards } from "kenya-locations";
 import { OverviewStats, GroupStats, FarmerStats } from "../components/Dashboard/DashboardStatsUI";
@@ -21,16 +20,12 @@ import { usePagination } from "../hooks/usePagination";
 import PaginationFooter from "../components/Pagination/PaginationFooter";
 import UserRoleAssignment from "../components/Admin/UserRoleAssignment";
 import { API_BASE } from "../services/config";
-
-/*
-const API_BASE = import.meta.env.MODE === "development"
-  ? "/api"
-  : "https://us-central1-farm-fuzion-abdf3.cloudfunctions.net/api";
-*/
+import { useNavigate } from "react-router-dom";
 
 /*Interfaces*/
 // -------------------------------------------------------------------------------------------------------------------------------  
 interface Group {
+  county: React.JSX.Element;
   id: string; 
   name: string; 
   type: string; 
@@ -138,6 +133,7 @@ export default function AdminDashboard() {
   const adminName = admin.first_name || admin.email?.split('@')[0] || 'Administrator';
 
   const [isUserRoleAssignmentOpen, setUserRoleAssignmentOpen] = useState(false);
+  const [isGroupAdminModalOpen, setGroupAdminModalOpen] = useState(false);
 
   useEffect(() => { 
     fetchData(); 
@@ -290,65 +286,56 @@ export default function AdminDashboard() {
       }
 
       setLoading(true);
-      const uploadedPaths: { [docType: string]: string } = {};
 
-      // Upload files to Firebase Storage
+      // Create FormData for multipart/form-data upload
+      const formData = new FormData();
+
+      // Append all text fields
+      formData.append('name', groupForm.name.trim());
+      formData.append('group_type_id', groupForm.group_type_id);
+      formData.append('county', groupForm.county);
+      formData.append('constituency', groupForm.constituency);
+      formData.append('ward', groupForm.ward);
+      formData.append('location', groupForm.location.trim());
+      formData.append('registration_number', groupForm.registration_number.trim());
+      formData.append('description', groupForm.description?.trim() || '');
+
+      // Append requirements as JSON string
+      const requirements = groupForm.documentRequirements.map(r => ({
+        doc_type: r.doc_type,
+        is_required: r.is_required
+      }));
+      formData.append('requirements', JSON.stringify(requirements));
+
+      // Append files - use the document type as the field name
+      let fileCount = 0;
       for (const r of groupForm.documentRequirements) {
         const file = groupForm.uploadedDocs[r.doc_type];
         if (r.is_required && file instanceof File) {
-          const ext = file.name.split(".").pop();
-          const path = `group_docs/${uuidv4()}.${ext}`;
-          const fileRef = ref(storage, path);
-          await uploadBytes(fileRef, file);
-          uploadedPaths[r.doc_type] = path;
+          formData.append(r.doc_type, file);
+          fileCount++;
+          console.log(`📎 Attaching file: ${file.name} for ${r.doc_type}`);
         }
       }
 
-      // Prepare payload with proper structure
-      const payload = {
-        name: groupForm.name.trim(),
-        group_type_id: groupForm.group_type_id,
-        county: groupForm.county,
-        constituency: groupForm.constituency,
-        ward: groupForm.ward,
-        location: groupForm.location.trim(),
-        registration_number: groupForm.registration_number.trim(),
-        description: groupForm.description?.trim() || "",
-        requirements: groupForm.documentRequirements.map((r) => ({
-          doc_type: r.doc_type,
-          is_required: r.is_required,
-          file_path: uploadedPaths[r.doc_type] || null,
-        })),
-      };
+      console.log(`📤 Submitting to: ${API_BASE}/groups/register-with-docs`);
+      console.log(`📤 Submitting with ${fileCount} files and ${requirements.length} requirements`);
+      console.log('📦 FormData keys:', Array.from(formData.keys()));
 
-      console.log("Submitting group with payload:", payload);
-
-      // Send metadata to Cloud Function
-      const res = await fetch(`${API_BASE}/register-with-docs`, {
+      // Send to backend (no Content-Type header - browser will set it with boundary)
+      const response = await fetch(`${API_BASE}/groups/register-with-docs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
-      const responseData = await res.json();
-      
-      if (!res.ok) {
+      const responseData = await response.json();
+
+      if (!response.ok) {
         console.error("Server error response:", responseData);
-        throw new Error(responseData.error || "Cloud function failed");
+        throw new Error(responseData.error || responseData.details || "Registration failed");
       }
 
-      const { id: groupId } = responseData;
-
-      // Save requirements metadata
-      const metaRes = await fetch(`${API_BASE}/groups/${groupId}/requirements`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requirements: groupForm.documentRequirements.filter((r) => r.is_required),
-        }),
-      });
-
-      if (!metaRes.ok) throw new Error("Requirement save failed");
+      console.log("✅ Group registered successfully:", responseData);
 
       // Success! Reset form
       setGroupModalOpen(false);
@@ -369,14 +356,11 @@ export default function AdminDashboard() {
       });
 
       alert("✅ Group registered successfully!");
-      fetchData();
+      fetchData(); // Refresh groups list
+
     } catch (err: any) {
       console.error("❌ Group creation failed:", err);
-      alert(
-        `Group registration failed:\n${
-          err.message || "Unknown error"
-        }`
-      );
+      alert(`Group registration failed:\n${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -625,6 +609,8 @@ export default function AdminDashboard() {
     paginatedItems: paginatedFarmers,
   } = usePagination(farmers);
 
+  const navigate = useNavigate();
+
   return (
     <MainLayout>
       <ThemeToggle />
@@ -758,9 +744,14 @@ export default function AdminDashboard() {
                       onClick={() => setUserRoleModalOpen(true)}
                     />
                     <SubNavItem 
+                      icon={<Shield size={14} />}
+                      label="Register Group Admin"
+                      onClick={() => setGroupAdminModalOpen(true)}  // Change to open modal
+                    />
+                    <SubNavItem 
                       icon={<UserCog size={14} />}
                       label="Assign Roles"
-                      onClick={() => setUserRoleAssignmentOpen(true)} // New for assigning roles to users
+                      onClick={() => setUserRoleAssignmentOpen(true)}
                     />
                   </div>
                 )}
@@ -900,117 +891,274 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <>
-                {/* Groups Section - Card Based */}
-                <section className="mb-12">
-                  {/* Groups Summary Card */}
-                  <div 
-                    onClick={() => setFarmerViewModalOpen(true)}
-                    className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer group relative overflow-hidden"
-                  >
-                    {/* Decorative elements */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500"></div>
-                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full -ml-12 -mb-12 group-hover:scale-110 transition-transform duration-500"></div>
-                    
-                    <div className="relative z-10">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-4">
-                          <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                            <Building2 size={32} className="text-white" />
-                          </div>
-                          <div>
-                            <h3 className="text-2xl font-bold">Registered Groups</h3>
-                            <p className="text-white/80 text-sm">SACCOs & Farmer Cooperatives</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-4xl font-bold">{filteredGroups.length}</span>
-                          <ChevronRight size={24} className="group-hover:translate-x-2 transition-transform duration-300" />
-                        </div>
+            {/* Groups Section */}
+            <section className="mb-12">
+              {/* Groups Summary Card */}
+              <div 
+                onClick={() => setFarmerViewModalOpen(true)}
+                className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer group relative overflow-hidden mb-6"
+              >
+                {/* Decorative elements - keep as is */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500"></div>
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full -ml-12 -mb-12 group-hover:scale-110 transition-transform duration-500"></div>
+                
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                        <Building2 size={32} className="text-white" />
                       </div>
-
-                      {/* Quick Stats */}
-                      <div className="grid grid-cols-3 gap-4 mt-6">
-                        <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm text-center">
-                          <div className="text-2xl font-bold">
-                            {groups.filter(g => g.status === 'approved').length}
-                          </div>
-                          <div className="text-xs text-white/80">Approved</div>
-                        </div>
-                        <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm text-center">
-                          <div className="text-2xl font-bold">
-                            {groups.filter(g => g.status === 'pending').length}
-                          </div>
-                          <div className="text-xs text-white/80">Pending</div>
-                        </div>
-                        <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm text-center">
-                          <div className="text-2xl font-bold">
-                            {groups.reduce((acc, g) => acc + (g.documents?.length || 0), 0)}
-                          </div>
-                          <div className="text-xs text-white/80">Documents</div>
-                        </div>
+                      <div>
+                        <h3 className="text-2xl font-bold">Registered Groups</h3>
+                        <p className="text-white/80 text-sm">SACCOs & Farmer Cooperatives</p>
                       </div>
-
-                      {/* Recent Activity Preview */}
-                      {filteredGroups.length > 0 && (
-                        <div className="mt-6 pt-4 border-t border-white/20">
-                          <p className="text-sm text-white/80 mb-2">Recent registrations:</p>
-                          <div className="space-y-2">
-                            {filteredGroups.slice(0, 3).map(group => (
-                              <div key={group.id} className="flex items-center justify-between text-sm bg-white/5 rounded-lg px-3 py-2">
-                                <span className="font-medium">{group.name}</span>
-                                <span className={`px-2 py-0.5 rounded-full text-xs ${
-                                  group.status === 'approved' ? 'bg-green-500/20 text-green-300' :
-                                  group.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
-                                  'bg-red-500/20 text-red-300'
-                                }`}>
-                                  {group.status}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-4xl font-bold">{filteredGroups.length}</span>
+                      <ChevronRight size={24} className="group-hover:translate-x-2 transition-transform duration-300" />
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <button
-                      onClick={() => setGroupModalOpen(true)}
-                      className="group relative overflow-hidden bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl p-4 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-                    >
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-8 -mt-8 group-hover:scale-125 transition-transform"></div>
-                      <div className="relative flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                            <Plus size={20} />
-                          </div>
-                          <span className="font-semibold">Register New Group</span>
-                        </div>
-                        <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  {/* Quick Stats */}
+                  <div className="grid grid-cols-3 gap-4 mt-6">
+                    <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm text-center">
+                      <div className="text-2xl font-bold">
+                        {groups.filter(g => g.status === 'approved').length}
                       </div>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setSelectedGroupForFarmers(null);
-                        setFarmerViewModalOpen(true);
-                      }}
-                      className="group relative overflow-hidden bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl p-4 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-                    >
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-8 -mt-8 group-hover:scale-125 transition-transform"></div>
-                      <div className="relative flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                            <Users size={20} />
-                          </div>
-                          <span className="font-semibold">View All Farmers</span>
-                        </div>
-                        <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                      <div className="text-xs text-white/80">Approved</div>
+                    </div>
+                    <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm text-center">
+                      <div className="text-2xl font-bold">
+                        {groups.filter(g => g.status === 'pending').length}
                       </div>
-                    </button>
+                      <div className="text-xs text-white/80">Pending</div>
+                    </div>
+                    <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm text-center">
+                      <div className="text-2xl font-bold">
+                        {groups.reduce((acc, g) => acc + (g.documents?.length || 0), 0)}
+                      </div>
+                      <div className="text-xs text-white/80">Documents</div>
+                    </div>
                   </div>
-                </section>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <button
+                  onClick={() => setGroupModalOpen(true)}
+                  className="group relative overflow-hidden bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl p-4 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                >
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-8 -mt-8 group-hover:scale-125 transition-transform"></div>
+                  <div className="relative flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                        <Plus size={20} />
+                      </div>
+                      <span className="font-semibold">Register New Group</span>
+                    </div>
+                    <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSelectedGroupForFarmers(null);
+                    setFarmerViewModalOpen(true);
+                  }}
+                  className="group relative overflow-hidden bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl p-4 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                >
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-8 -mt-8 group-hover:scale-125 transition-transform"></div>
+                  <div className="relative flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                        <Users size={20} />
+                      </div>
+                      <span className="font-semibold">View All Farmers</span>
+                    </div>
+                    <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
+              </div>
+
+              {/* Groups List with Actions */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                        <Building2 size={20} className="text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 dark:text-white">Group Management</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Review and approve pending group registrations</p>
+                      </div>
+                    </div>
+                    
+                    {/* Search and Filter */}
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <input
+                          type="text"
+                          placeholder="Search groups..."
+                          value={groupSearch}
+                          onChange={(e) => setGroupSearch(e.target.value)}
+                          className="pl-9 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                      </div>
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      >
+                        <option value="all">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Group Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Location</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Registration #</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {loading ? (
+                        <tr>
+                          <td colSpan={6} className="px-6 py-8 text-center">
+                            <div className="flex justify-center">
+                              <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : paginatedGroups.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                            <Building2 size={40} className="mx-auto mb-3 text-gray-300" />
+                            <p>No groups found</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        paginatedGroups.map((group) => (
+                          <tr key={group.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <td className="px-6 py-4">
+                              <div>
+                                <p className="font-medium text-gray-900 dark:text-white">{group.name}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">ID: {group.id.slice(0, 8)}...</p>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{group.type || 'N/A'}</td>
+                            <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
+                              {group.location}
+                              {group.county && <p className="text-xs text-gray-500">{group.county}</p>}
+                            </td>
+                            <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{group.registration_number}</td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                ${group.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 
+                                  group.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 
+                                  'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'}`}>
+                                {group.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                {group.status === 'pending' && (
+                                  <>
+                                    <button
+                                      onClick={() => updateGroupStatus(group.id, 'approved')}
+                                      disabled={updatingGroupId === group.id}
+                                      className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 text-sm"
+                                      title="Approve group"
+                                    >
+                                      <CheckCircle size={16} />
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const remarks = prompt('Enter rejection reason (optional):');
+                                        updateGroupStatus(group.id, 'rejected');
+                                      }}
+                                      disabled={updatingGroupId === group.id}
+                                      className="flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 text-sm"
+                                      title="Reject group"
+                                    >
+                                      <XCircle size={16} />
+                                      Reject
+                                    </button>
+                                  </>
+                                )}
+                                {group.status === 'approved' && (
+                                  <button
+                                    onClick={() => updateGroupStatus(group.id, 'pending')}
+                                    disabled={updatingGroupId === group.id}
+                                    className="flex items-center gap-1 px-3 py-1 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 text-sm"
+                                    title="Revert to pending"
+                                  >
+                                    <Clock size={16} />
+                                    Revert
+                                  </button>
+                                )}
+                                {group.status === 'rejected' && (
+                                  <button
+                                    onClick={() => updateGroupStatus(group.id, 'pending')}
+                                    disabled={updatingGroupId === group.id}
+                                    className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm"
+                                    title="Reconsider"
+                                  >
+                                    <RefreshCw size={16} />
+                                    Reconsider
+                                  </button>
+                                )}
+                                {updatingGroupId === group.id && (
+                                  <RefreshCw size={16} className="animate-spin text-gray-500" />
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                {!loading && filteredGroups.length > 0 && (
+                  <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-800/50">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Showing {((groupPage - 1) * groupPerPage) + 1} to {Math.min(groupPage * groupPerPage, filteredGroups.length)} of {filteredGroups.length} groups
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setGroupPage(prev => Math.max(1, prev - 1))}
+                        disabled={groupPage === 1}
+                        className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronLeft size={18} />
+                      </button>
+                      <button
+                        onClick={() => setGroupPage(prev => Math.min(groupMaxPage, prev + 1))}
+                        disabled={groupPage === groupMaxPage}
+                        className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronRight size={18} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
               </>
             )}
           </div>
@@ -2142,6 +2290,237 @@ export default function AdminDashboard() {
         onClose={() => setUserRoleAssignmentOpen(false)}
         onSuccess={fetchData} // Refresh data after role changes
       />
+
+      {/* Register Group Admin Modal */}
+      <Dialog
+        open={isGroupAdminModalOpen}
+        onClose={() => setGroupAdminModalOpen(false)}
+        className="fixed z-50 inset-0 overflow-y-auto"
+      >
+        <div className="flex items-center justify-center min-h-screen p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" aria-hidden="true" onClick={() => setGroupAdminModalOpen(false)} />
+          
+          <DialogPanel className="relative bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl shadow-2xl transform transition-all animate-slide-up">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-gray-800 dark:to-gray-900 px-6 py-4 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-xl">
+                    <Shield size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-xl font-bold text-white">
+                      Register Group Admin
+                    </DialogTitle>
+                    <p className="text-sm text-white/80">Assign administrators to cooperatives</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setGroupAdminModalOpen(false)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Form Content */}
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              
+              const groupAdminData = {
+                first_name: formData.get('first_name') as string,
+                middle_name: formData.get('middle_name') as string,
+                last_name: formData.get('last_name') as string,
+                email: formData.get('email') as string,
+                mobile: formData.get('mobile') as string,
+                group_id: formData.get('group_id') as string,
+              };
+
+              // Validate required fields
+              if (!groupAdminData.first_name || !groupAdminData.last_name || 
+                  !groupAdminData.email || !groupAdminData.mobile || !groupAdminData.group_id) {
+                alert('Please fill in all required fields');
+                return;
+              }
+
+              // Email validation
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+              if (!emailRegex.test(groupAdminData.email)) {
+                alert('Please enter a valid email address');
+                return;
+              }
+
+              // Phone validation (Kenyan format)
+              const phoneRegex = /^(254|0)[7-9][0-9]{8}$/;
+              if (!phoneRegex.test(groupAdminData.mobile)) {
+                alert('Please enter a valid phone number (e.g., 254712345678 or 0712345678)');
+                return;
+              }
+
+              setLoading(true);
+              
+              try {
+                const response = await fetch(`${API_BASE}/group-admins`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                  },
+                  body: JSON.stringify(groupAdminData),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                  alert(`✅ Group Admin registered successfully!\n\nEmail: ${groupAdminData.email}\nPassword will be sent to their email.`);
+                  setGroupAdminModalOpen(false);
+                  // Refresh data to show new group admin
+                  fetchData();
+                } else {
+                  alert(`❌ Registration failed: ${data.error || 'Unknown error'}`);
+                }
+              } catch (error) {
+                console.error('Error registering group admin:', error);
+                alert('Failed to register group admin. Please try again.');
+              } finally {
+                setLoading(false);
+              }
+            }} className="p-6 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    First Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="first_name"
+                    placeholder="John"
+                    required
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Middle Name</label>
+                  <input
+                    type="text"
+                    name="middle_name"
+                    placeholder="Mwangi"
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="last_name"
+                    placeholder="Doe"
+                    required
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Email <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="admin@cooperative.com"
+                    required
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Mobile Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    name="mobile"
+                    placeholder="254712345678"
+                    required
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Format: 254712345678 or 0712345678</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Assign to Group <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="group_id"
+                    required
+                    className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="">Select a cooperative/group</option>
+                    {/* Show only ACTIVE groups (status = 'active') */}
+                    {groups.filter(g => g.status === 'active').map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name} 
+                        {group.registration_number ? ` (${group.registration_number})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Only active groups are shown. Pending groups must be approved first.
+                  </p>
+                </div>
+              </div>
+
+              {/* Show message if no active groups */}
+              {groups.filter(g => g.status === 'active').length === 0 && (
+                <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-300 flex items-center gap-2">
+                    <AlertTriangle size={16} />
+                    No active groups available. Please register and approve a group first before adding a Group Admin.
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <p className="text-xs text-blue-800 dark:text-blue-300 flex items-start gap-2">
+                  <Shield size={14} className="mt-0.5 flex-shrink-0" />
+                  <span>
+                    Group Admins can: manage cooperative products, process bulk orders, 
+                    respond to tenders, and view logistics reports. A temporary password will be sent to their email.
+                  </span>
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setGroupAdminModalOpen(false)}
+                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || groups.filter(g => g.status === 'active').length === 0}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw size={16} className="animate-spin" />
+                      Registering...
+                    </>
+                  ) : (
+                    <>
+                      <Shield size={16} />
+                      Register Group Admin
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </DialogPanel>
+        </div>
+      </Dialog>
     </MainLayout>
   );
 }

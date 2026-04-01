@@ -853,16 +853,16 @@ export default function PublicMarketplace() {
       </div>
 
       {showDetailModal && <ProductDetailModal />}
-      
-      {/* Knowledge Modal - Mkulima Halisi Assistant */}
-      {showKnowledgeModal && user && (
+
+      {/* Knowledge Modal - Mkulima Halisi Assistant (No Login Required) */}
+      {showKnowledgeModal && (
         <KnowledgeModal
-          farmerId={user.id}
-          farmerName={user.first_name || user.email?.split('@')[0]}
+          farmerId={user?.id || 'guest'}  // Use 'guest' for non-logged-in users
+          farmerName={user?.first_name || 'Guest Farmer'}
           onClose={() => setShowKnowledgeModal(false)}
         />
       )}
-      
+
       {/* If user not logged in, show simplified version */}
       {showKnowledgeModal && !user && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">

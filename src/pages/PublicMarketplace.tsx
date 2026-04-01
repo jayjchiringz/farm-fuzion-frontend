@@ -862,35 +862,6 @@ export default function PublicMarketplace() {
           onClose={() => setShowKnowledgeModal(false)}
         />
       )}
-
-      {/* If user not logged in, show simplified version */}
-      {showKnowledgeModal && !user && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-xl w-full max-w-md p-6">
-            <div className="text-center mb-4">
-              <Bot size={48} className="mx-auto text-brand-green mb-3" />
-              <h3 className="text-xl font-bold mb-2">Welcome to Mkulima Halisi!</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Sign in to chat with our AI farming assistant. Get personalized advice on crops, market prices, and farming tips.
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowKnowledgeModal(false)}
-                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => window.location.href = "/login"}
-                className="flex-1 px-4 py-2 bg-brand-green text-white rounded-lg hover:bg-green-700"
-              >
-                Sign In
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </MainLayout>
   );
 }

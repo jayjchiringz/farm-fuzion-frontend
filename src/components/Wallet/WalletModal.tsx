@@ -320,14 +320,14 @@ export default function WalletModal({
       <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
         <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md p-6 shadow-2xl">
           <div className="text-center mb-6">
-            <div className="text-5xl mb-3">📱</div>
+            <div className="text-5xl mb-3">📧</div>
             <h2 className="text-2xl font-bold">
               {otpStep === 'request' ? 'Authenticate Wallet' : 'Enter OTP'}
             </h2>
             <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
               {otpStep === 'request' 
-                ? 'We\'ll send a one-time password to your phone' 
-                : `Enter the code sent to your phone`}
+                ? 'We\'ll send a one-time password to your registered email' 
+                : `Enter the 6-digit code sent to your email`}
             </p>
           </div>
 
@@ -349,11 +349,14 @@ export default function WalletModal({
                   Sending...
                 </span>
               ) : (
-                'Send OTP'
+                'Send OTP to Email'
               )}
             </button>
           ) : (
             <>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 text-center">
+                Check your email for the 6-digit code
+              </p>
               <input
                 type="text"
                 placeholder="Enter 6-digit OTP"
@@ -403,7 +406,7 @@ export default function WalletModal({
                   onClick={handleRequestOTP}
                   className="text-sm text-center text-brand-green hover:underline mt-4 w-full"
                 >
-                  Resend OTP
+                  Resend OTP to Email
                 </button>
               )}
             </>

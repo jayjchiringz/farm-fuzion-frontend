@@ -1,7 +1,7 @@
 // src/components/Wallet/WalletModal.tsx
 import React, { useEffect, useState } from "react";
 import { api } from "../../services/api";
-import OtpModal from "./OtpModal";
+import { useAuth } from "../../contexts/AuthContext";
 import TransactionTable from "./TransactionTable";
 import { formatCurrencyKES } from "../../utils/format";
 
@@ -12,48 +12,132 @@ export default function WalletModal({
   farmerId: string;
   onClose: () => void;
 }) {
+  const { walletStatus, authenticateWallet, setupWallet, verifyWalletSetup, refreshWalletStatus } = useAuth();
+
   const [balance, setBalance] = useState(0);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<"mpesa" | "airtel">("mpesa");
-  const [otpPhase, setOtpPhase] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [action, setAction] = useState<
-    "deposit" | "withdraw" | "transfer" | "pay"
-  >("deposit");
+  const [action, setAction] = useState<"deposit" | "withdraw" | "transfer" | "pay">("deposit");
   const [destination, setDestination] = useState("");
   const [transferPreview, setTransferPreview] = useState<any | null>(null);
-
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-
-  // Pay type states
   const [payType, setPayType] = useState<"till" | "paybill">("till");
   const [paybillNo, setPaybillNo] = useState("");
   const [accNo, setAccNo] = useState("");
-
-  // Refresh key for ledger refresh
   const [refreshKey, setRefreshKey] = useState(0);
   const triggerRefresh = () => setRefreshKey((k) => k + 1);
 
-  // Show wallet setup modal if needed
+  // PIN authentication states
+  const [showPinPrompt, setShowPinPrompt] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [pinLoading, setPinLoading] = useState(false);
+
+  // Wallet setup states
   const [showSetup, setShowSetup] = useState(false);
+  const [setupPin, setSetupPin] = useState("");
+  const [setupOtpId, setSetupOtpId] = useState("");
+  const [setupOtpCode, setSetupOtpCode] = useState("");
+  const [setupStep, setSetupStep] = useState<"pin" | "otp">("pin");
+  const [setupLoading, setSetupLoading] = useState(false);
+
+  useEffect(() => {
+    // Check wallet status when modal opens
+    if (walletStatus.needsPin) {
+      setShowPinPrompt(true);
+      setShowSetup(false);
+    } else if (walletStatus.needsSetup) {
+      setShowSetup(true);
+      setShowPinPrompt(false);
+    } else if (walletStatus.authenticated) {
+      setShowPinPrompt(false);
+      setShowSetup(false);
+      fetchBalance();
+    } else {
+      // If status is unknown, refresh it
+      refreshWalletStatus();
+    }
+  }, [walletStatus]);
 
   const fetchBalance = async () => {
     try {
       const res = await api.get(`/wallet/${farmerId}/balance`);
-      setBalance(res.data?.balance || res.data || 0);
-    } catch (error: any) {
+      setBalance(res.data?.balance || 0);
+    } catch (error) {
       console.error("Error fetching balance:", error);
-      // If user doesn't have a wallet, show setup
-      if (error?.response?.status === 404 || error?.response?.data?.error?.includes("not found")) {
-        setShowSetup(true);
-      }
       setBalance(0);
     }
   };
 
-  // Search farmers for transfer
+  const handlePinAuth = async () => {
+    if (pin.length !== 4) {
+      setPinError("PIN must be 4 digits");
+      return;
+    }
+
+    setPinLoading(true);
+    setPinError("");
+
+    try {
+      const success = await authenticateWallet(pin);
+      if (success) {
+        setShowPinPrompt(false);
+        setPin("");
+        await fetchBalance();
+      } else {
+        setPinError("Invalid PIN. Please try again.");
+      }
+    } catch (err) {
+      setPinError("Authentication failed. Please try again.");
+    } finally {
+      setPinLoading(false);
+    }
+  };
+
+  const handleSetupPin = async () => {
+    if (setupPin.length !== 4) {
+      alert("PIN must be 4 digits");
+      return;
+    }
+
+    setSetupLoading(true);
+    try {
+      const result = await setupWallet(setupPin);
+      setSetupOtpId(result.otpId);
+      setSetupStep("otp");
+    } catch (err) {
+      alert("Failed to setup wallet. Please try again.");
+    } finally {
+      setSetupLoading(false);
+    }
+  };
+
+  const handleVerifySetup = async () => {
+    if (setupOtpCode.length < 4) {
+      alert("Please enter the OTP code");
+      return;
+    }
+
+    setSetupLoading(true);
+    try {
+      const success = await verifyWalletSetup(setupOtpId, setupOtpCode);
+      if (success) {
+        setShowSetup(false);
+        await fetchBalance();
+        alert("🎉 Wallet setup complete! You can now use your wallet.");
+      } else {
+        alert("Invalid OTP code. Please try again.");
+      }
+    } catch (err) {
+      alert("Verification failed. Please try again.");
+    } finally {
+      setSetupLoading(false);
+    }
+  };
+
   const searchFarmers = async (q: string) => {
     if (!q.trim()) {
       setSearchResults([]);
@@ -71,15 +155,169 @@ export default function WalletModal({
     }
   };
 
-  useEffect(() => {
-    fetchBalance();
-  }, []);
+  // ==================== RENDER: PIN PROMPT ====================
+  if (showPinPrompt) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md p-6 shadow-2xl">
+          <div className="text-center mb-6">
+            <div className="text-5xl mb-3">🔐</div>
+            <h2 className="text-2xl font-bold">Enter Wallet PIN</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+              Enter your Unipesa wallet PIN to access your funds
+            </p>
+          </div>
+
+          {pinError && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
+              {pinError}
+            </div>
+          )}
+
+          <input
+            type="password"
+            placeholder="Enter 4-digit PIN"
+            value={pin}
+            onChange={(e) => {
+              setPin(e.target.value.replace(/\D/g, '').slice(0, 4));
+              setPinError("");
+            }}
+            maxLength={4}
+            className="w-full border p-4 rounded-lg mb-4 focus:ring-2 focus:ring-brand-green outline-none text-center text-2xl tracking-widest"
+            autoFocus
+          />
+
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handlePinAuth}
+              disabled={pinLoading || pin.length !== 4}
+              className="flex-1 px-4 py-3 rounded-lg bg-brand-green text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+            >
+              {pinLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                  Authenticating...
+                </span>
+              ) : (
+                'Unlock Wallet'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==================== RENDER: SETUP MODAL ====================
+  if (showSetup) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md p-6 shadow-2xl">
+          <div className="text-center mb-6">
+            <div className="text-5xl mb-3">🏦</div>
+            <h2 className="text-2xl font-bold">
+              {setupStep === "pin" ? "Setup Your Wallet" : "Verify OTP"}
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+              {setupStep === "pin"
+                ? "Create a 4-digit PIN to secure your Unipesa wallet"
+                : "Enter the OTP sent to your phone to complete setup"}
+            </p>
+          </div>
+
+          {setupStep === "pin" ? (
+            <>
+              <input
+                type="password"
+                placeholder="Create 4-digit PIN"
+                value={setupPin}
+                onChange={(e) => setSetupPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                maxLength={4}
+                className="w-full border p-4 rounded-lg mb-4 focus:ring-2 focus:ring-brand-green outline-none text-center text-2xl tracking-widest"
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={onClose}
+                  className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSetupPin}
+                  disabled={setupLoading || setupPin.length !== 4}
+                  className="flex-1 px-4 py-3 rounded-lg bg-brand-green text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                >
+                  {setupLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                      Creating...
+                    </span>
+                  ) : (
+                    'Create Wallet'
+                  )}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                We sent an OTP to your registered phone number
+              </p>
+              <input
+                type="text"
+                placeholder="Enter 6-digit OTP"
+                value={setupOtpCode}
+                onChange={(e) => setSetupOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                maxLength={6}
+                className="w-full border p-4 rounded-lg mb-4 focus:ring-2 focus:ring-brand-green outline-none text-center text-2xl tracking-widest"
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setSetupStep("pin")}
+                  className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleVerifySetup}
+                  disabled={setupLoading || setupOtpCode.length < 4}
+                  className="flex-1 px-4 py-3 rounded-lg bg-brand-green text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                >
+                  {setupLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                      Verifying...
+                    </span>
+                  ) : (
+                    'Verify & Complete'
+                  )}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ==================== RENDER: MAIN WALLET ====================
+  if (!walletStatus.authenticated) {
+    return null;
+  }
 
   type WalletAction = "deposit" | "withdraw" | "transfer" | "pay";
 
   const handleSubmit = () => {
     setLoading(true);
-    
+
     if (action === "deposit") {
       api
         .post(`/wallet/topup/${method}`, {
@@ -201,7 +439,6 @@ export default function WalletModal({
         )}
       </div>
 
-      {/* Transfer: searchable farmer select */}
       {action === "transfer" && (
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Select Recipient Farmer</label>
@@ -246,7 +483,6 @@ export default function WalletModal({
         </div>
       )}
 
-      {/* Pay: Till vs PayBill */}
       {action === "pay" && (
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Payment Method</label>
@@ -304,7 +540,6 @@ export default function WalletModal({
         </div>
       )}
 
-      {/* Withdraw destination input */}
       {action === "withdraw" && (
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Destination Phone Number</label>
@@ -330,20 +565,6 @@ export default function WalletModal({
     (action === "pay" && payType === "paybill" && (!paybillNo || !accNo)) ||
     (action === "withdraw" && !destination);
 
-  // If showing wallet setup
-  if (showSetup) {
-    return (
-      <WalletSetupModal
-        farmerId={farmerId}
-        onClose={onClose}
-        onComplete={() => {
-          setShowSetup(false);
-          fetchBalance();
-        }}
-      />
-    );
-  }
-
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh]">
@@ -358,8 +579,8 @@ export default function WalletModal({
                 Manage your funds, transfer to other farmers, and make payments
               </p>
             </div>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
               title="Close"
             >
@@ -368,7 +589,7 @@ export default function WalletModal({
               </svg>
             </button>
           </div>
-          
+
           {/* Balance Card */}
           <div className="mt-4 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Current Balance</p>
@@ -399,11 +620,10 @@ export default function WalletModal({
                   setAccNo("");
                   setPayType("till");
                 }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  action === tab.id
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${action === tab.id
                     ? "bg-brand-green text-white shadow-md scale-105"
                     : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                }`}
+                  }`}
               >
                 <span>{tab.icon}</span>
                 {tab.label}
@@ -471,117 +691,3 @@ export default function WalletModal({
     </div>
   );
 }
-
-// ============================================
-// WalletSetupModal - exported separately
-// ============================================
-export const WalletSetupModal = ({ 
-  farmerId, 
-  onClose, 
-  onComplete 
-}: {
-  farmerId: string;
-  onClose: () => void;
-  onComplete: () => void;
-}) => {
-  const [pin, setPin] = useState('');
-  const [otpId, setOtpId] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [step, setStep] = useState<'register' | 'verify-otp'>('register');
-  const [loading, setLoading] = useState(false);
-
-  const handleRegister = async () => {
-    setLoading(true);
-    try {
-      const res = await api.post('/wallet/register', {
-        farmerId,
-        pin,
-      });
-      if (res.data.success) {
-        setOtpId(res.data.otpId);
-        setStep('verify-otp');
-        alert('OTP sent to your phone. Please enter the code.');
-      }
-    } catch (err) {
-      alert('Failed to register wallet: ' + (err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    setLoading(true);
-    try {
-      const res = await api.post('/wallet/auth/otp/verify-and-set-pin', {
-        otpId,
-        code: otpCode,
-        newPin: pin,
-      });
-      if (res.data.success) {
-        alert('Wallet setup complete!');
-        onComplete();
-      }
-    } catch (err) {
-      alert('Failed to verify OTP: ' + (err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md p-6">
-        <h2 className="text-2xl font-bold mb-4">Setup Your Wallet</h2>
-        
-        {step === 'register' ? (
-          <>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Create PIN</label>
-                <input
-                  type="password"
-                  placeholder="Enter 4-digit PIN"
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value)}
-                  maxLength={4}
-                  className="w-full border p-3 rounded-lg"
-                />
-              </div>
-              <button
-                onClick={handleRegister}
-                disabled={loading || pin.length !== 4}
-                className="w-full bg-brand-green text-white p-3 rounded-lg font-medium disabled:opacity-50"
-              >
-                {loading ? 'Processing...' : 'Create Wallet'}
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="space-y-4">
-              <p className="text-gray-600">Enter the OTP sent to your phone</p>
-              <div>
-                <label className="block text-sm font-medium mb-2">OTP Code</label>
-                <input
-                  type="text"
-                  placeholder="Enter OTP"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value)}
-                  maxLength={6}
-                  className="w-full border p-3 rounded-lg"
-                />
-              </div>
-              <button
-                onClick={handleVerifyOTP}
-                disabled={loading || otpCode.length < 4}
-                className="w-full bg-brand-green text-white p-3 rounded-lg font-medium disabled:opacity-50"
-              >
-                {loading ? 'Verifying...' : 'Verify & Complete'}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-};

@@ -43,6 +43,9 @@ interface AuthContextType {
   setupWallet: (pin: string) => Promise<{ otpId: string }>;
   verifyWalletSetup: (otpId: string, code: string) => Promise<boolean>;
   refreshWalletStatus: () => Promise<void>;
+  // OTP Authentication methods
+  requestWalletOTP: (farmerId: string) => Promise<{ otpId: string; expiresIn: number }>;
+  verifyWalletOTP: (farmerId: string, otpId: string, code: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -152,6 +155,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // ==================== OTP AUTHENTICATION METHODS ====================
+
+  /**
+   * Request OTP for wallet authentication
+   */
+  const requestWalletOTP = async (farmerId: string): Promise<{ otpId: string; expiresIn: number }> => {
+    try {
+      const response = await api.post('/wallet/auth/otp/request', { farmerId });
+      if (response.data.success) {
+        return {
+          otpId: response.data.otpId,
+          expiresIn: response.data.expiresIn,
+        };
+      }
+      throw new Error('Failed to request OTP');
+    } catch (error) {
+      console.error('💰 Request wallet OTP error:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * Verify OTP and authenticate wallet
+   */
+  const verifyWalletOTP = async (farmerId: string, otpId: string, code: string): Promise<boolean> => {
+    try {
+      const response = await api.post('/wallet/auth/otp/verify', {
+        farmerId,
+        otpId,
+        code,
+      });
+      
+      if (response.data.success) {
+        setWalletStatus(prev => ({
+          ...prev,
+          authenticated: true,
+          needsPin: false,
+          needsSetup: false,
+        }));
+        localStorage.setItem('wallet_authenticated', 'true');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('💰 Verify wallet OTP error:', error);
+      return false;
+    }
+  };
+
+  // ==================== LEGACY PIN AUTHENTICATION (kept for compatibility) ====================
+
+  /**
+   * Authenticate wallet with PIN (legacy - may not work in sandbox)
+   */
   const authenticateWallet = async (pin: string): Promise<boolean> => {
     try {
       const targetId = walletStatus.farmerId || user?.id;
@@ -174,11 +231,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return true;
       }
       return false;
-    } catch (error) {
+    } catch (error: any) {
+      // If PIN fails with "requiresOTP", we should use OTP flow instead
+      if (error.response?.data?.requiresOTP) {
+        console.log('💰 PIN not available, please use OTP flow');
+        // The UI will handle showing OTP prompt
+        return false;
+      }
       console.error("💰 PIN authentication failed:", error);
       return false;
     }
   };
+
+  // ==================== WALLET SETUP METHODS ====================
 
   const setupWallet = async (pin: string): Promise<{ otpId: string }> => {
     try {
@@ -329,11 +394,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isGroupAdmin,
       isSacco,
       userRole,
+      // Wallet methods
       walletStatus,
       authenticateWallet,
       setupWallet,
       verifyWalletSetup,
       refreshWalletStatus,
+      // OTP Authentication methods
+      requestWalletOTP,
+      verifyWalletOTP,
     }}>
       {children}
     </AuthContext.Provider>

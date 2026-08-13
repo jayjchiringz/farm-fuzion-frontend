@@ -1,4 +1,5 @@
 // src/components/Wallet/WalletModal.tsx
+
 import React, { useEffect, useState } from "react";
 import { api } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
@@ -12,7 +13,15 @@ export default function WalletModal({
   farmerId: string;
   onClose: () => void;
 }) {
-  const { walletStatus, authenticateWallet, setupWallet, verifyWalletSetup, refreshWalletStatus } = useAuth();
+  const { 
+    walletStatus, 
+    authenticateWallet, 
+    setupWallet, 
+    verifyWalletSetup, 
+    refreshWalletStatus,
+    requestWalletOTP,    // New
+    verifyWalletOTP,     // New
+  } = useAuth();
 
   const [balance, setBalance] = useState(0);
   const [amount, setAmount] = useState("");
@@ -30,11 +39,14 @@ export default function WalletModal({
   const [refreshKey, setRefreshKey] = useState(0);
   const triggerRefresh = () => setRefreshKey((k) => k + 1);
 
-  // PIN authentication states
-  const [showPinPrompt, setShowPinPrompt] = useState(false);
-  const [pin, setPin] = useState("");
-  const [pinError, setPinError] = useState("");
-  const [pinLoading, setPinLoading] = useState(false);
+  // OTP Authentication states
+  const [showOTPPrompt, setShowOTPPrompt] = useState(false);
+  const [otpStep, setOtpStep] = useState<'request' | 'verify'>('request');
+  const [otpId, setOtpId] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpResendTimer, setOtpResendTimer] = useState(0);
 
   // Wallet setup states
   const [showSetup, setShowSetup] = useState(false);
@@ -47,13 +59,14 @@ export default function WalletModal({
   useEffect(() => {
     // Check wallet status when modal opens
     if (walletStatus.needsPin) {
-      setShowPinPrompt(true);
+      setShowOTPPrompt(true);
+      setOtpStep('request');
       setShowSetup(false);
     } else if (walletStatus.needsSetup) {
       setShowSetup(true);
-      setShowPinPrompt(false);
+      setShowOTPPrompt(false);
     } else if (walletStatus.authenticated) {
-      setShowPinPrompt(false);
+      setShowOTPPrompt(false);
       setShowSetup(false);
       fetchBalance();
     } else {
@@ -61,6 +74,16 @@ export default function WalletModal({
       refreshWalletStatus();
     }
   }, [walletStatus]);
+
+  // Countdown timer for OTP resend
+  useEffect(() => {
+    if (otpResendTimer > 0) {
+      const interval = setInterval(() => {
+        setOtpResendTimer(prev => prev - 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [otpResendTimer]);
 
   const fetchBalance = async () => {
     try {
@@ -72,30 +95,51 @@ export default function WalletModal({
     }
   };
 
-  const handlePinAuth = async () => {
-    if (pin.length !== 4) {
-      setPinError("PIN must be 4 digits");
-      return;
-    }
+  // ==================== OTP AUTHENTICATION METHODS ====================
 
-    setPinLoading(true);
-    setPinError("");
-
+  const handleRequestOTP = async () => {
+    setOtpLoading(true);
+    setOtpError('');
+    
     try {
-      const success = await authenticateWallet(pin);
-      if (success) {
-        setShowPinPrompt(false);
-        setPin("");
-        await fetchBalance();
-      } else {
-        setPinError("Invalid PIN. Please try again.");
-      }
+      const result = await requestWalletOTP(farmerId);
+      setOtpId(result.otpId);
+      setOtpStep('verify');
+      setOtpResendTimer(60);
+      alert('OTP sent to your phone! Please enter the code.');
     } catch (err) {
-      setPinError("Authentication failed. Please try again.");
+      setOtpError('Failed to send OTP. Please try again.');
     } finally {
-      setPinLoading(false);
+      setOtpLoading(false);
     }
   };
+
+  const handleVerifyOTP = async () => {
+    if (otpCode.length < 4) {
+      setOtpError('Please enter the full OTP code');
+      return;
+    }
+    
+    setOtpLoading(true);
+    setOtpError('');
+    
+    try {
+      const success = await verifyWalletOTP(farmerId, otpId, otpCode);
+      if (success) {
+        setShowOTPPrompt(false);
+        setOtpCode('');
+        await fetchBalance();
+      } else {
+        setOtpError('Invalid OTP code. Please try again.');
+      }
+    } catch (err) {
+      setOtpError('Verification failed. Please try again.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // ==================== SETUP METHODS ====================
 
   const handleSetupPin = async () => {
     if (setupPin.length !== 4) {
@@ -138,6 +182,8 @@ export default function WalletModal({
     }
   };
 
+  // ==================== SEARCH ====================
+
   const searchFarmers = async (q: string) => {
     if (!q.trim()) {
       setSearchResults([]);
@@ -155,66 +201,108 @@ export default function WalletModal({
     }
   };
 
-  // ==================== RENDER: PIN PROMPT ====================
-  if (showPinPrompt) {
+  // ==================== RENDER: OTP PROMPT ====================
+
+  if (showOTPPrompt) {
     return (
       <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
         <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md p-6 shadow-2xl">
           <div className="text-center mb-6">
-            <div className="text-5xl mb-3">🔐</div>
-            <h2 className="text-2xl font-bold">Enter Wallet PIN</h2>
+            <div className="text-5xl mb-3">📱</div>
+            <h2 className="text-2xl font-bold">
+              {otpStep === 'request' ? 'Authenticate Wallet' : 'Enter OTP'}
+            </h2>
             <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
-              Enter your Unipesa wallet PIN to access your funds
+              {otpStep === 'request' 
+                ? 'We\'ll send a one-time password to your phone' 
+                : `Enter the code sent to your phone`}
             </p>
           </div>
 
-          {pinError && (
+          {otpError && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
-              {pinError}
+              {otpError}
             </div>
           )}
 
-          <input
-            type="password"
-            placeholder="Enter 4-digit PIN"
-            value={pin}
-            onChange={(e) => {
-              setPin(e.target.value.replace(/\D/g, '').slice(0, 4));
-              setPinError("");
-            }}
-            maxLength={4}
-            className="w-full border p-4 rounded-lg mb-4 focus:ring-2 focus:ring-brand-green outline-none text-center text-2xl tracking-widest"
-            autoFocus
-          />
-
-          <div className="flex gap-3">
+          {otpStep === 'request' ? (
             <button
-              onClick={onClose}
-              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              onClick={handleRequestOTP}
+              disabled={otpLoading}
+              className="w-full px-4 py-3 rounded-lg bg-brand-green text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
             >
-              Cancel
-            </button>
-            <button
-              onClick={handlePinAuth}
-              disabled={pinLoading || pin.length !== 4}
-              className="flex-1 px-4 py-3 rounded-lg bg-brand-green text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-            >
-              {pinLoading ? (
+              {otpLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-                  Authenticating...
+                  Sending...
                 </span>
               ) : (
-                'Unlock Wallet'
+                'Send OTP'
               )}
             </button>
-          </div>
+          ) : (
+            <>
+              <input
+                type="text"
+                placeholder="Enter 6-digit OTP"
+                value={otpCode}
+                onChange={(e) => {
+                  setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6));
+                  setOtpError('');
+                }}
+                maxLength={6}
+                className="w-full border p-4 rounded-lg mb-4 focus:ring-2 focus:ring-brand-green outline-none text-center text-2xl tracking-widest"
+                autoFocus
+              />
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowOTPPrompt(false);
+                    setOtpStep('request');
+                    setOtpCode('');
+                  }}
+                  className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleVerifyOTP}
+                  disabled={otpLoading || otpCode.length < 4}
+                  className="flex-1 px-4 py-3 rounded-lg bg-brand-green text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                >
+                  {otpLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                      Verifying...
+                    </span>
+                  ) : (
+                    'Verify & Unlock'
+                  )}
+                </button>
+              </div>
+
+              {otpResendTimer > 0 ? (
+                <p className="text-sm text-center text-gray-500 mt-4">
+                  Resend available in {otpResendTimer}s
+                </p>
+              ) : (
+                <button
+                  onClick={handleRequestOTP}
+                  className="text-sm text-center text-brand-green hover:underline mt-4 w-full"
+                >
+                  Resend OTP
+                </button>
+              )}
+            </>
+          )}
         </div>
       </div>
     );
   }
 
   // ==================== RENDER: SETUP MODAL ====================
+
   if (showSetup) {
     return (
       <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
@@ -309,6 +397,7 @@ export default function WalletModal({
   }
 
   // ==================== RENDER: MAIN WALLET ====================
+
   if (!walletStatus.authenticated) {
     return null;
   }

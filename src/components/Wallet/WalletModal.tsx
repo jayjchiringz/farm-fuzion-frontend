@@ -19,8 +19,8 @@ export default function WalletModal({
     setupWallet, 
     verifyWalletSetup, 
     refreshWalletStatus,
-    requestWalletOTP,    // New
-    verifyWalletOTP,     // New
+    requestWalletOTP,
+    verifyWalletOTP,
   } = useAuth();
 
   const [balance, setBalance] = useState(0);
@@ -38,6 +38,12 @@ export default function WalletModal({
   const [accNo, setAccNo] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const triggerRefresh = () => setRefreshKey((k) => k + 1);
+
+  // PIN Authentication states
+  const [showPinPrompt, setShowPinPrompt] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [pinLoading, setPinLoading] = useState(false);
 
   // OTP Authentication states
   const [showOTPPrompt, setShowOTPPrompt] = useState(false);
@@ -58,19 +64,26 @@ export default function WalletModal({
 
   useEffect(() => {
     // Check wallet status when modal opens
-    if (walletStatus.needsPin) {
-      setShowOTPPrompt(true);
-      setOtpStep('request');
-      setShowSetup(false);
-    } else if (walletStatus.needsSetup) {
-      setShowSetup(true);
+    console.log("💰 WalletModal: Current status:", walletStatus);
+
+    if (walletStatus.authenticated) {
+      // Already authenticated - show wallet
       setShowOTPPrompt(false);
-    } else if (walletStatus.authenticated) {
-      setShowOTPPrompt(false);
+      setShowPinPrompt(false);
       setShowSetup(false);
       fetchBalance();
+    } else if (walletStatus.needsPin) {
+      // Has wallet but needs PIN
+      setShowPinPrompt(true);
+      setShowOTPPrompt(false);
+      setShowSetup(false);
+    } else if (walletStatus.needsSetup) {
+      // No wallet - show setup
+      setShowSetup(true);
+      setShowOTPPrompt(false);
+      setShowPinPrompt(false);
     } else {
-      // If status is unknown, refresh it
+      // Unknown status - refresh
       refreshWalletStatus();
     }
   }, [walletStatus]);
@@ -95,7 +108,34 @@ export default function WalletModal({
     }
   };
 
-  // ==================== OTP AUTHENTICATION METHODS ====================
+  // ==================== PIN AUTHENTICATION ====================
+
+  const handlePinAuth = async () => {
+    if (pin.length !== 4) {
+      setPinError("PIN must be 4 digits");
+      return;
+    }
+
+    setPinLoading(true);
+    setPinError("");
+
+    try {
+      const success = await authenticateWallet(pin);
+      if (success) {
+        setShowPinPrompt(false);
+        setPin("");
+        await fetchBalance();
+      } else {
+        setPinError("Invalid PIN. Please try again.");
+      }
+    } catch (err) {
+      setPinError("Authentication failed. Please try again.");
+    } finally {
+      setPinLoading(false);
+    }
+  };
+
+  // ==================== OTP AUTHENTICATION ====================
 
   const handleRequestOTP = async () => {
     setOtpLoading(true);
@@ -132,8 +172,9 @@ export default function WalletModal({
       } else {
         setOtpError('Invalid OTP code. Please try again.');
       }
-    } catch (err) {
-      setOtpError('Verification failed. Please try again.');
+    } catch (err: any) {
+      const message = err?.response?.data?.error || err?.message || 'Verification failed';
+      setOtpError(message);
     } finally {
       setOtpLoading(false);
     }
@@ -200,6 +241,73 @@ export default function WalletModal({
       setSearching(false);
     }
   };
+
+  // ==================== RENDER: PIN PROMPT ====================
+
+  if (showPinPrompt) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md p-6 shadow-2xl">
+          <div className="text-center mb-6">
+            <div className="text-5xl mb-3">🔐</div>
+            <h2 className="text-2xl font-bold">Enter Wallet PIN</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+              Enter your Unipesa wallet PIN to access your funds
+            </p>
+          </div>
+
+          {pinError && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
+              {pinError}
+            </div>
+          )}
+
+          <input
+            type="password"
+            placeholder="Enter 4-digit PIN"
+            value={pin}
+            onChange={(e) => {
+              setPin(e.target.value.replace(/\D/g, '').slice(0, 4));
+              setPinError('');
+            }}
+            maxLength={4}
+            className="w-full border p-4 rounded-lg mb-4 focus:ring-2 focus:ring-brand-green outline-none text-center text-2xl tracking-widest"
+            autoFocus
+          />
+
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handlePinAuth}
+              disabled={pinLoading || pin.length !== 4}
+              className="flex-1 px-4 py-3 rounded-lg bg-brand-green text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+            >
+              {pinLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                  Authenticating...
+                </span>
+              ) : (
+                'Unlock Wallet'
+              )}
+            </button>
+          </div>
+
+          {/* Sandbox hint */}
+          {process.env.NODE_ENV !== 'production' && (
+            <p className="text-xs text-center text-gray-500 mt-4">
+              Sandbox: Try PIN 1234, 0000, or 0928
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // ==================== RENDER: OTP PROMPT ====================
 

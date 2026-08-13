@@ -85,6 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
+  // Update the login function to auto-authenticate wallet
   const login = async (email: string, password: string) => {
     try {
       const response = await api.post('/auth/login', { email, password });
@@ -107,9 +108,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('token', response.data.token);
 
-      // Auto-check wallet status for farmers
+      // ✅ Auto-check wallet status for farmers
       if (userData.role_name?.toLowerCase() === 'farmer') {
-        await refreshWalletStatus(userData.id);
+        // First get the farmer ID
+        try {
+          const farmerId = await getFarmerId();
+          if (farmerId) {
+            console.log("💰 Auto-authenticating wallet for farmer:", farmerId);
+            await refreshWalletStatus(farmerId.toString());
+          }
+        } catch (walletError) {
+          console.error("💰 Wallet auto-auth failed:", walletError);
+          // Don't block login if wallet auth fails
+        }
       }
 
     } catch (error) {
@@ -118,6 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Update refreshWalletStatus to handle the new response
   const refreshWalletStatus = async (userId?: string) => {
     const targetId = userId || user?.id;
     if (!targetId) {
@@ -130,14 +142,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await api.post('/wallet/auto-auth', { farmerId: targetId });
 
       if (response.data.success) {
-        setWalletStatus({
+        const newStatus = {
           authenticated: response.data.authenticated || false,
           hasWallet: response.data.hasWallet || false,
           needsSetup: response.data.needsSetup || false,
           needsPin: response.data.needsPin || false,
           farmerId: response.data.farmerId || null,
           phone: response.data.phone || null,
-        });
+        };
+
+        setWalletStatus(newStatus);
 
         if (response.data.authenticated) {
           localStorage.setItem('wallet_authenticated', 'true');
@@ -148,7 +162,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           needsSetup: response.data.needsSetup,
           needsPin: response.data.needsPin,
           authenticated: response.data.authenticated,
+          requiresOTP: response.data.requiresOTP,
         });
+
+        // If wallet requires OTP, we'll handle it in the WalletModal
+        if (response.data.requiresOTP) {
+          console.log("💰 Wallet requires OTP authentication");
+        }
       }
     } catch (error) {
       console.error("💰 Failed to check wallet status:", error);

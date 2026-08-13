@@ -323,130 +323,112 @@ export default function WalletModal({
     (action === "pay" && payType === "paybill" && (!paybillNo || !accNo)) ||
     (action === "withdraw" && !destination);
 
+// Add this component or integrate into WalletModal.tsx
+// For first-time users who don't have a wallet yet
+
+const WalletSetupModal = ({ farmerId, onClose, onComplete }: {
+  farmerId: string;
+  onClose: () => void;
+  onComplete: () => void;
+}) => {
+  const [pin, setPin] = useState('');
+  const [otpId, setOtpId] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [step, setStep] = useState<'register' | 'verify-otp'>('register');
+  const [loading, setLoading] = useState(false);
+
+  const handleRegister = async () => {
+    setLoading(true);
+    try {
+      const res = await api.post('/wallet/register', {
+        farmerId,
+        pin,
+      });
+      if (res.data.success) {
+        setOtpId(res.data.otpId);
+        setStep('verify-otp');
+        alert('OTP sent to your phone. Please enter the code.');
+      }
+    } catch (err) {
+      alert('Failed to register wallet: ' + (err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    setLoading(true);
+    try {
+      const res = await api.post('/wallet/auth/otp/verify-and-set-pin', {
+        otpId,
+        code: otpCode,
+        newPin: pin,
+      });
+      if (res.data.success) {
+        alert('Wallet setup complete!');
+        onComplete();
+      }
+    } catch (err) {
+      alert('Failed to verify OTP: ' + (err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-900 rounded-t-xl">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-bold text-brand-green dark:text-brand-apple flex items-center gap-2">
-                <span>💰</span> My Wallet
-              </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Manage your funds, transfer to other farmers, and make payments
-              </p>
-            </div>
-            <button 
-              onClick={onClose} 
-              className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-              title="Close"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          
-          {/* Balance Card */}
-          <div className="mt-4 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Current Balance</p>
-            <p className="text-3xl font-bold text-brand-green dark:text-brand-apple">
-              {formatCurrencyKES(balance)}
-            </p>
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {/* Action Tabs */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            {[
-              { id: "deposit", label: "Deposit", icon: "💰" },
-              { id: "withdraw", label: "Withdraw", icon: "💸" },
-              { id: "transfer", label: "Transfer", icon: "🔄" },
-              { id: "pay", label: "Pay", icon: "📱" }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setAction(tab.id as WalletAction);
-                  setTransferPreview(null);
-                  setDestination("");
-                  setSearchQuery("");
-                  setPaybillNo("");
-                  setAccNo("");
-                  setPayType("till");
-                }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  action === tab.id
-                    ? "bg-brand-green text-white shadow-md scale-105"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                }`}
-              >
-                <span>{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {renderActionForm()}
-
-          {/* Transfer confirmation */}
-          {transferPreview && (
-            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg mb-4">
-              <p className="text-yellow-800 dark:text-yellow-300 font-medium mb-3">
-                {transferPreview.message}
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setTransferPreview(null)}
-                  className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors disabled:opacity-50"
-                >
-                  {loading ? "Processing..." : "Confirm Transfer"}
-                </button>
+      <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md p-6">
+        <h2 className="text-2xl font-bold mb-4">Setup Your Wallet</h2>
+        
+        {step === 'register' ? (
+          <>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Create PIN</label>
+                <input
+                  type="password"
+                  placeholder="Enter 4-digit PIN"
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value)}
+                  maxLength={4}
+                  className="w-full border p-3 rounded-lg"
+                />
               </div>
+              <button
+                onClick={handleRegister}
+                disabled={loading || pin.length !== 4}
+                className="w-full bg-brand-green text-white p-3 rounded-lg font-medium disabled:opacity-50"
+              >
+                {loading ? 'Processing...' : 'Create Wallet'}
+              </button>
             </div>
-          )}
-
-          <hr className="my-6 border-gray-200 dark:border-gray-700" />
-
-          <TransactionTable farmerId={farmerId} refreshkey={refreshKey} />
-        </div>
-
-        {/* Footer */}
-        {!transferPreview && (
-          <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-4">
-            <button
-              onClick={onClose}
-              className="px-6 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="px-6 py-2 rounded-lg bg-brand-green hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              disabled={isContinueDisabled}
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Processing...
-                </>
-              ) : (
-                'Continue'
-              )}
-            </button>
-          </div>
+          </>
+        ) : (
+          <>
+            <div className="space-y-4">
+              <p className="text-gray-600">Enter the OTP sent to your phone</p>
+              <div>
+                <label className="block text-sm font-medium mb-2">OTP Code</label>
+                <input
+                  type="text"
+                  placeholder="Enter OTP"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  maxLength={6}
+                  className="w-full border p-3 rounded-lg"
+                />
+              </div>
+              <button
+                onClick={handleVerifyOTP}
+                disabled={loading || otpCode.length < 4}
+                className="w-full bg-brand-green text-white p-3 rounded-lg font-medium disabled:opacity-50"
+              >
+                {loading ? 'Verifying...' : 'Verify & Complete'}
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>
   );
-}
+};

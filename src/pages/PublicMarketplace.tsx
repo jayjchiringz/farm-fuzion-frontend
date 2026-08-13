@@ -17,7 +17,7 @@ import KnowledgeModal from "../components/Knowledge/KnowledgeModal";
 import { useAuth } from "../contexts/AuthContext";
 
 // Public API URL
-const PUBLIC_API_URL = import.meta.env.VITE_PUBLIC_API_URL || "https://farmfuzion-public-api.onrender.com";
+const PUBLIC_API_URL = import.meta.env.VITE_PUBLIC_API_URL;
 
 interface PublicProduct {
   id: string;
@@ -165,7 +165,7 @@ export default function PublicMarketplace() {
   // Fetch market prices from FarmFuzion backend
   const fetchMarketPrices = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://farm-fuzion-backend.onrender.com/api'}/market-prices/summary?currency=KES`);
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/market-prices/summary?currency=KES`);
       if (response.ok) {
         const data = await response.json();
         setMarketPrices(data.data || []);

@@ -62,28 +62,32 @@ export default function WalletModal({
   const [setupStep, setSetupStep] = useState<"pin" | "otp">("pin");
   const [setupLoading, setSetupLoading] = useState(false);
 
+  // src/components/Wallet/WalletModal.tsx - Update useEffect
+
   useEffect(() => {
-    // Check wallet status when modal opens
     console.log("💰 WalletModal: Current status:", walletStatus);
 
     if (walletStatus.authenticated) {
-      // Already authenticated - show wallet
       setShowOTPPrompt(false);
       setShowPinPrompt(false);
       setShowSetup(false);
       fetchBalance();
+    } else if (walletStatus.requiresOTP) {
+      // ✅ Show OTP prompt for existing wallets
+      setShowOTPPrompt(true);
+      setOtpStep('request');
+      setShowPinPrompt(false);
+      setShowSetup(false);
     } else if (walletStatus.needsPin) {
-      // Has wallet but needs PIN
+      // Fallback to PIN prompt
       setShowPinPrompt(true);
       setShowOTPPrompt(false);
       setShowSetup(false);
     } else if (walletStatus.needsSetup) {
-      // No wallet - show setup
       setShowSetup(true);
       setShowOTPPrompt(false);
       setShowPinPrompt(false);
     } else {
-      // Unknown status - refresh
       refreshWalletStatus();
     }
   }, [walletStatus]);

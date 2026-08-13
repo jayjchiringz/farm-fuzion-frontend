@@ -19,6 +19,7 @@ interface WalletStatus {
   hasWallet: boolean;
   needsSetup: boolean;
   needsPin: boolean;
+  requiresOTP: boolean;
   farmerId: string | null;
   phone: string | null;
 }
@@ -59,6 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     hasWallet: false,
     needsSetup: false,
     needsPin: false,
+    requiresOTP: false,
     farmerId: null,
     phone: null,
   });
@@ -85,7 +87,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  // Update the login function to auto-authenticate wallet
   const login = async (email: string, password: string) => {
     try {
       const response = await api.post('/auth/login', { email, password });
@@ -110,7 +111,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // ✅ Auto-check wallet status for farmers
       if (userData.role_name?.toLowerCase() === 'farmer') {
-        // First get the farmer ID
         try {
           const farmerId = await getFarmerId();
           if (farmerId) {
@@ -129,7 +129,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Update refreshWalletStatus to handle the new response
   const refreshWalletStatus = async (userId?: string) => {
     const targetId = userId || user?.id;
     if (!targetId) {
@@ -147,6 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           hasWallet: response.data.hasWallet || false,
           needsSetup: response.data.needsSetup || false,
           needsPin: response.data.needsPin || false,
+          requiresOTP: response.data.requiresOTP || false,
           farmerId: response.data.farmerId || null,
           phone: response.data.phone || null,
         };
@@ -165,7 +165,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           requiresOTP: response.data.requiresOTP,
         });
 
-        // If wallet requires OTP, we'll handle it in the WalletModal
         if (response.data.requiresOTP) {
           console.log("💰 Wallet requires OTP authentication");
         }
@@ -177,9 +176,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // ==================== OTP AUTHENTICATION METHODS ====================
 
-  /**
-   * Request OTP for wallet authentication
-   */
   const requestWalletOTP = async (farmerId: string): Promise<{ otpId: string; expiresIn: number }> => {
     try {
       const response = await api.post('/wallet/auth/otp/request', { farmerId });
@@ -196,9 +192,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  /**
-   * Verify OTP and authenticate wallet
-   */
   const verifyWalletOTP = async (farmerId: string, otpId: string, code: string): Promise<boolean> => {
     try {
       const response = await api.post('/wallet/auth/otp/verify', {
@@ -213,6 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           authenticated: true,
           needsPin: false,
           needsSetup: false,
+          requiresOTP: false,
         }));
         localStorage.setItem('wallet_authenticated', 'true');
         return true;
@@ -224,11 +218,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // ==================== LEGACY PIN AUTHENTICATION (kept for compatibility) ====================
+  // ==================== LEGACY PIN AUTHENTICATION ====================
 
-  /**
-   * Authenticate wallet with PIN (legacy - may not work in sandbox)
-   */
   const authenticateWallet = async (pin: string): Promise<boolean> => {
     try {
       const targetId = walletStatus.farmerId || user?.id;
@@ -246,16 +237,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...prev,
           authenticated: true,
           needsPin: false,
+          requiresOTP: false,
         }));
         localStorage.setItem('wallet_authenticated', 'true');
         return true;
       }
       return false;
     } catch (error: any) {
-      // If PIN fails with "requiresOTP", we should use OTP flow instead
       if (error.response?.data?.requiresOTP) {
         console.log('💰 PIN not available, please use OTP flow');
-        // The UI will handle showing OTP prompt
         return false;
       }
       console.error("💰 PIN authentication failed:", error);
@@ -296,11 +286,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await api.post('/wallet/auth/otp/verify-and-set-pin', {
         otpId,
         code,
-        newPin: '', // PIN already set during registration
+        newPin: '',
       });
 
       if (response.data.success) {
-        // Refresh status to get authenticated state
         await refreshWalletStatus();
         return true;
       }
@@ -319,6 +308,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       hasWallet: false,
       needsSetup: false,
       needsPin: false,
+      requiresOTP: false,
       farmerId: null,
       phone: null,
     });
@@ -414,13 +404,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isGroupAdmin,
       isSacco,
       userRole,
-      // Wallet methods
       walletStatus,
       authenticateWallet,
       setupWallet,
       verifyWalletSetup,
       refreshWalletStatus,
-      // OTP Authentication methods
       requestWalletOTP,
       verifyWalletOTP,
     }}>

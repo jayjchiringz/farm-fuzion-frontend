@@ -62,8 +62,6 @@ export default function WalletModal({
   const [setupStep, setSetupStep] = useState<"pin" | "otp">("pin");
   const [setupLoading, setSetupLoading] = useState(false);
 
-  // src/components/Wallet/WalletModal.tsx - Update useEffect
-
   useEffect(() => {
     console.log("💰 WalletModal: Current status:", walletStatus);
 
@@ -79,7 +77,6 @@ export default function WalletModal({
       setShowPinPrompt(false);
       setShowSetup(false);
     } else if (walletStatus.needsPin) {
-      // Fallback to PIN prompt
       setShowPinPrompt(true);
       setShowOTPPrompt(false);
       setShowSetup(false);

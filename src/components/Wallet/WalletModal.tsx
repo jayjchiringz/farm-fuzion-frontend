@@ -56,8 +56,10 @@ export default function WalletModal({
     } catch (err: any) {
       console.error("Error fetching balance:", err);
       
-      // Check if the error indicates needs registration
+      // ✅ Check if the error indicates needs registration
       if (err.response?.data?.needsRegistration) {
+        setNeedsRegistration(true);
+      } else if (err.response?.status === 400 && err.response?.data?.needsRegistration) {
         setNeedsRegistration(true);
       } else if (err.response?.status === 404) {
         setNeedsRegistration(true);

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { api } from "../../services/api";
-import { useAuth } from "../../contexts/AuthContext";
 import TransactionTable from "./TransactionTable";
 import { formatCurrencyKES } from "../../utils/format";
 
@@ -13,20 +12,15 @@ export default function WalletModal({
   farmerId: string;
   onClose: () => void;
 }) {
-  const { 
-    walletStatus, 
-    authenticateWallet, 
-    setupWallet, 
-    verifyWalletSetup, 
-    refreshWalletStatus,
-    requestWalletOTP,
-    verifyWalletOTP,
-  } = useAuth();
-
   const [balance, setBalance] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [needsRegistration, setNeedsRegistration] = useState(false);
+  const [registering, setRegistering] = useState(false);
+
+  // Wallet action states
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<"mpesa" | "airtel">("mpesa");
-  const [loading, setLoading] = useState(false);
   const [action, setAction] = useState<"deposit" | "withdraw" | "transfer" | "pay">("deposit");
   const [destination, setDestination] = useState("");
   const [transferPreview, setTransferPreview] = useState<any | null>(null);
@@ -39,193 +33,64 @@ export default function WalletModal({
   const [refreshKey, setRefreshKey] = useState(0);
   const triggerRefresh = () => setRefreshKey((k) => k + 1);
 
-  // PIN Authentication states
-  const [showPinPrompt, setShowPinPrompt] = useState(false);
-  const [pin, setPin] = useState("");
-  const [pinError, setPinError] = useState("");
-  const [pinLoading, setPinLoading] = useState(false);
-
-  // OTP Authentication states
-  const [showOTPPrompt, setShowOTPPrompt] = useState(false);
-  const [otpStep, setOtpStep] = useState<'request' | 'verify'>('request');
-  const [otpId, setOtpId] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [otpError, setOtpError] = useState('');
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [otpResendTimer, setOtpResendTimer] = useState(0);
-
-  // Wallet setup states
-  const [showSetup, setShowSetup] = useState(false);
-  const [setupPin, setSetupPin] = useState("");
-  const [setupOtpId, setSetupOtpId] = useState("");
-  const [setupOtpCode, setSetupOtpCode] = useState("");
-  const [setupStep, setSetupStep] = useState<"pin" | "otp">("pin");
-  const [setupLoading, setSetupLoading] = useState(false);
-
+  // Load balance on mount
   useEffect(() => {
-    console.log("💰 WalletModal: Current status:", walletStatus);
-
-    if (walletStatus.authenticated) {
-      setShowOTPPrompt(false);
-      setShowPinPrompt(false);
-      setShowSetup(false);
-      fetchBalance();
-    } else if (walletStatus.requiresOTP) {
-      // ✅ Show OTP prompt for existing wallets
-      setShowOTPPrompt(true);
-      setOtpStep('request');
-      setShowPinPrompt(false);
-      setShowSetup(false);
-    } else if (walletStatus.needsPin) {
-      setShowPinPrompt(true);
-      setShowOTPPrompt(false);
-      setShowSetup(false);
-    } else if (walletStatus.needsSetup) {
-      setShowSetup(true);
-      setShowOTPPrompt(false);
-      setShowPinPrompt(false);
-    } else {
-      refreshWalletStatus();
-    }
-  }, [walletStatus]);
-
-  // Countdown timer for OTP resend
-  useEffect(() => {
-    if (otpResendTimer > 0) {
-      const interval = setInterval(() => {
-        setOtpResendTimer(prev => prev - 1);
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [otpResendTimer]);
+    fetchBalance();
+  }, [farmerId]);
 
   const fetchBalance = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const res = await api.get(`/wallet/${farmerId}/balance`);
-      setBalance(res.data?.balance || 0);
-    } catch (error) {
-      console.error("Error fetching balance:", error);
-      setBalance(0);
-    }
-  };
-
-  // ==================== PIN AUTHENTICATION ====================
-
-  const handlePinAuth = async () => {
-    if (pin.length !== 4) {
-      setPinError("PIN must be 4 digits");
-      return;
-    }
-
-    setPinLoading(true);
-    setPinError("");
-
-    try {
-      const success = await authenticateWallet(pin);
-      if (success) {
-        setShowPinPrompt(false);
-        setPin("");
-        await fetchBalance();
-      } else {
-        setPinError("Invalid PIN. Please try again.");
+      
+      // Check if user needs registration
+      if (res.data?.needsRegistration) {
+        setNeedsRegistration(true);
+        setBalance(0);
+        return;
       }
-    } catch (err) {
-      setPinError("Authentication failed. Please try again.");
-    } finally {
-      setPinLoading(false);
-    }
-  };
-
-  // ==================== OTP AUTHENTICATION ====================
-
-  const handleRequestOTP = async () => {
-    setOtpLoading(true);
-    setOtpError('');
-    
-    try {
-      const result = await requestWalletOTP(farmerId);
-      setOtpId(result.otpId);
-      setOtpStep('verify');
-      setOtpResendTimer(60);
-      alert('OTP sent to your phone! Please enter the code.');
-    } catch (err) {
-      setOtpError('Failed to send OTP. Please try again.');
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    if (otpCode.length < 4) {
-      setOtpError('Please enter the full OTP code');
-      return;
-    }
-    
-    setOtpLoading(true);
-    setOtpError('');
-    
-    try {
-      const success = await verifyWalletOTP(farmerId, otpId, otpCode);
-      if (success) {
-        setShowOTPPrompt(false);
-        setOtpCode('');
-        await fetchBalance();
+      
+      setBalance(res.data?.balance || 0);
+      setNeedsRegistration(false);
+    } catch (err: any) {
+      console.error("Error fetching balance:", err);
+      
+      // Check if the error indicates needs registration
+      if (err.response?.data?.needsRegistration) {
+        setNeedsRegistration(true);
+      } else if (err.response?.status === 404) {
+        setNeedsRegistration(true);
       } else {
-        setOtpError('Invalid OTP code. Please try again.');
+        setError("Unable to fetch balance. Please try again.");
+      }
+      setBalance(0);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    setRegistering(true);
+    setError(null);
+    try {
+      const res = await api.post("/wallet/register", { farmerId });
+      if (res.data.success) {
+        setNeedsRegistration(false);
+        await fetchBalance();
+        alert("✅ Wallet created successfully!");
+      } else {
+        setError(res.data.message || "Registration failed");
       }
     } catch (err: any) {
-      const message = err?.response?.data?.error || err?.message || 'Verification failed';
-      setOtpError(message);
+      console.error("Registration error:", err);
+      setError(err.response?.data?.details || "Registration failed. Please try again.");
     } finally {
-      setOtpLoading(false);
+      setRegistering(false);
     }
   };
 
-  // ==================== SETUP METHODS ====================
-
-  const handleSetupPin = async () => {
-    if (setupPin.length !== 4) {
-      alert("PIN must be 4 digits");
-      return;
-    }
-
-    setSetupLoading(true);
-    try {
-      const result = await setupWallet(setupPin);
-      setSetupOtpId(result.otpId);
-      setSetupStep("otp");
-    } catch (err) {
-      alert("Failed to setup wallet. Please try again.");
-    } finally {
-      setSetupLoading(false);
-    }
-  };
-
-  const handleVerifySetup = async () => {
-    if (setupOtpCode.length < 4) {
-      alert("Please enter the OTP code");
-      return;
-    }
-
-    setSetupLoading(true);
-    try {
-      const success = await verifyWalletSetup(setupOtpId, setupOtpCode);
-      if (success) {
-        setShowSetup(false);
-        await fetchBalance();
-        alert("🎉 Wallet setup complete! You can now use your wallet.");
-      } else {
-        alert("Invalid OTP code. Please try again.");
-      }
-    } catch (err) {
-      alert("Verification failed. Please try again.");
-    } finally {
-      setSetupLoading(false);
-    }
-  };
-
-  // ==================== SEARCH ====================
-
+  // Search farmers for transfer
   const searchFarmers = async (q: string) => {
     if (!q.trim()) {
       setSearchResults([]);
@@ -243,279 +108,7 @@ export default function WalletModal({
     }
   };
 
-  // ==================== RENDER: PIN PROMPT ====================
-
-  if (showPinPrompt) {
-    return (
-      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md p-6 shadow-2xl">
-          <div className="text-center mb-6">
-            <div className="text-5xl mb-3">🔐</div>
-            <h2 className="text-2xl font-bold">Enter Wallet PIN</h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
-              Enter your Unipesa wallet PIN to access your funds
-            </p>
-          </div>
-
-          {pinError && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
-              {pinError}
-            </div>
-          )}
-
-          <input
-            type="password"
-            placeholder="Enter 4-digit PIN"
-            value={pin}
-            onChange={(e) => {
-              setPin(e.target.value.replace(/\D/g, '').slice(0, 4));
-              setPinError('');
-            }}
-            maxLength={4}
-            className="w-full border p-4 rounded-lg mb-4 focus:ring-2 focus:ring-brand-green outline-none text-center text-2xl tracking-widest"
-            autoFocus
-          />
-
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handlePinAuth}
-              disabled={pinLoading || pin.length !== 4}
-              className="flex-1 px-4 py-3 rounded-lg bg-brand-green text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-            >
-              {pinLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-                  Authenticating...
-                </span>
-              ) : (
-                'Unlock Wallet'
-              )}
-            </button>
-          </div>
-
-          {/* Sandbox hint */}
-          {process.env.NODE_ENV !== 'production' && (
-            <p className="text-xs text-center text-gray-500 mt-4">
-              Sandbox: Try PIN 1234, 0000, or 0928
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ==================== RENDER: OTP PROMPT ====================
-
-  if (showOTPPrompt) {
-    return (
-      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md p-6 shadow-2xl">
-          <div className="text-center mb-6">
-            <div className="text-5xl mb-3">📧</div>
-            <h2 className="text-2xl font-bold">
-              {otpStep === 'request' ? 'Authenticate Wallet' : 'Enter OTP'}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
-              {otpStep === 'request' 
-                ? 'We\'ll send a one-time password to your registered email' 
-                : `Enter the 6-digit code sent to your email`}
-            </p>
-          </div>
-
-          {otpError && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
-              {otpError}
-            </div>
-          )}
-
-          {otpStep === 'request' ? (
-            <button
-              onClick={handleRequestOTP}
-              disabled={otpLoading}
-              className="w-full px-4 py-3 rounded-lg bg-brand-green text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-            >
-              {otpLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-                  Sending...
-                </span>
-              ) : (
-                'Send OTP to Email'
-              )}
-            </button>
-          ) : (
-            <>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 text-center">
-                Check your email for the 6-digit code
-              </p>
-              <input
-                type="text"
-                placeholder="Enter 6-digit OTP"
-                value={otpCode}
-                onChange={(e) => {
-                  setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6));
-                  setOtpError('');
-                }}
-                maxLength={6}
-                className="w-full border p-4 rounded-lg mb-4 focus:ring-2 focus:ring-brand-green outline-none text-center text-2xl tracking-widest"
-                autoFocus
-              />
-              
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowOTPPrompt(false);
-                    setOtpStep('request');
-                    setOtpCode('');
-                  }}
-                  className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleVerifyOTP}
-                  disabled={otpLoading || otpCode.length < 4}
-                  className="flex-1 px-4 py-3 rounded-lg bg-brand-green text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-                >
-                  {otpLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-                      Verifying...
-                    </span>
-                  ) : (
-                    'Verify & Unlock'
-                  )}
-                </button>
-              </div>
-
-              {otpResendTimer > 0 ? (
-                <p className="text-sm text-center text-gray-500 mt-4">
-                  Resend available in {otpResendTimer}s
-                </p>
-              ) : (
-                <button
-                  onClick={handleRequestOTP}
-                  className="text-sm text-center text-brand-green hover:underline mt-4 w-full"
-                >
-                  Resend OTP to Email
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ==================== RENDER: SETUP MODAL ====================
-
-  if (showSetup) {
-    return (
-      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md p-6 shadow-2xl">
-          <div className="text-center mb-6">
-            <div className="text-5xl mb-3">🏦</div>
-            <h2 className="text-2xl font-bold">
-              {setupStep === "pin" ? "Setup Your Wallet" : "Verify OTP"}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
-              {setupStep === "pin"
-                ? "Create a 4-digit PIN to secure your Unipesa wallet"
-                : "Enter the OTP sent to your phone to complete setup"}
-            </p>
-          </div>
-
-          {setupStep === "pin" ? (
-            <>
-              <input
-                type="password"
-                placeholder="Create 4-digit PIN"
-                value={setupPin}
-                onChange={(e) => setSetupPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                maxLength={4}
-                className="w-full border p-4 rounded-lg mb-4 focus:ring-2 focus:ring-brand-green outline-none text-center text-2xl tracking-widest"
-                autoFocus
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={onClose}
-                  className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSetupPin}
-                  disabled={setupLoading || setupPin.length !== 4}
-                  className="flex-1 px-4 py-3 rounded-lg bg-brand-green text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-                >
-                  {setupLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-                      Creating...
-                    </span>
-                  ) : (
-                    'Create Wallet'
-                  )}
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                We sent an OTP to your registered phone number
-              </p>
-              <input
-                type="text"
-                placeholder="Enter 6-digit OTP"
-                value={setupOtpCode}
-                onChange={(e) => setSetupOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                maxLength={6}
-                className="w-full border p-4 rounded-lg mb-4 focus:ring-2 focus:ring-brand-green outline-none text-center text-2xl tracking-widest"
-                autoFocus
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setSetupStep("pin")}
-                  className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleVerifySetup}
-                  disabled={setupLoading || setupOtpCode.length < 4}
-                  className="flex-1 px-4 py-3 rounded-lg bg-brand-green text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-                >
-                  {setupLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-                      Verifying...
-                    </span>
-                  ) : (
-                    'Verify & Complete'
-                  )}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ==================== RENDER: MAIN WALLET ====================
-
-  if (!walletStatus.authenticated) {
-    return null;
-  }
-
-  type WalletAction = "deposit" | "withdraw" | "transfer" | "pay";
-
+  // Handle wallet actions
   const handleSubmit = () => {
     setLoading(true);
 
@@ -614,6 +207,70 @@ export default function WalletModal({
         .finally(() => setLoading(false));
     }
   };
+
+  // ==================== RENDER: REGISTRATION SCREEN ====================
+
+  if (needsRegistration) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md p-6 shadow-2xl">
+          <div className="text-center mb-6">
+            <div className="text-5xl mb-3">🏦</div>
+            <h2 className="text-2xl font-bold">Set Up Your Wallet</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+              You don't have a Unipesa wallet yet. Click below to create one.
+            </p>
+          </div>
+
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleRegister}
+              disabled={registering}
+              className="flex-1 px-4 py-3 rounded-lg bg-brand-green text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+            >
+              {registering ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                  Creating...
+                </span>
+              ) : (
+                'Create Wallet'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==================== RENDER: MAIN WALLET ====================
+
+  if (loading && !error) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md p-6 shadow-2xl">
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-green"></div>
+            <span className="ml-3 text-gray-600">Loading wallet...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  type WalletAction = "deposit" | "withdraw" | "transfer" | "pay";
 
   const renderActionForm = () => (
     <>

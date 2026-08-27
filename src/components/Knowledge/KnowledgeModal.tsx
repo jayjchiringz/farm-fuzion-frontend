@@ -1,12 +1,12 @@
 // farm-fuzion-frontend/src/components/Knowledge/KnowledgeModal.tsx
-// Updated with Mkulima Halisi personality
+// Updated with guest support
 
 import React, { useState, useEffect, useRef } from "react";
 import { 
   X, Send, Bot, User, ThumbsUp, ThumbsDown, 
   BookOpen, Search, FileText, Volume2, Globe,
   Image as ImageIcon, Upload, Loader, Sun, Cloud,
-  Sprout, Coffee, Wheat, Apple, Leaf
+  Sprout, Coffee, Wheat, Apple, Leaf, Sparkles
 } from "lucide-react";
 import { api } from "../../services/api";
 
@@ -14,15 +14,15 @@ import { api } from "../../services/api";
 const MKULIMA_HALISI = {
   name: "Mkulima Halisi",
   title: "Mshauri wa Kilimo",
-  greeting: "Habari yako!",
+  greeting: "Karibu!",
   personality: {
     friendly: true,
     knowledgeable: true,
     patient: true,
     encouraging: true,
-    local: true // Knows local farming practices
+    local: true
   },
-  avatar: "🌾", // Farmer's choice - wheat sheaf
+  avatar: "🌾",
   expertise: [
     "Crop farming", "Livestock", "Weather patterns", 
     "Market prices", "Soil health", "Pest control"
@@ -32,17 +32,15 @@ const MKULIMA_HALISI = {
 // Kenyan greetings based on time of day
 const getTimeBasedGreeting = () => {
   const hour = new Date().getHours();
-  if (hour < 12) return "Habari za asubuhi"; // Good morning
-  if (hour < 17) return "Habari za mchana"; // Good afternoon
-  if (hour < 20) return "Habari za jioni"; // Good evening
-  return "Habari za usiku"; // Good night
+  if (hour < 12) return "Habari za asubuhi";
+  if (hour < 17) return "Habari za mchana";
+  if (hour < 20) return "Habari za jioni";
+  return "Habari za usiku";
 };
 
 // Seasonal greetings
 const getSeasonalGreeting = () => {
   const month = new Date().getMonth() + 1;
-  // Long rains: March-May
-  // Short rains: October-December
   if (month >= 3 && month <= 5) return "Karibu katika msimu wa mvua za masika!";
   if (month >= 10 && month <= 12) return "Karibu katika msimu wa mvua za vuli!";
   return "Hali ya hewa nzuri kwa shughuli za shambani!";
@@ -54,7 +52,7 @@ interface Message {
   content: string;
   sources?: Array<{ title: string; url: string }>;
   timestamp: Date;
-  suggestions?: string[]; // Follow-up questions
+  suggestions?: string[];
 }
 
 interface KnowledgeModalProps {
@@ -64,13 +62,14 @@ interface KnowledgeModalProps {
 }
 
 export default function KnowledgeModal({ farmerId, farmerName, onClose }: KnowledgeModalProps) {
+  const isGuest = farmerId === 'guest' || farmerId === 'anonymous';
+  const displayName = isGuest ? 'Mgeni' : (farmerName?.split(' ')[0] || 'Mkulima');
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
       role: 'assistant',
-      content: `${getTimeBasedGreeting()} ${
-        farmerName ? `ndugu ${farmerName.split(' ')[0]}` : 'mkulima'
-      }! 🌾\n\n` +
+      content: `${getTimeBasedGreeting()} ${isGuest ? 'mgeni' : `ndugu ${displayName}`}! 🌾\n\n` +
         `Mimi ni **Mkulima Halisi** - mshauri wako wa kilimo. ` +
         `Niko hapa kukusaidia kwa maswali yoyote kuhusu:\n\n` +
         `• Kilimo cha mazao (Crop farming)\n` +
@@ -80,7 +79,7 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
         `• Udongo na mbolea (Soil & fertilizers)\n` +
         `• Wadudu na magonjwa (Pests & diseases)\n\n` +
         `${getSeasonalGreeting()}\n\n` +
-        `Niulize chochote - niko tayari kukusaidia! 🤝`,
+        `${isGuest ? 'Karibu kujifunza! Unaweza kuuliza maswali yoyote. 📚' : 'Niulize chochote - niko tayari kukusaidia! 🤝'}`,
       timestamp: new Date(),
       suggestions: [
         "Bei ya mahindi leo?",
@@ -96,6 +95,7 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [showCallToAction, setShowCallToAction] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -128,7 +128,6 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
     scrollToBottom();
   }, [messages]);
 
-  // Simulate typing indicator
   useEffect(() => {
     if (loading) {
       setIsTyping(true);
@@ -136,6 +135,25 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
       return () => clearTimeout(timer);
     }
   }, [loading]);
+
+  // Show call to action after 3 messages from guest
+  useEffect(() => {
+    const userMessageCount = messages.filter(m => m.role === 'user').length;
+    if (isGuest && userMessageCount >= 2 && !showCallToAction) {
+      setShowCallToAction(true);
+      // Add a gentle nudge message
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: 'cta-' + Date.now(),
+          role: 'assistant',
+          content: "💡 **Karibu zaidi!**\n\nUnaweza kujiunga na FarmFuzion kama mkulima halisi ili kupata:\n\n✅ Bei za soko kwa wakati halisi\n✅ Muunganisho wa moja kwa moja na wanunuzi\n✅ Usaidizi wa kibinafsi wa kilimo\n✅ Kushiriki katika soko la kimataifa\n\n**Je, ungependa kujua jinsi ya kujiunga?**",
+          timestamp: new Date(),
+          suggestions: ["Nataka kujiunga", "Niambie zaidi", "Bei za soko", "Nitaanza vipi?"]
+        }]);
+        scrollToBottom();
+      }, 1000);
+    }
+  }, [messages, isGuest, showCallToAction]);
 
   const handleSend = async () => {
     if (!input.trim() && !uploadedImage) return;
@@ -154,15 +172,12 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
     try {
       let response;
       
-      // OPTION B IMPLEMENTATION: Use JSON for text, multipart for images
       if (uploadedImage) {
-        // Use FormData for image uploads
         const formData = new FormData();
         formData.append('query', input);
         formData.append('category', selectedCategory);
         formData.append('farmer_id', farmerId);
         
-        // Convert base64 to blob for cleaner upload
         const base64Response = await fetch(uploadedImage);
         const blob = await base64Response.blob();
         formData.append('image', blob, 'plant-image.jpg');
@@ -172,17 +187,16 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
           timeout: 30000
         });
       } else {
-        // Use JSON for text-only queries (cleaner, faster)
         response = await api.post('/knowledge/ask', {
           query: input,
           category: selectedCategory,
-          farmer_id: farmerId
+          farmer_id: farmerId,
+          is_guest: isGuest  // Mark as guest for analytics
         }, {
           timeout: 30000
         });
       }
 
-      // Generate follow-up suggestions based on context
       const suggestions = generateSuggestions(input, response.data.answer);
 
       const assistantMessage: Message = {
@@ -199,16 +213,28 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
     } catch (error) {
       console.error('Error getting AI response:', error);
       
-      // Fallback friendly response
+      // Enhanced fallback for guests with marketplace encouragement
+      const fallbackContent = isGuest 
+        ? "Samahani, kuna tatizo la mtandao. Tafadhali jaribu tena baadaye. 🙏\n\n" +
+          "Kwa sasa, unaweza kuangalia:\n" +
+          "• Bei za soko kwenye dashibodi ya hapa\n" +
+          "• Mazao yanayopatikana kutoka vyama vya ushirika\n" +
+          "• Kuunda akaunti bure ili kupata usaidizi zaidi\n\n" +
+          "Je, ungependa kujua jinsi ya kuanza kuuza mazao yako?"
+        : "Samahani, kuna tatizo la mtandao. Tafadhali jaribu tena baadaye. 🙏\n\n" +
+          "Kwa sasa, unaweza kuangalia:\n" +
+          "• Bei za soko kwenye dashibodi\n" +
+          "• Hali ya hewa kwa eneo lako\n" +
+          "• Orodha ya mazao kwenye ghala";
+      
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: "Samahani, kuna tatizo la mtandao. Tafadhali jaribu tena baadaye. 🙏\n\n" +
-                "Kwa sasa, unaweza kuangalia:\n" +
-                "• Bei za soko kwenye dashibodi\n" +
-                "• Hali ya hewa kwa eneo lako\n" +
-                "• Orodha ya mazao kwenye ghala",
-        timestamp: new Date()
+        content: fallbackContent,
+        timestamp: new Date(),
+        suggestions: isGuest 
+          ? ["Jinsi ya kujiunga", "Bei za soko", "Mazao yanayopatikana"]
+          : ["Bei za soko", "Mazao yanayopatikana", "Usaidizi zaidi"]
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -217,7 +243,6 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
   };
 
   const generateSuggestions = (query: string, response: string): string[] => {
-    // Simple keyword-based suggestion generator
     const suggestions = [];
     
     if (query.toLowerCase().includes('mahindi') || query.toLowerCase().includes('maize')) {
@@ -227,12 +252,21 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
     } else if (query.toLowerCase().includes('kuku') || query.toLowerCase().includes('chicken')) {
       suggestions.push('Chakula cha kuku', 'Chanjo za kuku', 'Magonjwa ya kuku');
     } else {
-      suggestions.push(
-        'Bei za soko',
-        'Hali ya hewa wiki hii',
-        'Mazao yanayofaa msimu huu',
-        'Mbolea asilia'
-      );
+      if (isGuest) {
+        suggestions.push(
+          'Jinsi ya kujiunga na FarmFuzion',
+          'Bei za soko',
+          'Mazao yanayopatikana',
+          'Je, ninaweza kuuza mazao yangu?'
+        );
+      } else {
+        suggestions.push(
+          'Bei za soko',
+          'Hali ya hewa wiki hii',
+          'Mazao yanayofaa msimu huu',
+          'Mbolea asilia'
+        );
+      }
     }
     
     return suggestions.slice(0, 3);
@@ -247,7 +281,7 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-4xl backdrop-blur-sm">
+                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-4xl backdrop-blur-sm animate-pulse-glow">
                   {MKULIMA_HALISI.avatar}
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
@@ -257,10 +291,18 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
                   <h2 className="text-3xl font-bold">{MKULIMA_HALISI.name}</h2>
                   <span className="px-3 py-1 bg-white/20 rounded-full text-sm font-medium">
                     {MKULIMA_HALISI.title}
-        </span>
+                  </span>
+                  {isGuest && (
+                    <span className="px-3 py-1 bg-yellow-400/30 rounded-full text-sm font-medium flex items-center gap-1">
+                      <Sparkles size={14} />
+                      Karibu
+                    </span>
+                  )}
                 </div>
                 <p className="text-white/90 text-sm mt-1 max-w-2xl">
-                  Mkulima Halisi - Your genuine farming companion. Niko hapa kukusaidia na maswali yako yote ya kilimo.
+                  {isGuest 
+                    ? "Karibu! Unaweza kuuliza maswali yoyote kuhusu kilimo, bei za soko, na mazao. Jisajili ili upate usaidizi zaidi!"
+                    : "Mkulima Halisi - Your genuine farming companion. Niko hapa kukusaidia na maswali yako yote ya kilimo."}
                 </p>
                 <div className="flex gap-2 mt-2">
                   {MKULIMA_HALISI.expertise.slice(0, 3).map((exp, idx) => (
@@ -322,7 +364,7 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
                   ) : (
                     <>
                       <User size={16} />
-                      <span className="text-xs font-medium">Wewe</span>
+                      <span className="text-xs font-medium">{isGuest ? 'Mgeni' : displayName}</span>
                     </>
                   )}
                   <span className="text-xs opacity-75 ml-auto">
@@ -373,26 +415,6 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
                         </button>
                       ))}
                     </div>
-                  </div>
-                )}
-
-                {/* Feedback buttons */}
-                {msg.role === 'assistant' && msg.id !== 'welcome' && (
-                  <div className="mt-3 flex justify-end gap-2">
-                    <button
-                      onClick={() => api.post('/knowledge/feedback', { message_id: msg.id, feedback: 'positive' })}
-                      className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                      title="Jibu hili linasaidia"
-                    >
-                      <ThumbsUp size={14} />
-                    </button>
-                    <button
-                      onClick={() => api.post('/knowledge/feedback', { message_id: msg.id, feedback: 'negative' })}
-                      className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                      title="Jibu hili halijasaidia"
-                    >
-                      <ThumbsDown size={14} />
-                    </button>
                   </div>
                 )}
               </div>
@@ -467,7 +489,7 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Andika swali lako hapa..."
+              placeholder={isGuest ? "Uliza swali lako hapa... (Karibu bure!)" : "Andika swali lako hapa..."}
               className="flex-1 p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
 
@@ -479,6 +501,22 @@ export default function KnowledgeModal({ farmerId, farmerName, onClose }: Knowle
               {loading ? <Loader size={20} className="animate-spin" /> : <Send size={20} />}
             </button>
           </div>
+
+          {/* Guest Sign-up Call to Action */}
+          {isGuest && (
+            <div className="mt-3 flex items-center justify-between gap-2 text-xs text-gray-500 border-t border-gray-200 dark:border-gray-700 pt-3">
+              <div className="flex items-center gap-2">
+                <Sparkles size={14} className="text-yellow-500" />
+                <span className="italic">Karibu kujifunza! Unaweza kuuliza maswali yoyote.</span>
+              </div>
+              <button
+                onClick={() => window.location.href = "/login"}
+                className="px-3 py-1.5 bg-gradient-to-r from-brand-green to-green-600 text-white rounded-lg text-xs font-medium hover:shadow-md transition-all"
+              >
+                Jiunge Bure
+              </button>
+            </div>
+          )}
 
           {/* Kenyan proverb of the day */}
           <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">

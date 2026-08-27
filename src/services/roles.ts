@@ -17,6 +17,7 @@ export async function getRoles(): Promise<any[]> {
     }
     
     const data = await res.json();
+    // Ensure we return an array
     return Array.isArray(data) ? data : [];
   } catch (err) {
     console.error("Failed to fetch roles:", err);
@@ -38,7 +39,7 @@ export async function createRole(payload: { name: string; description?: string }
     }
     
     const data = await res.json();
-    return data.role || data;
+    return data;
   } catch (err) {
     console.error("Failed to create role:", err);
     throw err;

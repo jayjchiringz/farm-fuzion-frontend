@@ -1,5 +1,3 @@
-// farm-fuzion-frontend/src/services/weatherApi.ts
-
 export interface WeatherData {
   conditionIcon: string;
   location: string;

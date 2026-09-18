@@ -6,7 +6,7 @@ import {
   Truck, Search, Filter, RefreshCw, Loader2, MapPin,
   DollarSign, Calendar, Globe, FileText, Send, Mail,
   LogOut, ChevronLeft, ChevronRight, LayoutDashboard, Shield,
-  Menu, X, Home, BarChart3, Sparkles, Settings, AlertTriangle
+  Menu, X, Home, BarChart3, Sparkles, Settings, AlertTriangle, Wallet
 } from "lucide-react";
 import MainLayout from "../layouts/MainLayout";
 import ThemeToggle from "../components/ThemeToggle";
@@ -14,10 +14,10 @@ import { useCurrency } from "../contexts/CurrencyContext";
 import { cooperativeApi, Cooperative, CooperativeProduct, BulkOrder, Tender } from "../services/cooperativeApi";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import GroupWalletModal from "../components/GroupWallet/GroupWalletModal";
 
 type TabType = 'dashboard' | 'products' | 'orders' | 'tenders';
 
-// Define the product form type with all required fields
 interface ProductFormData {
   product_name: string;
   category: string;
@@ -56,9 +56,9 @@ export default function GroupAdminDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const { formatKES } = useCurrency();
   const { user, logout } = useAuth();
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Get user info from auth context
   const adminName = user?.first_name || user?.email?.split('@')[0] || 'Group Admin';
   const groupName = cooperative?.name || 'Loading...';
 
@@ -243,6 +243,47 @@ export default function GroupAdminDashboard() {
         <StatCard label="Revenue" value={formatKES(orders.reduce((sum, o) => sum + o.total_amount, 0))} icon={<DollarSign size={20} />} color="from-orange-500 to-orange-600" />
       </div>
 
+      {/* Quick Actions - Group Wallet */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <button
+          onClick={() => setIsWalletModalOpen(true)}
+          className="group relative overflow-hidden bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-12 -mt-12 group-hover:scale-125 transition-transform"></div>
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <Wallet size={28} />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-lg">Group Wallet</p>
+                <p className="text-sm text-white/80">Manage cooperative funds</p>
+              </div>
+            </div>
+            <ChevronRight size={24} className="group-hover:translate-x-2 transition-transform" />
+          </div>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('products')}
+          className="group relative overflow-hidden bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-12 -mt-12 group-hover:scale-125 transition-transform"></div>
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <Package size={28} />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-lg">Cooperative Products</p>
+                <p className="text-sm text-white/80">Manage produce listings</p>
+              </div>
+            </div>
+            <ChevronRight size={24} className="group-hover:translate-x-2 transition-transform" />
+          </div>
+        </button>
+      </div>
+
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-bold text-lg">Recent Products</h3>
@@ -344,20 +385,16 @@ export default function GroupAdminDashboard() {
                     </div>
                   )}
                   <div className="mt-4 flex gap-2">
-                    {/* Edit Button */}
                     <button onClick={() => { setEditingProduct(product); setProductForm({ product_name: product.product_name, category: product.category, quantity: product.quantity, unit: product.unit, price_per_unit: product.price_per_unit, certification: product.certification || '', description: product.description || '', currency: product.currency || 'KES', available: product.available }); setIsProductModalOpen(true); }} className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-1"><Edit2 size={14} /> Edit</button>
                     
-                    {/* Recall Button */}
                     <button onClick={() => handleRecall(product)} disabled={product.quantity === 0 || recallingProduct === product.id} className={`flex-1 px-3 py-1.5 text-sm border rounded-lg flex items-center justify-center gap-1 transition-colors ${product.quantity === 0 ? 'border-gray-300 text-gray-400 cursor-not-allowed' : 'border-orange-300 text-orange-600 hover:bg-orange-50'}`} title="Recall unused stock back to farmer inventory">{recallingProduct === product.id ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />} Recall</button>
                     
-                    {/* Publish to Global Button */}
                     {(product as any).published_to_global ? (
                       <span className="flex-1 px-3 py-1.5 text-sm bg-green-100 text-green-600 rounded-lg flex items-center justify-center gap-1"><Globe size={14} /> Published</span>
                     ) : (
                       <button onClick={() => handlePublishToGlobal(product)} disabled={publishingToGlobal === product.id || product.quantity === 0} className="flex-1 px-3 py-1.5 text-sm border border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed" title="Publish to Global Public Marketplace">{publishingToGlobal === product.id ? <Loader2 size={14} className="animate-spin" /> : <Globe size={14} />} Publish Global</button>
                     )}
                     
-                    {/* Delete Button */}
                     <button onClick={() => cooperativeApi.deleteProduct(product.id).then(loadData)} className="flex-1 px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50 flex items-center justify-center gap-1"><Trash2 size={14} /> Delete</button>
                   </div>
                 </div>
@@ -479,13 +516,28 @@ export default function GroupAdminDashboard() {
             </div>
             <nav className="space-y-1">
               <NavItem icon={<LayoutDashboard size={isSidebarOpen ? 18 : 22} />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} collapsed={!isSidebarOpen} />
+              <NavItem 
+                icon={<Wallet size={isSidebarOpen ? 18 : 22} />} 
+                label="Group Wallet" 
+                onClick={() => setIsWalletModalOpen(true)} 
+                collapsed={!isSidebarOpen} 
+              />
               <NavItem icon={<Package size={isSidebarOpen ? 18 : 22} />} label="Products" active={activeTab === 'products'} onClick={() => setActiveTab('products')} collapsed={!isSidebarOpen} />
               <NavItem icon={<ShoppingCart size={isSidebarOpen ? 18 : 22} />} label="Orders" active={activeTab === 'orders'} onClick={() => setActiveTab('orders')} collapsed={!isSidebarOpen} />
               <NavItem icon={<FileText size={isSidebarOpen ? 18 : 22} />} label="Tenders" active={activeTab === 'tenders'} onClick={() => setActiveTab('tenders')} collapsed={!isSidebarOpen} />
             </nav>
           </div>
           <div className="relative z-10">
-            {cooperative && isSidebarOpen && (<div className="mb-4 p-3 bg-white/10 rounded-xl backdrop-blur-sm"><p className="text-xs text-white/70 mb-1">Your Group</p><p className="text-sm font-medium text-white truncate">{cooperative.name}</p><p className="text-xs text-white/50 mt-1">{cooperative.registration_number}</p></div>)}
+            {cooperative && isSidebarOpen && (
+              <div 
+                onClick={() => setIsWalletModalOpen(true)}
+                className="mb-4 p-3 bg-white/10 rounded-xl backdrop-blur-sm cursor-pointer hover:bg-white/20 transition-colors"
+              >
+                <p className="text-xs text-white/70 mb-1">Group Wallet</p>
+                <p className="text-sm font-medium text-white truncate">View Balance →</p>
+                <p className="text-xs text-white/50 mt-1">{cooperative.registration_number}</p>
+              </div>
+            )}
             <button onClick={handleLogout} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 cursor-pointer ${!isSidebarOpen ? 'justify-center' : ''} bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl`} title="Logout"><LogOut size={isSidebarOpen ? 20 : 24} />{isSidebarOpen && <span className="text-sm font-medium">Logout</span>}</button>
           </div>
         </aside>
@@ -500,7 +552,16 @@ export default function GroupAdminDashboard() {
                 <div className="relative"><div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-lg">{adminName.charAt(0)}</div><div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div></div>
                 <div><h1 className="text-2xl font-bold text-gray-900 dark:text-white">{cooperative ? `${cooperative.name} Admin` : 'Group Admin Dashboard'}</h1><p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2"><span className="flex items-center gap-1"><Shield size={14} className="text-purple-600" /> Group Administrator</span><span className="w-1 h-1 bg-gray-400 rounded-full"></span><span>Welcome back, {adminName}</span></p></div>
               </div>
-              <div className="flex items-center gap-3"><button onClick={handleRefresh} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors relative" disabled={refreshing}><RefreshCw size={20} className={refreshing ? 'animate-spin text-brand-green' : 'text-gray-600 dark:text-gray-400'} /></button><ThemeToggle /></div>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setIsWalletModalOpen(true)}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 text-sm font-medium"
+                >
+                  <Wallet size={16} />
+                  Wallet
+                </button>
+                <button onClick={handleRefresh} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors relative" disabled={refreshing}><RefreshCw size={20} className={refreshing ? 'animate-spin text-brand-green' : 'text-gray-600 dark:text-gray-400'} /></button><ThemeToggle />
+              </div>
             </div>
           </div>
 
@@ -538,6 +599,14 @@ export default function GroupAdminDashboard() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* ✅ Group Wallet Modal */}
+      {isWalletModalOpen && cooperative && (
+        <GroupWalletModal
+          groupId={cooperative.id}
+          onClose={() => setIsWalletModalOpen(false)}
+        />
       )}
     </MainLayout>
   );

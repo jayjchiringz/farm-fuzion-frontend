@@ -16,95 +16,98 @@ import PublicMarketplace from "./pages/PublicMarketplace";
 import React from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { CurrencyProvider } from './contexts/CurrencyContext';
+import { GroupWalletProvider } from './contexts/GroupWalletContext';
 import RegisterGroupAdmin from "./pages/RegisterGroupAdmin";
 
 export default function App() {
   return (
     <AuthProvider>
       <CurrencyProvider>
-        <MainLayout>
-          <Routes>
-            <Route path="/" element={<RedirectBasedOnAuth />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/verify" element={<VerifyOtp />} />
+        <GroupWalletProvider>
+          <MainLayout>
+            <Routes>
+              <Route path="/" element={<RedirectBasedOnAuth />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/verify" element={<VerifyOtp />} />
 
-            {/* Farmer only routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <PrivateRoute requiredRole="farmer">
-                  <Dashboard />
+              {/* Farmer only routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <PrivateRoute requiredRole="farmer">
+                    <Dashboard />
+                  </PrivateRoute>
+                }
+              />
+              
+              {/* Group Admin routes - Cooperative/Group Dashboard */}
+              <Route
+                path="/group-dashboard"
+                element={
+                  <PrivateRoute requiredRole="group_admin">
+                    <GroupAdminDashboard />
+                  </PrivateRoute>
+                }
+              />
+              
+              {/* Admin only routes */}
+              <Route
+                path="/admin-dashboard"
+                element={
+                  <PrivateRoute requiredRole="admin">
+                    <AdminDashboard />
+                  </PrivateRoute>
+                }
+              />
+              
+              <Route
+                path="/admin/users/roles"
+                element={
+                  <PrivateRoute requiredRole="admin">
+                    <UserRoleManagement />
+                  </PrivateRoute>
+                }
+              />
+              
+              {/* Routes accessible by both admin and group_admin */}
+              <Route
+                path="/register-farmer"
+                element={
+                  <PrivateRoute requiredRole={['admin', 'group_admin']}>
+                    <RegisterFarmerUnderGroup />
+                  </PrivateRoute>
+                }
+              />
+              
+              {/* Public routes (still require authentication but no specific role) */}
+              <Route path="/loans" element={
+                <PrivateRoute>
+                  <Loans />
                 </PrivateRoute>
-              }
-            />
-            
-            {/* Group Admin routes - Cooperative/Group Dashboard */}
-            <Route
-              path="/group-dashboard"
-              element={
-                <PrivateRoute requiredRole="group_admin">
-                  <GroupAdminDashboard />
+              } />
+              
+              <Route path="/repayments/:loanId" element={
+                <PrivateRoute>
+                  <LoanRepayments />
                 </PrivateRoute>
-              }
-            />
-            
-            {/* Admin only routes */}
-            <Route
-              path="/admin-dashboard"
-              element={
-                <PrivateRoute requiredRole="admin">
-                  <AdminDashboard />
-                </PrivateRoute>
-              }
-            />
-            
-            <Route
-              path="/admin/users/roles"
-              element={
-                <PrivateRoute requiredRole="admin">
-                  <UserRoleManagement />
-                </PrivateRoute>
-              }
-            />
-            
-            {/* Routes accessible by both admin and group_admin */}
-            <Route
-              path="/register-farmer"
-              element={
-                <PrivateRoute requiredRole={['admin', 'group_admin']}>
-                  <RegisterFarmerUnderGroup />
-                </PrivateRoute>
-              }
-            />
-            
-            {/* Public routes (still require authentication but no specific role) */}
-            <Route path="/loans" element={
-              <PrivateRoute>
-                <Loans />
-              </PrivateRoute>
-            } />
-            
-            <Route path="/repayments/:loanId" element={
-              <PrivateRoute>
-                <LoanRepayments />
-              </PrivateRoute>
-            } />
+              } />
 
-            <Route path="/marketplace" element={<PublicMarketplace />} />
+              <Route path="/marketplace" element={<PublicMarketplace />} />
 
-            <Route
-              path="/register-group-admin"
-              element={
-                <PrivateRoute requiredRole="admin">
-                  <RegisterGroupAdmin />
-                </PrivateRoute>
-              }
-            />
+              <Route
+                path="/register-group-admin"
+                element={
+                  <PrivateRoute requiredRole="admin">
+                    <RegisterGroupAdmin />
+                  </PrivateRoute>
+                }
+              />
 
-            {/* Fallback route */}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </MainLayout>
+              {/* Fallback route */}
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </MainLayout>
+        </GroupWalletProvider>
       </CurrencyProvider>
     </AuthProvider>
   );

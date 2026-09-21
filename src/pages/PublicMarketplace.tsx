@@ -674,31 +674,56 @@ export default function PublicMarketplace() {
           {/* Stats grid */}
           <div className="grid grid-cols-2 gap-3 lg:w-[420px]">
             <StatTile
-              label="Countries"
-              value={statsLoaded ? `${trustStats.counties}+` : "—"}
-              icon={<Globe size={20} />}
+              label="Counties"
+              value={trustStats.counties.toLocaleString()}
+              icon={<MapPin size={20} />}
               accent="bg-emerald-500"
             />
             <StatTile
               label="Cooperatives"
-              value={statsLoaded ? trustStats.cooperatives.toLocaleString() : "—"}
+              value={trustStats.cooperatives.toLocaleString()}
               icon={<Building2 size={20} />}
               accent="bg-lime-500"
             />
             <StatTile
               label="Farmers"
-              value={statsLoaded ? trustStats.farmers.toLocaleString() : "—"}
+              value={trustStats.farmers.toLocaleString()}
               icon={<Users size={20} />}
               accent="bg-amber-500"
             />
             <StatTile
-              label="Fulfilled"
-              value={statsLoaded ? trustStats.orders.toLocaleString() : "—"}
-              icon={<Truck size={20} />}
+              label="Active Farmers"
+              value={trustStats.activeFarmers.toLocaleString()}
+              icon={<BadgeCheck size={20} />}
               accent="bg-teal-500"
             />
           </div>
         </div>
+
+        {/* Group types distribution */}
+        {groupTypes.length > 0 && (
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-emerald-300/80 font-semibold mr-2">
+              By group type
+            </span>
+            {groupTypes.slice(0, 6).map((gt) => (
+              <span
+                key={gt.id}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur border border-white/15 text-[11px] text-emerald-100/90"
+                title={`${gt.group_count} groups · ${gt.active_wallets} active wallets`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-lime-400" />
+                <span className="font-medium">{gt.group_type}</span>
+                <span className="text-emerald-300/70">{gt.group_count}</span>
+              </span>
+            ))}
+            {groupTypes.length > 6 && (
+              <span className="text-[11px] text-emerald-300/60">
+                +{groupTypes.length - 6} more
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Ship-to bar */}
         <div className="mt-8 flex flex-col md:flex-row items-stretch md:items-center gap-3 p-4 rounded-2xl bg-white/5 backdrop-blur border border-white/10">
@@ -1464,6 +1489,50 @@ export default function PublicMarketplace() {
           <MiniStat label="Cooperatives" value={stats.total_cooperatives} icon={<Building2 size={18} />} color="from-purple-500 to-purple-600" />
           <MiniStat label="Orders" value={stats.total_orders} icon={<Truck size={18} />} color="from-orange-500 to-orange-600" />
           <MiniStat label="Categories" value={categories.length} icon={<TrendingUp size={18} />} color="from-emerald-500 to-emerald-600" />
+        </div>
+      )}
+
+      {/* Counties distribution */}
+      {counties.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-emerald-50 to-lime-50 dark:from-emerald-900/15 dark:to-gray-800/50 flex items-center gap-3">
+            <div className="p-2 bg-emerald-500/10 rounded-lg">
+              <MapPin size={18} className="text-emerald-600" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 dark:text-white">
+                Cooperative Network by County
+              </h3>
+              <p className="text-xs text-gray-500">
+                {counties.length} counties · {counties.reduce((s, c) => s + c.group_count, 0)} active groups
+              </p>
+            </div>
+          </div>
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {counties.slice(0, 12).map((c) => (
+              <div
+                key={c.county}
+                className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-lime-400 flex items-center justify-center text-[#062b22] text-xs font-bold flex-shrink-0">
+                    {c.county.slice(0, 2).toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
+                      {c.county}
+                    </p>
+                    <p className="text-[11px] text-gray-500">
+                      {c.active_wallets} wallet{c.active_wallets !== 1 ? "s" : ""} active
+                    </p>
+                  </div>
+                </div>
+                <span className="text-sm font-bold text-emerald-600 ml-2">
+                  {c.group_count}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

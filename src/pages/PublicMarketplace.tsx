@@ -53,9 +53,26 @@ interface MarketplaceStats {
   total_products: number;
   total_cooperatives: number;
   total_orders: number;
-  total_farmers?: number;
-  countries_reached?: number;
+  total_farmers: number;
+  active_farmers?: number;
+  counties_reached: number;
   categories: Array<{ name: string; count: number }>;
+}
+
+interface CountyStat {
+  county: string;
+  group_count: number;
+  active_wallets: number;
+  group_type_count: number;
+}
+
+interface GroupTypeStat {
+  id: string;
+  group_type: string;
+  type_active: boolean;
+  group_count: number;
+  active_wallets: number;
+  percentage: number;
 }
 
 interface MarketPrice {
@@ -122,6 +139,9 @@ export default function PublicMarketplace() {
   const [cartToast, setCartToast] = useState<string | null>(null);
   const [statsLoaded, setStatsLoaded] = useState(false);
   
+  const [counties, setCounties] = useState<CountyStat[]>([]);
+  const [groupTypes, setGroupTypes] = useState<GroupTypeStat[]>([]);
+
   // Data
   const [products, setProducts] = useState<PublicProduct[]>([]);
   const [stats, setStats] = useState<MarketplaceStats | null>(null);
@@ -251,44 +271,43 @@ export default function PublicMarketplace() {
 
   const fetchStatsAndCategories = async () => {
     try {
-      const [statsRes, categoriesRes] = await Promise.all([
+      const [statsRes, categoriesRes, countiesRes, groupTypesRes] = await Promise.all([
         fetch(`${PUBLIC_API_URL}/api/v1/stats`),
         fetch(`${PUBLIC_API_URL}/api/v1/categories`),
+        fetch(`${PUBLIC_API_URL}/api/v1/counties`),
+        fetch(`${PUBLIC_API_URL}/api/v1/group-types`),
       ]);
 
       if (statsRes.ok) {
         const s = await statsRes.json();
-
-        // Trust whatever the backend returns — 0 is a valid, honest number.
-        // Only coerce to 0 when the field is genuinely absent (undefined/null).
         const asNumber = (v: unknown): number => {
           const n = typeof v === "string" ? Number(v) : (v as number);
           return Number.isFinite(n) ? n : 0;
         };
-
         setStats({
           total_products: asNumber(s.total_products),
           total_cooperatives: asNumber(s.total_cooperatives),
           total_orders: asNumber(s.total_orders),
           total_farmers: asNumber(s.total_farmers),
-          countries_reached: asNumber(s.countries_reached),
+          active_farmers: asNumber(s.active_farmers),
+          counties_reached: asNumber(s.counties_reached),
           categories: s.categories || [],
-        });
-      } else {
-        // Backend unreachable → show honest zeros, not placeholders.
-        setStats({
-          total_products: 0,
-          total_cooperatives: 0,
-          total_orders: 0,
-          total_farmers: 0,
-          countries_reached: 0,
-          categories: [],
         });
       }
 
       if (categoriesRes.ok) {
         const c = await categoriesRes.json();
         setCategories(c.categories || []);
+      }
+
+      if (countiesRes.ok) {
+        const c = await countiesRes.json();
+        setCounties(c.data || []);
+      }
+
+      if (groupTypesRes.ok) {
+        const g = await groupTypesRes.json();
+        setGroupTypes(g.data || []);
       }
     } catch (err) {
       console.error("Error fetching stats:", err);
@@ -297,7 +316,8 @@ export default function PublicMarketplace() {
         total_cooperatives: 0,
         total_orders: 0,
         total_farmers: 0,
-        countries_reached: 0,
+        active_farmers: 0,
+        counties_reached: 0,
         categories: [],
       });
     }
@@ -398,9 +418,10 @@ export default function PublicMarketplace() {
   // ----------------------------- Derived -----------------------------
   const featuredProducts = useMemo(() => products.slice(0, 4), [products]);
   const trustStats = useMemo(() => ({
-    countries: stats?.countries_reached ?? 0,
+    counties: stats?.counties_reached ?? 0,
     cooperatives: stats?.total_cooperatives ?? 0,
     farmers: stats?.total_farmers ?? 0,
+    activeFarmers: stats?.active_farmers ?? 0,
     orders: stats?.total_orders ?? 0,
   }), [stats]);
 
@@ -529,7 +550,7 @@ export default function PublicMarketplace() {
             <div className="space-y-2 text-xs">
               <SidebarStat label="Cooperatives" value={trustStats.cooperatives} />
               <SidebarStat label="Farmers" value={trustStats.farmers} />
-              <SidebarStat label="Countries" value={trustStats.countries} />
+              <SidebarStat label="Counties" value={trustStats.counties} />
               <SidebarStat label="Fulfilled" value={trustStats.orders} />
             </div>
           </div>
@@ -612,7 +633,7 @@ export default function PublicMarketplace() {
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-xs font-medium text-emerald-100 tracking-wide">
                 {statsLoaded
-                  ? `LIVE · ${trustStats.countries} countries · ${trustStats.cooperatives} verified cooperatives`
+                  ? `LIVE · ${trustStats.counties} counties · ${trustStats.cooperatives} verified cooperatives`
                   : "LIVE · connecting Kenyan cooperatives to the world"}
               </span>
             </div>
@@ -654,7 +675,7 @@ export default function PublicMarketplace() {
           <div className="grid grid-cols-2 gap-3 lg:w-[420px]">
             <StatTile
               label="Countries"
-              value={statsLoaded ? `${trustStats.countries}+` : "—"}
+              value={statsLoaded ? `${trustStats.counties}+` : "—"}
               icon={<Globe size={20} />}
               accent="bg-emerald-500"
             />

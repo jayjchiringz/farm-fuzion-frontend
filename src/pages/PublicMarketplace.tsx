@@ -93,6 +93,21 @@ interface QuoteRequest {
   notes: string;
 }
 
+interface Insight {
+  type: "weather" | "market" | "advisory" | "opportunity" | "alert";
+  severity: "info" | "warning" | "critical";
+  text: string;
+}
+
+interface InsightsResponse {
+  insights: Insight[];
+  source: string;
+  generated_at: string;
+  cached?: boolean;
+  cache_age_seconds?: number;
+  fallback_reason?: string;
+}
+
 // ----------------------------- Country Data -----------------------------
 const COUNTRY_FLAGS: Record<string, string> = {
   Kenya: "🇰🇪", Uganda: "🇺🇬", Tanzania: "🇹🇿", Rwanda: "🇷🇼",
@@ -116,6 +131,20 @@ const buildTierPricing = (base: number) => [
   { min_qty: 2000, price: base * 0.88 },
   { min_qty: 10000, price: base * 0.8 },
 ];
+
+const INSIGHT_STYLES: Record<string, { bg: string; text: string; dot: string; icon: string }> = {
+  weather:     { bg: "bg-sky-500/15 border-sky-400/30",          text: "text-sky-100",     dot: "bg-sky-400",     icon: "🌦️" },
+  market:      { bg: "bg-emerald-500/15 border-emerald-400/30",  text: "text-emerald-100", dot: "bg-emerald-400", icon: "📈" },
+  advisory:    { bg: "bg-lime-500/15 border-lime-400/30",        text: "text-lime-100",    dot: "bg-lime-400",    icon: "🌱" },
+  opportunity: { bg: "bg-amber-500/15 border-amber-400/30",      text: "text-amber-100",   dot: "bg-amber-400",   icon: "💡" },
+  alert:       { bg: "bg-red-500/15 border-red-400/30",          text: "text-red-100",     dot: "bg-red-400",     icon: "⚠️" },
+};
+
+const SEVERITY_GLOW: Record<string, string> = {
+  info: "",
+  warning: "shadow-[0_0_0_1px_rgba(251,191,36,0.4)]",
+  critical: "shadow-[0_0_0_1px_rgba(239,68,68,0.5)] animate-pulse",
+};
 
 // =========================================================================
 // MAIN COMPONENT
@@ -168,6 +197,10 @@ export default function PublicMarketplace() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
 
+  const [insights, setInsights] = useState<Insight[]>([]);
+  const [insightIndex, setInsightIndex] = useState(0);
+  const [insightsLoading, setInsightsLoading] = useState(true);
+
   // Order form
   const [orderForm, setOrderForm] = useState({
     buyer_name: "",
@@ -212,6 +245,14 @@ export default function PublicMarketplace() {
     setOrderForm((f) => ({ ...f, buyer_country: shipTo }));
     setQuoteRequest((q) => ({ ...q, destination: shipTo }));
   }, [shipTo]);
+
+  useEffect(() => {
+    if (insights.length <= 1) return;
+    const interval = setInterval(() => {
+      setInsightIndex((i) => (i + 1) % insights.length);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [insights.length]);
 
   const toggleSidebar = () => {
     if (window.innerWidth < 1024) setSidebarOpen((s) => !s);
@@ -323,10 +364,26 @@ export default function PublicMarketplace() {
     }
   };
 
+  const fetchInsights = async () => {
+    try {
+      // Mkulima Halisi lives in the Express backend, not the FastAPI public API
+      const res = await fetch(`${FF_API_URL}/knowledge/insights`);   // 👈 was `${PUBLIC_API_URL}/api/v1/insights`
+      if (res.ok) {
+        const data: InsightsResponse = await res.json();
+        setInsights(Array.isArray(data.insights) ? data.insights : []);
+      }
+    } catch (err) {
+      console.error("Error fetching insights:", err);
+    } finally {
+      setInsightsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
     fetchMarketPrices();
     fetchStatsAndCategories();
+    fetchInsights();                 // 👈 ADD
   }, [fetchProducts]);
 
   // ----------------------------- Handlers -----------------------------
@@ -457,6 +514,86 @@ export default function PublicMarketplace() {
       </div>
     </div>
   );
+
+  const HeroInsightStrip = () => {
+    const current = insights[insightIndex];
+    const style = current ? INSIGHT_STYLES[current.type] || INSIGHT_STYLES.advisory : INSIGHT_STYLES.advisory;
+
+    return (
+      <div
+        className={`mt-6 rounded-2xl border backdrop-blur-md px-4 py-3.5 transition-all duration-500
+          ${current ? style.bg : "bg-white/5 border-white/10"}
+          ${current && current.severity !== "info" ? SEVERITY_GLOW[current.severity] : ""}`}
+      >
+        <div className="flex items-start gap-3">
+          {/* AI Avatar */}
+          <div className="relative flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md">
+              <Bot size={18} className="text-white" />
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-lime-400 border-2 border-[#062b22] animate-pulse" />
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/60 font-semibold">
+                Mkulima Halisi · Live Insight
+              </p>
+              {current && (
+                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${style.bg} ${style.text}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+                  {current.type}
+                </span>
+              )}
+            </div>
+
+            {insightsLoading ? (
+              <p className="text-sm text-white/60 italic">Analysing markets, weather and demand…</p>
+            ) : current ? (
+              <p
+                key={insightIndex}
+                className="text-sm md:text-[15px] text-white leading-relaxed animate-fade-in"
+              >
+                <span className="mr-1.5">{style.icon}</span>
+                {current.text}
+              </p>
+            ) : (
+              <p className="text-sm text-white/70 italic">
+                No insights available right now — check back soon.
+              </p>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {insights.length > 1 && (
+              <div className="hidden sm:flex items-center gap-1 mr-2">
+                {insights.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setInsightIndex(i)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      i === insightIndex ? "w-4 bg-lime-400" : "w-1.5 bg-white/30 hover:bg-white/60"
+                    }`}
+                    aria-label={`Insight ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => setShowKnowledgeModal(true)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold transition-colors"
+              title="Ask Mkulima Halisi for details"
+            >
+              Ask AI
+              <ArrowUpRight size={11} />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // =========================================================================
   // SIDEBAR
@@ -661,6 +798,9 @@ export default function PublicMarketplace() {
                 <Bot size={18} /> Ask Mkulima Halisi
               </button>
             </div>
+
+            {/* AI-powered live insight (rotates) */}
+            <HeroInsightStrip />
 
             {/* Trust badges */}
             <div className="flex flex-wrap gap-4 mt-8 text-emerald-100/70 text-xs">
@@ -1767,3 +1907,7 @@ export default function PublicMarketplace() {
     </MainLayout>
   );
 }
+function setInsightsLoading(arg0: boolean) {
+  throw new Error("Function not implemented.");
+}
+

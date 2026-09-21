@@ -16,6 +16,9 @@ import MainLayout from "../layouts/MainLayout";
 import KnowledgeModal from "../components/Knowledge/KnowledgeModal";
 import IntelligenceDashboard from "../components/Markets/IntelligenceDashboard";
 import { useAuth } from "../contexts/AuthContext";
+import { usePublicCart } from "../contexts/PublicCartContext";
+import PublicCartDrawer from "../components/Markets/PublicCartDrawer";
+import PublicCheckoutModal from "../components/Markets/PublicCheckoutModal";
 
 const PUBLIC_API_URL = import.meta.env.VITE_PUBLIC_API_URL;
 const FF_API_URL = import.meta.env.VITE_API_BASE_URL;
@@ -112,6 +115,11 @@ export default function PublicMarketplace() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"marketplace" | "intelligence" | "analytics">("marketplace");
   const [isMobile, setIsMobile] = useState(false);
+
+  const { addItem, itemCount, subtotal } = usePublicCart();
+  const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [cartToast, setCartToast] = useState<string | null>(null);
 
   // Data
   const [products, setProducts] = useState<PublicProduct[]>([]);
@@ -766,9 +774,37 @@ export default function PublicMarketplace() {
             <div className="flex items-center gap-1 text-[11px] text-gray-400">
               <Clock size={11} />~{product.response_time_hours}h response
             </div>
-            <button className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 text-xs font-semibold group-hover:gap-2 transition-all">
-              View lot <ArrowUpRight size={12} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addItem(
+                    {
+                      productId: product.id,
+                      productName: product.product_name,
+                      cooperativeName: product.cooperative_name || "Kenyan Cooperative",
+                      country: product.cooperative_country,
+                      certification: product.certification,
+                      unit: product.unit,
+                      currency: product.currency || "KES",
+                      basePrice: product.price_per_unit,
+                      tierPricing: product.tier_pricing ?? buildTierPricing(product.price_per_unit),
+                      moq: product.moq ?? 100,
+                      availableStock: product.quantity,
+                    },
+                    product.moq ?? 100
+                  );
+                  setCartToast(`${product.product_name} added`);
+                  setTimeout(() => setCartToast(null), 2200);
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold shadow-sm transition-colors"
+              >
+                <ShoppingCart size={12} /> Add
+              </button>
+              <button className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 text-xs font-semibold group-hover:gap-2 transition-all">
+                View <ArrowUpRight size={12} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1001,13 +1037,41 @@ export default function PublicMarketplace() {
                     <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                       <ShoppingCart size={16} /> Place Bulk Order
                     </h3>
-                    <button
-                      type="button"
-                      onClick={() => { setQuoteRequest((q) => ({ ...q, product: p })); setShowQuoteModal(true); }}
-                      className="text-xs inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-semibold"
-                    >
-                      <Quote size={12} /> Request Quote
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => { setQuoteRequest((q) => ({ ...q, product: p })); setShowQuoteModal(true); }}
+                        className="text-xs inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-semibold"
+                      >
+                        <Quote size={12} /> Request Quote
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          addItem(
+                            {
+                              productId: p.id,
+                              productName: p.product_name,
+                              cooperativeName: p.cooperative_name || "Kenyan Cooperative",
+                              country: p.cooperative_country,
+                              certification: p.certification,
+                              unit: p.unit,
+                              currency: p.currency || "KES",
+                              basePrice: p.price_per_unit,
+                              tierPricing: p.tier_pricing ?? buildTierPricing(p.price_per_unit),
+                              moq: p.moq ?? 100,
+                              availableStock: p.quantity,
+                            },
+                            orderForm.quantity
+                          );
+                          setShowDetailModal(false);
+                          setCartOpen(true);
+                        }}
+                        className="text-xs inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition-colors"
+                      >
+                        <ShoppingCart size={11} /> Add to Cart
+                      </button>
+                    </div>
                   </div>
 
                   {/* Quantity selector */}
@@ -1509,6 +1573,53 @@ export default function PublicMarketplace() {
           onClose={() => setShowKnowledgeModal(false)}
         />
       )}
+
+      {/* Floating Cart Pill */}
+      {itemCount > 0 && (
+        <button
+          onClick={() => setCartOpen(true)}
+          className="fixed bottom-6 right-6 z-[70] flex items-center gap-3 px-5 py-3.5 rounded-2xl
+            bg-gradient-to-r from-[#062b22] to-[#0d4a3d] text-white shadow-2xl
+            hover:shadow-emerald-500/30 hover:scale-[1.03] transition-all group"
+        >
+          <div className="relative">
+            <ShoppingCart size={20} className="text-emerald-300" />
+            <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-lime-400 text-[#062b22] text-[10px] font-bold flex items-center justify-center">
+              {itemCount}
+            </span>
+          </div>
+          <div className="text-left">
+            <p className="text-[10px] uppercase tracking-wider text-emerald-300/80 font-semibold">
+              Bulk Cart
+            </p>
+            <p className="text-sm font-bold leading-tight">{formatKES(subtotal)}</p>
+          </div>
+          <ArrowUpRight size={16} className="text-emerald-300 group-hover:translate-x-0.5 transition-transform" />
+        </button>
+      )}
+
+      {/* Cart drawer + checkout */}
+      <PublicCartDrawer
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+        onCheckout={() => {
+          setCartOpen(false);
+          setCheckoutOpen(true);
+        }}
+      />
+      <PublicCheckoutModal
+        open={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        shipTo={shipTo}
+      />
+
+      {/* Toast */}
+      {cartToast && (
+        <div className="fixed bottom-24 right-6 z-[80] px-4 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-medium shadow-lg animate-fade-in">
+          ✅ {cartToast}
+        </div>
+      )}
+
     </MainLayout>
   );
 }

@@ -120,7 +120,8 @@ export default function PublicMarketplace() {
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [cartToast, setCartToast] = useState<string | null>(null);
-
+  const [statsLoaded, setStatsLoaded] = useState(false);
+  
   // Data
   const [products, setProducts] = useState<PublicProduct[]>([]);
   const [stats, setStats] = useState<MarketplaceStats | null>(null);
@@ -254,20 +255,51 @@ export default function PublicMarketplace() {
         fetch(`${PUBLIC_API_URL}/api/v1/stats`),
         fetch(`${PUBLIC_API_URL}/api/v1/categories`),
       ]);
+
       if (statsRes.ok) {
         const s = await statsRes.json();
+
+        // Trust whatever the backend returns — 0 is a valid, honest number.
+        // Only coerce to 0 when the field is genuinely absent (undefined/null).
+        const asNumber = (v: unknown): number => {
+          const n = typeof v === "string" ? Number(v) : (v as number);
+          return Number.isFinite(n) ? n : 0;
+        };
+
         setStats({
-          ...s,
-          total_farmers: s.total_farmers ?? 1450,
-          countries_reached: s.countries_reached ?? 38,
+          total_products: asNumber(s.total_products),
+          total_cooperatives: asNumber(s.total_cooperatives),
+          total_orders: asNumber(s.total_orders),
+          total_farmers: asNumber(s.total_farmers),
+          countries_reached: asNumber(s.countries_reached),
+          categories: s.categories || [],
+        });
+      } else {
+        // Backend unreachable → show honest zeros, not placeholders.
+        setStats({
+          total_products: 0,
+          total_cooperatives: 0,
+          total_orders: 0,
+          total_farmers: 0,
+          countries_reached: 0,
+          categories: [],
         });
       }
+
       if (categoriesRes.ok) {
         const c = await categoriesRes.json();
         setCategories(c.categories || []);
       }
     } catch (err) {
       console.error("Error fetching stats:", err);
+      setStats({
+        total_products: 0,
+        total_cooperatives: 0,
+        total_orders: 0,
+        total_farmers: 0,
+        countries_reached: 0,
+        categories: [],
+      });
     }
   };
 
@@ -366,10 +398,10 @@ export default function PublicMarketplace() {
   // ----------------------------- Derived -----------------------------
   const featuredProducts = useMemo(() => products.slice(0, 4), [products]);
   const trustStats = useMemo(() => ({
-    countries: stats?.countries_reached ?? 38,
-    cooperatives: stats?.total_cooperatives ?? 120,
-    farmers: stats?.total_farmers ?? 1450,
-    orders: stats?.total_orders ?? 340,
+    countries: stats?.countries_reached ?? 0,
+    cooperatives: stats?.total_cooperatives ?? 0,
+    farmers: stats?.total_farmers ?? 0,
+    orders: stats?.total_orders ?? 0,
   }), [stats]);
 
   // ----------------------------- Render helpers -----------------------------
@@ -579,7 +611,9 @@ export default function PublicMarketplace() {
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur border border-white/20 mb-5">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-xs font-medium text-emerald-100 tracking-wide">
-                LIVE · {trustStats.countries} countries · {trustStats.cooperatives} verified cooperatives
+                {statsLoaded
+                  ? `LIVE · ${trustStats.countries} countries · ${trustStats.cooperatives} verified cooperatives`
+                  : "LIVE · connecting Kenyan cooperatives to the world"}
               </span>
             </div>
             <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight mb-3">
@@ -618,10 +652,30 @@ export default function PublicMarketplace() {
 
           {/* Stats grid */}
           <div className="grid grid-cols-2 gap-3 lg:w-[420px]">
-            <StatTile label="Countries" value={`${trustStats.countries}+`} icon={<Globe size={20} />} accent="bg-emerald-500" />
-            <StatTile label="Cooperatives" value={trustStats.cooperatives.toLocaleString()} icon={<Building2 size={20} />} accent="bg-lime-500" />
-            <StatTile label="Farmers" value={trustStats.farmers.toLocaleString()} icon={<Users size={20} />} accent="bg-amber-500" />
-            <StatTile label="Fulfilled" value={trustStats.orders.toLocaleString()} icon={<Truck size={20} />} accent="bg-teal-500" />
+            <StatTile
+              label="Countries"
+              value={statsLoaded ? `${trustStats.countries}+` : "—"}
+              icon={<Globe size={20} />}
+              accent="bg-emerald-500"
+            />
+            <StatTile
+              label="Cooperatives"
+              value={statsLoaded ? trustStats.cooperatives.toLocaleString() : "—"}
+              icon={<Building2 size={20} />}
+              accent="bg-lime-500"
+            />
+            <StatTile
+              label="Farmers"
+              value={statsLoaded ? trustStats.farmers.toLocaleString() : "—"}
+              icon={<Users size={20} />}
+              accent="bg-amber-500"
+            />
+            <StatTile
+              label="Fulfilled"
+              value={statsLoaded ? trustStats.orders.toLocaleString() : "—"}
+              icon={<Truck size={20} />}
+              accent="bg-teal-500"
+            />
           </div>
         </div>
 

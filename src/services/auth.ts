@@ -1,6 +1,25 @@
 // src/services/auth.ts
 import { API_BASE } from "./config";
 
+// Store token in localStorage
+export function setAuthToken(token: string) {
+  localStorage.setItem('auth_token', token);
+}
+
+export function getAuthToken(): string | null {
+  return localStorage.getItem('auth_token');
+}
+
+export function clearAuthToken() {
+  localStorage.removeItem('auth_token');
+}
+
+// Add token to all API requests
+export function getAuthHeaders(): HeadersInit {
+  const token = getAuthToken();
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
 export async function verifyOtp(email: string, otp: string) {
   try {
     const response = await fetch(`${API_BASE}/auth/verify-otp`, {
@@ -21,6 +40,11 @@ export async function verifyOtp(email: string, otp: string) {
 
     const data = await response.json();
     
+    // Store the JWT token when login is successful
+    if (data.token) {
+      setAuthToken(data.token);
+    }
+    
     if (data.user && !data.user.role_name && data.user.role) {
       data.user.role_name = data.user.role;
     }
@@ -32,7 +56,6 @@ export async function verifyOtp(email: string, otp: string) {
   }
 }
 
-// Add requestOtp function if missing
 export async function requestOtp(email: string) {
   const response = await fetch(`${API_BASE}/auth/request-otp`, {
     method: "POST",
@@ -46,4 +69,11 @@ export async function requestOtp(email: string) {
   }
 
   return await response.json();
+}
+
+// New function to logout
+export async function logout() {
+  clearAuthToken();
+  // Optional: Call logout endpoint if needed
+  // await fetch(`${API_BASE}/auth/logout`, { method: 'POST' });
 }

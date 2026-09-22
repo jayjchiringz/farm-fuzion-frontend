@@ -1,6 +1,7 @@
+// src/components/Wallet/WalletModal.tsx
+
 import React, { useEffect, useState } from "react";
 import { api } from "../../services/api";
-import OtpModal from "./OtpModal";
 import TransactionTable from "./TransactionTable";
 import { formatCurrencyKES } from "../../utils/format";
 
@@ -12,36 +13,82 @@ export default function WalletModal({
   onClose: () => void;
 }) {
   const [balance, setBalance] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [needsRegistration, setNeedsRegistration] = useState(false);
+  const [registering, setRegistering] = useState(false);
+
+  // Wallet action states
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<"mpesa" | "airtel">("mpesa");
-  const [otpPhase, setOtpPhase] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [action, setAction] = useState<
-    "deposit" | "withdraw" | "transfer" | "pay"
-  >("deposit");
-  const [destination, setDestination] = useState(""); // for transfers or till numbers
+  const [action, setAction] = useState<"deposit" | "withdraw" | "transfer" | "pay">("deposit");
+  const [destination, setDestination] = useState("");
   const [transferPreview, setTransferPreview] = useState<any | null>(null);
-
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-
-  // Pay type states
   const [payType, setPayType] = useState<"till" | "paybill">("till");
   const [paybillNo, setPaybillNo] = useState("");
   const [accNo, setAccNo] = useState("");
-
-  // Refresh key for ledger refresh
   const [refreshKey, setRefreshKey] = useState(0);
   const triggerRefresh = () => setRefreshKey((k) => k + 1);
 
+  // Load balance on mount
+  useEffect(() => {
+    fetchBalance();
+  }, [farmerId]);
+
   const fetchBalance = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const res = await api.get(`/wallet/${farmerId}/balance`);
-      setBalance(res.data?.balance || res.data || 0);
-    } catch (error) {
-      console.error("Error fetching balance:", error);
+      
+      // Check if user needs registration
+      if (res.data?.needsRegistration) {
+        setNeedsRegistration(true);
+        setBalance(0);
+        return;
+      }
+      
+      setBalance(res.data?.balance || 0);
+      setNeedsRegistration(false);
+    } catch (err: any) {
+      console.error("Error fetching balance:", err);
+      
+      // ✅ Check if the error indicates needs registration
+      if (err.response?.data?.needsRegistration) {
+        setNeedsRegistration(true);
+      } else if (err.response?.status === 400 && err.response?.data?.needsRegistration) {
+        setNeedsRegistration(true);
+      } else if (err.response?.status === 404) {
+        setNeedsRegistration(true);
+      } else {
+        setError("Unable to fetch balance. Please try again.");
+      }
       setBalance(0);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    setRegistering(true);
+    setError(null);
+    try {
+      const res = await api.post("/wallet/register", { farmerId });
+      if (res.data.success) {
+        setNeedsRegistration(false);
+        await fetchBalance();
+        alert("✅ Wallet created successfully!");
+      } else {
+        setError(res.data.message || "Registration failed");
+      }
+    } catch (err: any) {
+      console.error("Registration error:", err);
+      setError(err.response?.data?.details || "Registration failed. Please try again.");
+    } finally {
+      setRegistering(false);
     }
   };
 
@@ -63,15 +110,10 @@ export default function WalletModal({
     }
   };
 
-  useEffect(() => {
-    fetchBalance();
-  }, []);
-
-  type WalletAction = "deposit" | "withdraw" | "transfer" | "pay";
-
+  // Handle wallet actions
   const handleSubmit = () => {
     setLoading(true);
-    
+
     if (action === "deposit") {
       api
         .post(`/wallet/topup/${method}`, {
@@ -153,7 +195,6 @@ export default function WalletModal({
           amount: Number(amount),
           destination: finalDestination,
           merchant: finalDestination,
-          mock: true,
         })
         .then(() => {
           alert("✅ Payment successful!");
@@ -168,6 +209,70 @@ export default function WalletModal({
         .finally(() => setLoading(false));
     }
   };
+
+  // ==================== RENDER: REGISTRATION SCREEN ====================
+
+  if (needsRegistration) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md p-6 shadow-2xl">
+          <div className="text-center mb-6">
+            <div className="text-5xl mb-3">🏦</div>
+            <h2 className="text-2xl font-bold">Set Up Your Wallet</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+              You don't have a Unipesa wallet yet. Click below to create one.
+            </p>
+          </div>
+
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleRegister}
+              disabled={registering}
+              className="flex-1 px-4 py-3 rounded-lg bg-brand-green text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+            >
+              {registering ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                  Creating...
+                </span>
+              ) : (
+                'Create Wallet'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==================== RENDER: MAIN WALLET ====================
+
+  if (loading && !error) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-brand-dark rounded-xl w-full max-w-md p-6 shadow-2xl">
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-green"></div>
+            <span className="ml-3 text-gray-600">Loading wallet...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  type WalletAction = "deposit" | "withdraw" | "transfer" | "pay";
 
   const renderActionForm = () => (
     <>
@@ -194,7 +299,6 @@ export default function WalletModal({
         )}
       </div>
 
-      {/* Transfer: searchable farmer select */}
       {action === "transfer" && (
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Select Recipient Farmer</label>
@@ -239,7 +343,6 @@ export default function WalletModal({
         </div>
       )}
 
-      {/* Pay: Till vs PayBill */}
       {action === "pay" && (
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Payment Method</label>
@@ -297,7 +400,6 @@ export default function WalletModal({
         </div>
       )}
 
-      {/* Withdraw destination input */}
       {action === "withdraw" && (
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Destination Phone Number</label>
@@ -337,8 +439,8 @@ export default function WalletModal({
                 Manage your funds, transfer to other farmers, and make payments
               </p>
             </div>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
               title="Close"
             >
@@ -347,7 +449,7 @@ export default function WalletModal({
               </svg>
             </button>
           </div>
-          
+
           {/* Balance Card */}
           <div className="mt-4 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Current Balance</p>
@@ -378,11 +480,10 @@ export default function WalletModal({
                   setAccNo("");
                   setPayType("till");
                 }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  action === tab.id
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${action === tab.id
                     ? "bg-brand-green text-white shadow-md scale-105"
                     : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                }`}
+                  }`}
               >
                 <span>{tab.icon}</span>
                 {tab.label}

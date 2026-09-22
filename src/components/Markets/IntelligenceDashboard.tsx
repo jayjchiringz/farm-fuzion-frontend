@@ -4,6 +4,7 @@ import {
   Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 import { TrendingUp, TrendingDown, AlertTriangle, DollarSign, Calendar } from 'lucide-react';
+import { API_BASE } from "../../services/config";
 
 interface IntelligenceDashboardProps {
   farmerData: {
@@ -28,31 +29,64 @@ const IntelligenceDashboard: React.FC<IntelligenceDashboardProps> = ({ farmerDat
 
   const fetchIntelligenceData = async () => {
     try {
-      // Fetch intelligent recommendations
-      const recResponse = await fetch('/api/market-prices/intelligent-recommendations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(farmerData)
+      // Intelligent recommendations
+      const recResponse = await fetch(`${API_BASE}/market-prices/intelligent-recommendations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(farmerData),
       });
-      const recData = await recResponse.json();
-      setRecommendations(recData.recommendations);
-      setMarketInsights(recData.marketInsights);
 
-      // Fetch predictions for each product
-      const predictionPromises = farmerData.inventory.map(item =>
-        fetch(`/api/market-prices/predict/${encodeURIComponent(item.product)}?days=30`)
-          .then(res => res.json())
+      if (!recResponse.ok) {
+        console.warn("Intelligence endpoint not available:", recResponse.status);
+        setRecommendations([]);
+        setMarketInsights({});
+        setPredictions([]);
+        return;
+      }
+
+      const recData = await recResponse.json();
+      setRecommendations(recData.recommendations || []);
+      setMarketInsights(recData.marketInsights || {});
+
+      // Predictions (best-effort)
+      const predictionPromises = farmerData.inventory.map((item) =>
+        fetch(
+          `${API_BASE}/market-prices/predict/${encodeURIComponent(item.product)}?days=30`
+        )
+          .then((res) => (res.ok ? res.json() : null))
+          .catch(() => null)
       );
-      const predictionsData = await Promise.all(predictionPromises);
+      const predictionsData = (await Promise.all(predictionPromises)).filter(Boolean);
       setPredictions(predictionsData);
     } catch (error) {
-      console.error('Failed to fetch intelligence data:', error);
+      console.error("Failed to fetch intelligence data:", error);
+      setRecommendations([]);
+      setMarketInsights({});
+      setPredictions([]);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) return <div>Loading intelligence dashboard...</div>;
+  if (loading) return <div className="p-6 text-center text-gray-500">Loading intelligence dashboard…</div>;
+
+  if (recommendations.length === 0) {
+    return (
+      <div className="rounded-2xl border border-emerald-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
+          <span className="text-2xl">🤖</span>
+        </div>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+          Market Intelligence coming soon
+        </h3>
+        <p className="text-sm text-gray-500 max-w-md mx-auto">
+          Our AI is analysing price trends, volatility, and optimal selling windows across Kenyan
+          cooperative markets. Check back shortly, or ask{" "}
+          <span className="font-semibold text-emerald-600">Mkulima Halisi</span> directly.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
